@@ -353,6 +353,84 @@ app.get("/api/songs/:id/:action", async (req, res) => {
         download: action === "download"
       });
 
+    if (storageError || !data?.signedUrl) {
+      return res.status(500).json({ error: "Could not access audio file" });
+    }
+
+    // Keep the existing download behavior
+    if (action === "download") {
+      return res.redirect(data.signedUrl);
+    }
+
+    // Fetch audio for browser playback
+    const headers = {};
+
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const audioResponse = await fetch(data.signedUrl, { headers });
+
+    if (!audioResponse.ok && audioResponse.status !== 206) {
+      return res.status(502).json({ error: "Audio file could not be streamed" });
+    }
+
+    res.status(audioResponse.status);
+    res.setHeader("Content-Type", song.mime_type || "audio/mpeg");
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "no-store");
+
+    const contentLength = audioResponse.headers.get("content-length");
+    const contentRange = audioResponse.headers.get("content-range");
+
+    if (contentLength) {
+      res.setHeader("Content-Length", contentLength);
+    }
+
+    if (contentRange) {
+      res.setHeader("Content-Range", contentRange);
+    }
+
+    if (!audioResponse.body) {
+      return res.status(502).end("Audio response is empty");
+    }
+
+    const { Readable } = require("stream");
+
+    Readable.fromWeb(audioResponse.body).pipe(res);
+
+  } catch (error) {
+    console.error("Song streaming error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Song unavailable" });
+    }
+  }
+});
+app.get("/api/songs/:id/:action", async (req, res) => {
+  try {
+    const { id, action } = req.params;
+
+    if (!["stream", "download"].includes(action)) {
+      return res.status(400).json({ error: "Invalid action" });
+    }
+
+    const { data: song, error } = await supabase
+      .from("songs")
+      .select("filename, original_name, mime_type")
+      .eq("id", id)
+      .eq("status", "approved")
+      .single();
+
+    if (error || !song) {
+      return res.status(404).json({ error: "Song not found" });
+    }
+
+    const { data, error: storageError } = await supabase.storage
+      .from("music")
+      .createSignedUrl(song.filename, 300, {
+        download: action === "download"
+      });
+
     if (storageError) throw storageError;
     res.redirect(data.signedUrl);
   } catch (error) {
