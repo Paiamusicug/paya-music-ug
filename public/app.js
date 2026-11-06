@@ -1,753 +1,591 @@
-const $ = (s) => document.querySelector(s);
+/* Paya Music UG - public/app.js
+   Complete frontend script. It safely checks optional page elements so the same
+   file can run on pages where some forms/panels are not present.
+*/
+const $ = (selector, root = document) => root.querySelector(selector);
+const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
-let token = localStorage.getItem("paya_token") || "";
-let currentUser = JSON.parse(localStorage.getItem("paya_user") || "null");
+const TOKEN_KEY = "paya_token";
+const USER_KEY = "paya_user";
+let token = localStorage.getItem(TOKEN_KEY) || "";
+let currentUser = null;
+
+try {
+  currentUser = JSON.parse(localStorage.getItem(USER_KEY) || "null");
+} catch {
+  currentUser = null;
+}
 
 const audio = $("#audio");
-
-$("#year").textContent = new Date().getFullYear();
-
-// ========================================
-// TOAST MESSAGE
-// ========================================
+const year = $("#year");
+if (year) year.textContent = new Date().getFullYear();
 
 function toast(message) {
   const el = $("#toast");
+  if (!el) {
+    console.log(message);
+    return;
+  }
   el.textContent = message;
   el.classList.add("show");
-
-  setTimeout(() => el.classList.remove("show"), 3200);
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove("show"), 3000);
 }
 
-// ========================================
-// API REQUESTS
-// ========================================
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[char]);
+}
+
+function authHeaders(extra = {}) {
+  return { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...extra };
+}
 
 async function api(url, options = {}) {
-  const headers = { ...(options.headers || {}) };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  if (options.body && !(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  const data = await response.json().catch(() => ({}));
+  const headers = authHeaders(options.headers || {});
+  const response = await fetch(url, { ...options, headers });
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    const message = data && typeof data === "object"
+      ? (data.error || data.message || "Request failed")
+      : (data || "Request failed");
+    throw new Error(message);
   }
-
   return data;
 }
 
-// ========================================
-// SAVE USER
-// ========================================
-
-function saveUser(data) {
-  token = data.token;
-  currentUser = data.user;
-
-  localStorage.setItem("paya_token", token);
-  localStorage.setItem("paya_user", JSON.stringify(currentUser));
-
-  showUser();
-
-  toast(`Welcome, ${currentUser.name}!`);
+function saveSession(user, newToken) {
+  if (newToken) {
+    token = newToken;
+    localStorage.setItem(TOKEN_KEY, token);
+  }
+  if (user) {
+    currentUser = user;
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+  updateAccountUI();
 }
 
-// ========================================
-// HTML ESCAPING
-// ========================================
-
-function escapeHtml(v) {
-  return String(v ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  }[c]));
+function clearSession() {
+  token = "";
+  currentUser = null;
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  updateAccountUI();
 }
 
-function escapeAttr(v) {
-  return escapeHtml(v);
+function isAdmin() {
+  return ["admin", "owner"].includes(String(currentUser?.role || "").toLowerCase());
 }
 
-// ========================================
-// LOAD HOMEPAGE ADVERTS
-// ========================================
+function isOwner() {
+  return String(currentUser?.role || "").toLowerCase() === "owner";
+}
+
+function updateAccountUI() {
+  const userPanel = $("#userPanel");
+  const welcome = $("#welcome");
+  const adminPanel = $("#adminPanel");
+  const ownerPanel = $("#ownerPanel");
+  const loginOpen = $("#loginOpen");
+  const account = $("#account");
+
+  if (userPanel) userPanel.hidden = !currentUser;
+  if (welcome) welcome.textContent = currentUser
+    ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
+    : "";
+  if (adminPanel) adminPanel.hidden = !isAdmin();
+  if (ownerPanel) ownerPanel.hidden = !isOwner();
+  if (loginOpen) loginOpen.hidden = !!currentUser;
+  if (account) account.hidden = !!currentUser;
+
+  const roleLabel = $("#userRole");
+  if (roleLabel && currentUser) roleLabel.textContent = currentUser.role || "user";
+
+  const profileName = $("#profileName");
+  const profileBio = $("#profileBio");
+  if (profileName && currentUser && !profileName.value) {
+    profileName.value = currentUser.name || currentUser.username || "";
+  }
+  if (profileBio && currentUser && !profileBio.value) {
+    profileBio.value = currentUser.bio || "";
+  }
+}
+
+function songId(song) {
+  return song.id ?? song.song_id ?? song.uuid ?? "";
+}
+
+function songTitle(song) {
+  return song.title || song.name || "Untitled song";
+}
+
+function songArtist(song) {
+  return song.artist || song.artist_name || song.username || "Unknown artist";
+}
+
+function songAudioUrl(song) {
+  return song.audio_url || song.file_url || song.url || "";
+}
+
+function renderSongs(items = []) {
+  const container = $("#songs");
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = '<p class="empty-state">No songs found yet.</p>';
+    return;
+  }
+
+  container.innerHTML = items.map((song) => {
+    const id = escapeHTML(songId(song));
+    const title = escapeHTML(songTitle(song));
+    const artist = escapeHTML(songArtist(song));
+    const cover = song.cover_url || song.image_url || song.artwork_url || "";
+    const coverHTML = cover
+      ? `<img class="song-cover" src="${escapeHTML(cover)}" alt="${title} cover" loading="lazy">`
+      : '<div class="song-cover song-cover-placeholder">♪</div>';
+    const likes = Number(song.likes ?? song.like_count ?? 0);
+    return `
+      <article class="song-card" data-song-id="${id}">
+        ${coverHTML}
+        <div class="song-info">
+          <h3>${title}</h3>
+          <p>${artist}</p>
+          <small data-like-count>${likes} likes</small>
+        </div>
+        <div class="song-actions">
+          <button type="button" data-play="${id}">Play</button>
+          <button type="button" data-like="${id}">Like</button>
+          <button type="button" data-share="${id}">Share</button>
+          <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
+        </div>
+      </article>`;
+  }).join("");
+
+  container.querySelectorAll("[data-play]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const song = items.find((item) => String(songId(item)) === button.dataset.play);
+      if (song) playSong(song);
+    });
+  });
+  container.querySelectorAll("[data-like]").forEach((button) => {
+    button.addEventListener("click", () => likeSong(button.dataset.like, button));
+  });
+  container.querySelectorAll("[data-share]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const song = items.find((item) => String(songId(item)) === button.dataset.share);
+      if (song) shareSong(song);
+    });
+  });
+}
+
+function playSong(song) {
+  if (!audio) return toast("Audio player is not available on this page.");
+  const url = songAudioUrl(song) || `/api/songs/${encodeURIComponent(songId(song))}/stream`;
+  audio.src = url;
+  const title = $("#playingTitle");
+  const artist = $("#playingArtist");
+  if (title) title.textContent = songTitle(song);
+  if (artist) artist.textContent = songArtist(song);
+  audio.play().catch(() => toast("Tap play again to start the song."));
+    }function visitorKey() {
+  let key = localStorage.getItem("paya_visitor_key");
+  if (!key) {
+    key = (window.crypto?.randomUUID?.() || `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    localStorage.setItem("paya_visitor_key", key);
+  }
+  return key;
+}
+
+async function likeSong(id, button) {
+  try {
+    const result = await api(`/api/songs/${encodeURIComponent(id)}/like`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitor_key: visitorKey() })
+    });
+    const card = button.closest(".song-card");
+    const count = $("[data-like-count]", card);
+    if (count && result.likes !== undefined) count.textContent = `${result.likes} likes`;
+    button.textContent = result.liked === false ? "Like" : "Liked";
+    toast(result.message || (result.liked === false ? "Like removed" : "Song liked"));
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+async function shareSong(song) {
+  const url = new URL(`/api/songs/${encodeURIComponent(songId(song))}/stream`, location.origin).href;
+  const shareData = { title: songTitle(song), text: `${songTitle(song)} — ${songArtist(song)}`, url };
+  try {
+    if (navigator.share) await navigator.share(shareData);
+    else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      toast("Song link copied.");
+    } else {
+      window.prompt("Copy this song link:", url);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") toast("Could not share this song.");
+  }
+}
+
+async function loadSongs(query = "") {
+  const container = $("#songs");
+  if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
+  try {
+    const result = await api(`/api/songs?q=${encodeURIComponent(query)}`);
+    renderSongs(result.songs || []);
+  } catch (error) {
+    if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
+  }
+}
 
 async function loadAds() {
+  const container = $("#homepageAdList");
+  if (!container) return;
   try {
     const result = await api("/api/ads?placement=homepage");
     const ads = result.ads || [];
-
-    const area = $("#homepageAdList");
-
-    area.innerHTML = ads.length
-      ? ads.map(ad => `
-        <a class="ad-card"
-           href="${escapeAttr(ad.target_url)}"
-           target="_blank"
-           rel="noopener sponsored">
-
-          <img src="${escapeAttr(ad.image_url)}" alt="">
-
-          <span>
-            <small>
-              SPONSORED · ${escapeHtml(ad.business_name)}
-            </small>
-
-            <b>${escapeHtml(ad.title)}</b>
-
-            <small>
-              ${escapeHtml(ad.description || "Visit sponsor")}
-            </small>
-          </span>
-        </a>
-      `).join("")
-      : '<p class="muted">Your business could be featured here. <a class="text-link" href="#advertise">Advertise with us →</a></p>';
-
-  } catch (err) {
-    console.error("Could not load adverts:", err);
+    container.innerHTML = ads.length ? ads.map((ad) => {
+      const image = ad.image_url
+        ? `<img src="${escapeHTML(ad.image_url)}" alt="${escapeHTML(ad.title || "Advertisement")}" loading="lazy">`
+        : "";
+      const href = ad.link_url || ad.url || "#";
+      return `<a class="ad-card" href="${escapeHTML(href)}" target="_blank" rel="noopener">${image}<span>${escapeHTML(ad.title || "")}</span></a>`;
+    }).join("") : "";
+  } catch (error) {
+    console.warn("Could not load adverts:", error.message);
   }
 }
-
-// ========================================
-// LOAD PUBLIC APPROVED SONGS
-// ========================================
-
-async function loadSongs() {
-  const q = $("#search").value.trim();
-
-  const result = await api(
-    `/api/songs?q=${encodeURIComponent(q)}`
-  );
-
-  const songs = result.songs || [];
-  const area = $("#songs");
-
-  if (!songs.length) {
-    area.innerHTML =
-      '<div class="empty">No approved songs yet. Be the first to share your sound.</div>';
-
-    return;
-  }
-
-  area.innerHTML = songs.map(s => `
-    <article class="song-card">
-
-      <div class="cover">♫</div>
-
-      <h3>${escapeHtml(s.title)}</h3>
-
-      <p>
-        ${escapeHtml(s.artist)}
-        ${s.genre ? " · " + escapeHtml(s.genre) : ""}
-      </p>
-
-      <div class="song-actions">
-
-        <button class="gold-btn"
-          data-play="${s.id}"
-          data-title="${escapeAttr(s.title)}"
-          data-artist="${escapeAttr(s.artist)}">
-          ▶ Play
-        </button>
-
-        <a class="outline"
-          href="/api/songs/${s.id}/download">
-          Download
-        </a>
-
-      </div>
-    </article>
-  `).join("");
-}
-
-// ========================================
-// MUSIC NEWS — PUBLIC DISPLAY
-// ========================================
-
-async function loadNews() {
-  const area = $("#newsList");
-
-  // Do not crash if the news section is not in index.html yet.
-  if (!area) return;
-
-  try {
-    const result = await api("/api/news");
-    const news = result.news || [];
-
-    if (!news.length) {
-      area.innerHTML =
-        '<div class="empty">No music news published yet. Check back soon.</div>';
-
-      return;
-    }
-
-    area.innerHTML = news.map(item => `
-      <article class="news-card">
-
-        ${item.image_url ? `
-          <img
-            class="news-image"
-            src="${escapeAttr(item.image_url)}"
-            alt="${escapeAttr(item.title)}"
-            loading="lazy">
-        ` : ""}
-
-        <div class="news-content">
-
-          <span class="news-category">
-            ${escapeHtml(item.category || "Music News")}
-          </span>
-
-          <h3>${escapeHtml(item.title)}</h3>
-
-          <p>${escapeHtml(item.content)}</p>
-
-          ${item.published_at ? `
-            <small class="muted">
-              ${escapeHtml(
-                new Date(item.published_at).toLocaleDateString()
-              )}
-            </small>
-          ` : ""}
-
-        </div>
-      </article>
-    `).join("");
-
-  } catch (err) {
-    console.error("Could not load music news:", err);
-
-    area.innerHTML =
-      '<div class="empty">Could not load music news.</div>';
-  }
-}
-
-// ========================================
-// MUSIC PLAYER
-// ========================================
-
-$("#songs").addEventListener("click", e => {
-  const b = e.target.closest("[data-play]");
-
-  if (!b) return;
-
-  audio.src = `/api/songs/${b.dataset.play}/stream`;
-
-  audio.play().catch(err => {
-    console.error("Audio playback failed:", err);
-    toast("Could not play this song.");
-  });
-
-  $("#playingTitle").textContent = b.dataset.title;
-  $("#playingArtist").textContent = b.dataset.artist;
-});
-
-// ========================================
-// SEARCH
-// ========================================
-
-$("#searchBtn").onclick = () => {
-  loadSongs().catch(err => {
-    console.error(err);
-    toast("Could not load songs.");
-  });
-};
-
-$("#search").addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    loadSongs().catch(err => {
-      console.error(err);
-      toast("Could not load songs.");
-    });
-  }
-});
-
-// ========================================
-// ACCOUNT DISPLAY
-// ========================================
-
-function showUser() {
-  const panel = $("#userPanel");
-
-  if (!currentUser || !token) {
-    panel.classList.add("hidden");
-    $("#adminPanel").classList.add("hidden");
-    $("#loginOpen").textContent = "Sign in";
-
-    return;
-  }
-
-  panel.classList.remove("hidden");
-
-  $("#welcome").textContent =
-    `Signed in as ${currentUser.name}`;
-
-  $("#loginOpen").textContent = "My account";
-
-  const isAdmin = ["admin", "owner"].includes(currentUser.role);
-
-  $("#adminPanel").classList.toggle("hidden", !isAdmin);
-
-  loadMine();
-
-  if (isAdmin) {
-    loadPending();
-    loadPendingAds();
-  }
-}
-
-// ========================================
-// LOAD MY SUBMISSIONS
-// ========================================
 
 async function loadMine() {
+  const container = $("#mySongs");
+  if (!container || !token) return;
   try {
     const result = await api("/api/my-songs");
-
     const songs = result.songs || [];
-
-    $("#mySongs").innerHTML =
-      `<h3>Your submissions</h3>` +
-
-      (songs.length
-        ? songs.map(s => `
-          <p>
-            ${escapeHtml(s.title)} —
-            <span class="muted">
-              ${escapeHtml(s.status)}
-            </span>
-          </p>
-        `).join("")
-
-        : '<p class="muted">No submissions yet.</p>');
-
-  } catch (err) {
-    console.error("Could not load submissions:", err);
+    container.innerHTML = songs.length
+      ? songs.map((song) => `<p>${escapeHTML(songTitle(song))} — <span>${escapeHTML(song.status || "pending")}</span></p>`).join("")
+      : "<p>You have not uploaded any songs yet.</p>";
+  } catch (error) {
+    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
 }
 
-// ========================================
-// ADMIN: LOAD PENDING SONGS
-// ========================================
-
-async function loadPending() {
+async function loadPendingSongs() {
+  const container = $("#pendingSongs");
+  if (!container || !isAdmin()) return;
   try {
     const result = await api("/api/admin/songs");
     const songs = result.songs || [];
+    container.innerHTML = songs.length ? songs.map((song) => `
+      <div class="admin-item">
+        <strong>${escapeHTML(songTitle(song))}</strong>
+        <span>${escapeHTML(songArtist(song))}</span>
+        <button type="button" data-song-approve="${escapeHTML(songId(song))}">Approve</button>
+        <button type="button" data-song-reject="${escapeHTML(songId(song))}">Reject</button>
+      </div>`).join("") : "<p>No songs awaiting review.</p>";
 
-    $("#pendingSongs").innerHTML = songs.length
-
-      ? songs.map(s => `
-        <div class="pending">
-
-          <p>
-            <b>${escapeHtml(s.title)}</b>
-            — ${escapeHtml(s.artist)}
-
-            <br>
-
-            <small class="muted">
-              Uploaded by ${escapeHtml(s.uploader_id)}
-            </small>
-          </p>
-
-          <button class="outline"
-            data-approve="${s.id}">
-            Approve
-          </button>
-
-          <button class="outline"
-            data-reject="${s.id}">
-            Reject
-          </button>
-
-        </div>
-      `).join("")
-
-      : '<p class="muted">No pending uploads.</p>';
-
-  } catch (err) {
-    $("#pendingSongs").textContent = err.message;
+    $$("[data-song-approve]", container).forEach((button) =>
+      button.addEventListener("click", () => moderateSong(button.dataset.songApprove, "approved")));
+    $$("[data-song-reject]", container).forEach((button) =>
+      button.addEventListener("click", () => moderateSong(button.dataset.songReject, "rejected")));
+  } catch (error) {
+    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
 }
 
-// ========================================
-// ADMIN: LOAD PENDING ADVERTS
-// ========================================
+async function moderateSong(id, status) {
+  try {
+    await api(`/api/admin/songs/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+    toast(`Song ${status}.`);
+    loadPendingSongs();
+    loadSongs($("#search")?.value || "");
+  } catch (error) {
+    toast(error.message);
+  }
+}
 
 async function loadPendingAds() {
+  const container = $("#pendingAds");
+  if (!container || !isAdmin()) return;
   try {
     const result = await api("/api/admin/ads");
     const ads = result.ads || [];
+    container.innerHTML = ads.length ? ads.map((ad) => `
+      <div class="admin-item">
+        <strong>${escapeHTML(ad.title || "Advertisement")}</strong>
+        <button type="button" data-ad-approve="${escapeHTML(ad.id)}">Approve</button>
+        <button type="button" data-ad-reject="${escapeHTML(ad.id)}">Reject</button>
+      </div>`).join("") : "<p>No adverts awaiting review.</p>";
 
-    $("#pendingAds").innerHTML = ads.length
-
-      ? ads.map(ad => `
-        <div class="pending">
-
-          <p>
-            <b>${escapeHtml(ad.title)}</b>
-            — ${escapeHtml(ad.business_name)}
-
-            <br>
-
-            <small class="muted">
-              ${escapeHtml(ad.placement)}
-            </small>
-
-            <br>
-
-            <a class="text-link"
-              href="${escapeAttr(ad.target_url)}"
-              target="_blank"
-              rel="noopener">
-              Destination
-            </a>
-          </p>
-
-          <button class="outline"
-            data-ad-approve="${ad.id}">
-            Approve
-          </button>
-
-          <button class="outline"
-            data-ad-reject="${ad.id}">
-            Reject
-          </button>
-
-        </div>
-      `).join("")
-
-      : '<p class="muted">No pending advertising campaigns.</p>';
-
-  } catch (err) {
-    $("#pendingAds").textContent = err.message;
+    $$("[data-ad-approve]", container).forEach((button) =>
+      button.addEventListener("click", () => moderateAd(button.dataset.adApprove, "approved")));
+    $$("[data-ad-reject]", container).forEach((button) =>
+      button.addEventListener("click", () => moderateAd(button.dataset.adReject, "rejected")));
+  } catch (error) {
+    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
 }
 
-// ========================================
-// ADMIN: APPROVE OR REJECT SONGS
-// ========================================
-
-$("#pendingSongs").addEventListener("click", async e => {
-  const b = e.target.closest("[data-approve],[data-reject]");
-
-  if (!b) return;
-
-  const id = b.dataset.approve || b.dataset.reject;
-
-  const status = b.dataset.approve
-    ? "approved"
-    : "rejected";
-
+async function moderateAd(id, status) {
   try {
-    await api(`/api/admin/songs/${id}`, {
+    await api(`/api/admin/ads/${encodeURIComponent(id)}`, {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
     });
-
-    toast(`Song ${status}.`);
-
-    await loadPending();
-    await loadSongs();
-    await loadMine();
-
-  } catch (err) {
-    toast(err.message);
-  }
-});
-
-// ========================================
-// ADMIN: APPROVE OR REJECT ADVERTS
-// ========================================
-
-$("#pendingAds").addEventListener("click", async e => {
-  const b = e.target.closest(
-    "[data-ad-approve],[data-ad-reject]"
-  );
-
-  if (!b) return;
-
-  const id =
-    b.dataset.adApprove || b.dataset.adReject;
-
-  const status = b.dataset.adApprove
-    ? "approved"
-    : "rejected";
-
-  try {
-    await api(`/api/admin/ads/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ status })
-    });
-
     toast(`Advert ${status}.`);
-
-    await loadPendingAds();
-    await loadAds();
-
-  } catch (err) {
-    toast(err.message);
-  }
-});
-
-// ========================================
-// ADMIN: PUBLISH MUSIC NEWS
-// ========================================
-
-const newsForm = $("#newsForm");
-
-if (newsForm) {
-  newsForm.addEventListener("submit", async e => {
-    e.preventDefault();
-
-    const form = e.currentTarget;
-    const message = $("#newsMsg");
-
-    if (!token) {
-      message.textContent = "Please sign in as an admin.";
-      return;
-    }
-
-    const body = Object.fromEntries(new FormData(form));
-
-    try {
-      const result = await api("/api/admin/news", {
-        method: "POST",
-        body: JSON.stringify(body)
-      });
-
-      message.textContent =
-        result.message || "News published successfully.";
-
-      form.reset();
-
-      await loadNews();
-
-      toast("Music news published.");
-
-    } catch (err) {
-      message.textContent = err.message;
-    }
-  });
-}
-
-// ========================================
-// ADVERTISING FORM
-// ========================================
-
-$("#adForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-
-  if (!token) {
-    $("#adMsg").textContent =
-      "Please create an account or sign in before submitting an advert.";
-
-    $("#account").scrollIntoView();
-
-    return;
-  }
-
-  const body = Object.fromEntries(new FormData(form));
-
-  try {
-    const result = await api("/api/ads", {
-      method: "POST",
-      body: JSON.stringify(body)
-    });
-
-    $("#adMsg").textContent = result.message;
-
-    form.reset();
-
     loadPendingAds();
-
-  } catch (err) {
-    $("#adMsg").textContent = err.message;
+    loadAds();
+  } catch (error) {
+    toast(error.message);
   }
-});
-
-// ========================================
-// MUSIC UPLOAD FORM
-// ========================================
-
-$("#uploadForm").addEventListener("submit", async e => {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-
-  if (!token) {
-    $("#uploadMsg").textContent =
-      "Please create an account or sign in before uploading.";
-
-    $("#account").scrollIntoView();
-
-    return;
-  }
-
-  const formData = new FormData(form);
-
-  try {
-    const result = await api("/api/songs", {
-      method: "POST",
-      body: formData
-    });
-
-    $("#uploadMsg").textContent = result.message;
-
-    form.reset();
-
-    await loadMine();
-
-    if (currentUser &&
-        ["admin", "owner"].includes(currentUser.role)) {
-      await loadPending();
-    }
-
-  } catch (err) {
-    $("#uploadMsg").textContent = err.message;
-  }
-});
-
-// ========================================
-// ACCOUNT TABS
-// ========================================
-
-function setTab(tab) {
-  document.querySelectorAll(".tab").forEach(b => {
-    b.classList.toggle(
-      "active",
-      b.dataset.tab === tab
-    );
-  });
-
-  $("#registerForm").classList.toggle(
-    "hidden",
-    tab !== "register"
-  );
-
-  $("#loginForm").classList.toggle(
-    "hidden",
-    tab !== "login"
-  );
 }
 
-document.querySelectorAll(".tab").forEach(b => {
-  b.onclick = () => setTab(b.dataset.tab);
+async function loadNews() {
+  const container = $("#newsList");
+  if (!container) return;
+  try {
+    const result = await api("/api/news");
+    const news = result.news || [];
+    container.innerHTML = news.length ? news.map((item) => `
+      <article class="news-card">
+        ${item.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
+        <h3>${escapeHTML(item.title || "")}</h3>
+        <p>${escapeHTML(item.content || item.body || "")}</p>
+        ${item.created_at ? `<small>${escapeHTML(new Date(item.created_at).toLocaleDateString())}</small>` : ""}
+      </article>`).join("") : "<p>No news posted yet.</p>";
+  } catch (error) {
+    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
+  }
+}
+
+async function uploadImage(endpoint, file) {
+  const formData = new FormData();
+  formData.append("image", file);
+  return api(endpoint, { method: "POST", body: formData });
+}
+
+function firstFile(form, selectors) {
+  for (const selector of selectors) {
+    const input = $(selector, form);
+    if (input?.files?.[0]) return input.files[0];
+  }
+  return null;
+      }function bindForm(selector, handler) {
+  const form = $(selector);
+  if (!form) return;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      await handler(form);
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+}
+
+bindForm("#registerForm", async (form) => {
+  const data = Object.fromEntries(new FormData(form).entries());
+  const result = await api("/api/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+  saveSession(result.user || result, result.token);
+  form.reset();
+  toast("Account created successfully.");
+  await refreshDashboard();
 });
 
-$("#loginOpen").onclick = () => {
-  $("#account").scrollIntoView({ behavior: "smooth" });
-
-  setTab("login");
-};
-
-// ========================================
-// REGISTRATION
-// ========================================
-
-$("#registerForm").onsubmit = async e => {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-
-  const body = Object.fromEntries(
-    new FormData(form)
-  );
-
-  try {
-    saveUser(await api("/api/register", {
-      method: "POST",
-      body: JSON.stringify(body)
-    }));
-
-    form.reset();
-
-    $("#accountMsg").textContent =
-      "Account created.";
-
-  } catch (err) {
-    $("#accountMsg").textContent = err.message;
-  }
-};
-
-// ========================================
-// LOGIN
-// ========================================
-
-$("#loginForm").onsubmit = async e => {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-
-  const body = Object.fromEntries(
-    new FormData(form)
-  );
-
-  try {
-    saveUser(await api("/api/login", {
-      method: "POST",
-      body: JSON.stringify(body)
-    }));
-
-    form.reset();
-
-    $("#accountMsg").textContent =
-      "You are signed in.";
-
-  } catch (err) {
-    $("#accountMsg").textContent = err.message;
-  }
-};
-
-// ========================================
-// LOGOUT
-// ========================================
-
-$("#logout").onclick = () => {
-  token = "";
-  currentUser = null;
-
-  localStorage.removeItem("paya_token");
-  localStorage.removeItem("paya_user");
-
-  $("#userPanel").classList.add("hidden");
-  $("#adminPanel").classList.add("hidden");
-
-  $("#loginOpen").textContent = "Sign in";
-
-  toast("Signed out.");
-};
-
-// ========================================
-// INITIALIZE WEBSITE
-// ========================================
-
-showUser();
-
-loadSongs().catch(err => {
-  console.error("Could not load songs:", err);
-
-  $("#songs").innerHTML =
-    '<div class="empty">Could not load the music catalogue.</div>';
+bindForm("#loginForm", async (form) => {
+  const data = Object.fromEntries(new FormData(form).entries());
+  const result = await api("/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+  saveSession(result.user || result, result.token);
+  form.reset();
+  toast("Login successful.");
+  await refreshDashboard();
 });
 
-loadAds();
+const logout = $("#logout");
+if (logout) logout.addEventListener("click", () => {
+  clearSession();
+  toast("You have logged out.");
+  loadPendingSongs();
+  loadPendingAds();
+});
 
-loadNews();
+bindForm("#uploadForm", async (form) => {
+  if (!token) throw new Error("Please log in before uploading.");
+  const formData = new FormData(form);
+  await api("/api/songs", { method: "POST", body: formData });
+  form.reset();
+  const message = $("#uploadMsg");
+  if (message) message.textContent = "Song submitted for approval.";
+  toast("Song uploaded.");
+  loadMine();
+});
+
+bindForm("#adForm", async (form) => {
+  if (!token) throw new Error("Please log in before submitting an advert.");
+  const formData = new FormData(form);
+  await api("/api/ads", { method: "POST", body: formData });
+  form.reset();
+  const message = $("#adMsg");
+  if (message) message.textContent = "Advert submitted for approval.";
+  toast("Advert submitted.");
+  loadPendingAds();
+});
+
+const search = $("#search");
+const searchBtn = $("#searchBtn");
+if (searchBtn) searchBtn.addEventListener("click", () => loadSongs(search?.value || ""));
+if (search) search.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    loadSongs(search.value);
+  }
+});
+
+const loginOpen = $("#loginOpen");
+if (loginOpen) loginOpen.addEventListener("click", () => {
+  $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+bindForm("#profileForm", async (form) => {
+  if (!token) throw new Error("Please log in first.");
+  const name = $("#profileName", form)?.value?.trim() || "";
+  const bio = $("#profileBio", form)?.value?.trim() || "";
+  const file = firstFile(form, ["#profileAvatar", 'input[name="avatar"]', 'input[name="image"]']);
+
+  if (file) {
+    const uploaded = await uploadImage("/api/profile/avatar", file);
+    const avatarUrl = uploaded.avatar_url || uploaded.image_url || uploaded.url;
+    if (avatarUrl) currentUser = { ...currentUser, avatar_url: avatarUrl };
+  }
+
+  const result = await api("/api/profile", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, bio })
+  });
+  saveSession(result.user || result, token);
+  toast("Profile updated.");
+});
+
+bindForm("#newsForm", async (form) => {
+  if (!isAdmin()) throw new Error("Only an administrator can post news.");
+  const title = $('input[name="title"]', form)?.value?.trim() || "";
+  const content = $('textarea[name="content"]', form)?.value?.trim()
+    || $('textarea[name="body"]', form)?.value?.trim() || "";
+  const file = firstFile(form, ['input[name="image"]', "#newsImage"]);
+  let image_url = "";
+
+  if (file) {
+    const uploaded = await uploadImage("/api/admin/news/image", file);
+    image_url = uploaded.image_url || uploaded.url || uploaded.publicUrl || "";
+  }
+
+  await api("/api/admin/news", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, content, image_url })
+  });
+  form.reset();
+  toast("News published.");
+  loadNews();
+});
+
+async function loadOwnerUsers() {
+  const container = $("#ownerUsers") || $("#usersList");
+  if (!container || !isOwner()) return;
+  try {
+    const result = await api("/api/owner/users");
+    const users = result.users || [];
+    container.innerHTML = users.length ? users.map((user) => `
+      <div class="admin-item">
+        <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
+        <span>${escapeHTML(user.email || "")}</span>
+        <span>Role: ${escapeHTML(user.role || "user")}</span>
+        <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
+          <option value="user" ${user.role === "user" ? "selected" : ""}>User</option>
+          <option value="admin" ${user.role === "admin" ? "selected" : ""}>Admin</option>
+          <option value="owner" ${user.role === "owner" ? "selected" : ""}>Owner</option>
+        </select>
+        <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>
+      </div>`).join("") : "<p>No users found.</p>";
+
+    $$("[data-save-role]", container).forEach((button) => {
+      button.addEventListener("click", async () => {
+        const id = button.dataset.saveRole;
+        const select = $(`[data-user-role="${CSS.escape(id)}"]`, container);
+        if (!select) return;
+        try {
+          await api(`/api/owner/users/${encodeURIComponent(id)}/role`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ role: select.value })
+          });
+          toast("User role updated.");
+          loadOwnerUsers();
+        } catch (error) {
+          toast(error.message);
+        }
+      });
+    });
+  } catch (error) {
+    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
+  }
+}
+
+async function refreshDashboard() {
+  updateAccountUI();
+  await Promise.allSettled([
+    loadMine(),
+    loadPendingSongs(),
+    loadPendingAds(),
+    loadOwnerUsers()
+  ]);
+}
+
+async function restoreSession() {
+  if (!token) {
+    updateAccountUI();
+    return;
+  }
+  try {
+    const result = await api("/api/me");
+    const user = result.user || result;
+    if (user && (user.id || user.email || user.name)) {
+      saveSession(user, token);
+    }
+  } catch {
+    clearSession();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await restoreSession();
+  await Promise.allSettled([
+    loadSongs(),
+    loadAds(),
+    loadNews(),
+    refreshDashboard()
+  ]);
+});
