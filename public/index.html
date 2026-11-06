@@ -82,10 +82,6 @@
   </div>
 </section>
 
-<!-- ========================================
-     MUSIC NEWS AND ARTIST STORIES
-========================================= -->
-
 <section class="section" id="news">
   <div class="section-head">
     <div>
@@ -130,7 +126,7 @@
       <input name="audio" type="file" accept=".mp3,audio/mpeg" required>
     </label>
 
-    <button class="gold-btn full">Submit for review</button>
+    <button class="gold-btn full" type="submit">Submit for review</button>
 
     <p class="fine">MP3 only. Maximum file size is set by the platform administrator.</p>
     <p id="uploadMsg" class="message"></p>
@@ -181,7 +177,7 @@
       <label>End date<input name="ends_at" type="date"></label>
     </div>
 
-    <button class="gold-btn full">Submit advert for approval</button>
+    <button class="gold-btn full" type="submit">Submit advert for approval</button>
 
     <p class="fine">You must sign in first. Submission does not guarantee publication. Campaign pricing and payment are arranged with Paya Music UG.</p>
     <p id="adMsg" class="message"></p>
@@ -197,8 +193,8 @@
 
   <div class="account-card">
     <div class="tabs">
-      <button class="tab active" data-tab="register">Create account</button>
-      <button class="tab" data-tab="login">Sign in</button>
+      <button class="tab active" data-tab="register" type="button">Create account</button>
+      <button class="tab" data-tab="login" type="button">Sign in</button>
     </div>
 
     <form id="registerForm">
@@ -214,7 +210,7 @@
         <input name="password" type="password" required minlength="10" placeholder="At least 10 characters">
       </label>
 
-      <button class="gold-btn full">Create account</button>
+      <button class="gold-btn full" type="submit">Create account</button>
     </form>
 
     <form id="loginForm" class="hidden">
@@ -226,16 +222,56 @@
         <input name="password" type="password" required>
       </label>
 
-      <button class="gold-btn full">Sign in</button>
+      <button class="gold-btn full" type="submit">Sign in</button>
     </form>
 
     <div id="accountMsg" class="message"></div>
 
     <div id="userPanel" class="hidden">
       <p id="welcome"></p>
-      <button class="outline" id="logout">Sign out</button>
+
+      <button class="outline" id="logout" type="button">Sign out</button>
+
+      <!-- ARTIST PROFILE EDITOR -->
+      <section id="profileEditor" class="panel">
+        <h3>Artist profile</h3>
+
+        <div id="profilePreview">
+          <img
+            id="profileAvatar"
+            src=""
+            alt="Artist profile picture"
+            width="120"
+            height="120">
+        </div>
+
+        <form id="profileForm" enctype="multipart/form-data">
+          <label>Profile picture
+            <input
+              name="image"
+              id="profileImage"
+              type="file"
+              accept="image/jpeg,image/png,image/webp">
+          </label>
+
+          <label>Artist bio / description
+            <textarea
+              name="bio"
+              id="profileBio"
+              maxlength="1000"
+              rows="5"
+              placeholder="Tell listeners about yourself and your music"></textarea>
+          </label>
+
+          <button class="gold-btn full" type="submit">Save artist profile</button>
+          <p id="profileMsg" class="message"></p>
+        </form>
+      </section>
+
+      <h3>My music submissions</h3>
       <div id="mySongs"></div>
 
+      <!-- ADMIN AND OWNER PANEL -->
       <div id="adminPanel" class="hidden">
 
         <h3>Pending song approvals</h3>
@@ -244,14 +280,11 @@
         <h3>Pending advertising campaigns</h3>
         <div id="pendingAds"></div>
 
-        <!-- ========================================
-             ADMIN: PUBLISH MUSIC NEWS
-        ========================================= -->
-
+        <!-- ADMIN: PUBLISH MUSIC NEWS -->
         <div class="admin-news">
           <h3>Publish Music News</h3>
 
-          <form id="newsForm">
+          <form id="newsForm" enctype="multipart/form-data">
 
             <label>News headline
               <input
@@ -269,6 +302,14 @@
                 <option value="release">New Release</option>
                 <option value="interview">Interview</option>
               </select>
+            </label>
+
+            <label>News image from your phone
+              <input
+                name="image"
+                id="newsImage"
+                type="file"
+                accept="image/jpeg,image/png,image/webp">
             </label>
 
             <label>News image URL (optional)
@@ -294,6 +335,18 @@
             <p id="newsMsg" class="message"></p>
           </form>
         </div>
+
+        <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
+        <section id="ownerPanel" class="panel hidden">
+          <h3>Owner dashboard</h3>
+          <p class="muted">Manage registered users and grant admin access.</p>
+
+          <div id="ownerUsers">
+            <p class="muted">Loading registered users...</p>
+          </div>
+
+          <p id="ownerMsg" class="message"></p>
+        </section>
 
       </div>
     </div>
@@ -328,5 +381,5 @@
 
 <script src="/app.js"></script>
 </body>
-  </html>
-  
+        </html>
+        
