@@ -872,4 +872,120 @@ app.post(
 );
 
 // TRACK WEBSITE EVENTS
-app.post("
+
+// TRACK WEBSITE EVENTS
+app.post("/api/events", async (req, res) => {
+  try {
+    const { event_type, song_id, visitor_key } = req.body;
+
+    if (!["visit", "play", "download"].includes(event_type)) {
+      return res.status(400).json({ error: "Invalid event" });
+    }
+
+    const { error } = await supabase.from("website_events").insert({
+      event_type,
+      song_id: song_id || null,
+      visitor_key: String(visitor_key || "").slice(0, 100)
+    });
+
+    if (error) throw error;
+    res.json({ recorded: true });
+  } catch (error) {
+    console.error("Event recording error:", error);
+    res.status(500).json({ error: "Event recording failed" });
+  }
+});
+
+// OWNER: CHANGE USER ROLE
+app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (!["artist", "admin"].includes(role)) {
+      return res.status(400).json({ error: "Choose artist or admin" });
+    }
+
+    if (Number(req.params.id) === req.user.id) {
+      return res.status(400).json({
+        error: "You cannot change your own role"
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .update({ role })
+      .eq("id", req.params.id)
+      .neq("role", "owner")
+      .select("id, name, email, role")
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({
+        error: "User not found or cannot be changed"
+      });
+    }
+
+    res.json({ user: data });
+  } catch (error) {
+    res.status(500).json({ error: "Role update failed" });
+  }
+});
+
+// OWNER: VIEW USERS
+app.get("/api/owner/users", auth, owner, async (req, res) => {
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, name, email, role, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return res.status(500).json({ error: "Could not load users" });
+  }
+
+  res.json({ users: data || [] });
+});
+
+// ADMIN: ANALYTICS
+app.get("/api/admin/analytics", auth, admin, async (req, res) => {
+  try {
+    const [visits, plays, downloads, songs, users] = await Promise.all([
+      supabase.from("website_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "visit"),
+
+      supabase.from("website_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "play"),
+
+      supabase.from("website_events")
+        .select("*", { count: "exact", head: true })
+        .eq("event_type", "download"),
+
+      supabase.from("songs")
+        .select("*", { count: "exact", head: true }),
+
+      supabase.from("users")
+        .select("*", { count: "exact", head: true })
+    ]);
+
+    res.json({
+      visits: visits.count || 0,
+      plays: plays.count || 0,
+      downloads: downloads.count || 0,
+      songs: songs.count || 0,
+      accounts: users.count || 0
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Analytics unavailable" });
+  }
+});
+
+// START SERVER
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.listen(PORT, () => {
+  console.log(`Paya Music UG running on port ${PORT}`);
+});
+  
