@@ -1,4 +1,3 @@
-
 const $ = (s) => document.querySelector(s);
 
 let token = localStorage.getItem("paya_token") || "";
@@ -176,6 +175,68 @@ async function loadSongs() {
 }
 
 // ========================================
+// MUSIC NEWS — PUBLIC DISPLAY
+// ========================================
+
+async function loadNews() {
+  const area = $("#newsList");
+
+  // Do not crash if the news section is not in index.html yet.
+  if (!area) return;
+
+  try {
+    const result = await api("/api/news");
+    const news = result.news || [];
+
+    if (!news.length) {
+      area.innerHTML =
+        '<div class="empty">No music news published yet. Check back soon.</div>';
+
+      return;
+    }
+
+    area.innerHTML = news.map(item => `
+      <article class="news-card">
+
+        ${item.image_url ? `
+          <img
+            class="news-image"
+            src="${escapeAttr(item.image_url)}"
+            alt="${escapeAttr(item.title)}"
+            loading="lazy">
+        ` : ""}
+
+        <div class="news-content">
+
+          <span class="news-category">
+            ${escapeHtml(item.category || "Music News")}
+          </span>
+
+          <h3>${escapeHtml(item.title)}</h3>
+
+          <p>${escapeHtml(item.content)}</p>
+
+          ${item.published_at ? `
+            <small class="muted">
+              ${escapeHtml(
+                new Date(item.published_at).toLocaleDateString()
+              )}
+            </small>
+          ` : ""}
+
+        </div>
+      </article>
+    `).join("");
+
+  } catch (err) {
+    console.error("Could not load music news:", err);
+
+    area.innerHTML =
+      '<div class="empty">Could not load music news.</div>';
+  }
+}
+
+// ========================================
 // MUSIC PLAYER
 // ========================================
 
@@ -286,8 +347,6 @@ async function loadMine() {
 async function loadPending() {
   try {
     const result = await api("/api/admin/songs");
-
-    // FIX: Backend returns { songs: [...] }
     const songs = result.songs || [];
 
     $("#pendingSongs").innerHTML = songs.length
@@ -333,8 +392,6 @@ async function loadPending() {
 async function loadPendingAds() {
   try {
     const result = await api("/api/admin/ads");
-
-    // FIX: Backend returns { ads: [...] }
     const ads = result.ads || [];
 
     $("#pendingAds").innerHTML = ads.length
@@ -398,7 +455,6 @@ $("#pendingSongs").addEventListener("click", async e => {
     : "rejected";
 
   try {
-    // FIX: Correct backend route and request body
     await api(`/api/admin/songs/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ status })
@@ -434,7 +490,6 @@ $("#pendingAds").addEventListener("click", async e => {
     : "rejected";
 
   try {
-    // FIX: Correct backend route and request body
     await api(`/api/admin/ads/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ status })
@@ -449,6 +504,47 @@ $("#pendingAds").addEventListener("click", async e => {
     toast(err.message);
   }
 });
+
+// ========================================
+// ADMIN: PUBLISH MUSIC NEWS
+// ========================================
+
+const newsForm = $("#newsForm");
+
+if (newsForm) {
+  newsForm.addEventListener("submit", async e => {
+    e.preventDefault();
+
+    const form = e.currentTarget;
+    const message = $("#newsMsg");
+
+    if (!token) {
+      message.textContent = "Please sign in as an admin.";
+      return;
+    }
+
+    const body = Object.fromEntries(new FormData(form));
+
+    try {
+      const result = await api("/api/admin/news", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+
+      message.textContent =
+        result.message || "News published successfully.";
+
+      form.reset();
+
+      await loadNews();
+
+      toast("Music news published.");
+
+    } catch (err) {
+      message.textContent = err.message;
+    }
+  });
+}
 
 // ========================================
 // ADVERTISING FORM
@@ -653,3 +749,5 @@ loadSongs().catch(err => {
 });
 
 loadAds();
+
+loadNews();
