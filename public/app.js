@@ -140,14 +140,13 @@ function showUser() {
   $("#welcome").textContent = `Signed in as ${currentUser.name}`;
   $("#loginOpen").textContent = "My account";
 
-  $("#adminPanel").classList.toggle(
-    "hidden",
-    currentUser.role !== "admin"
-  );
+  const isAdmin = ["admin", "owner"].includes(currentUser.role);
+
+  $("#adminPanel").classList.toggle("hidden", !isAdmin);
 
   loadMine();
 
-  if (currentUser.role === "admin") {
+  if (isAdmin) {
     loadPending();
     loadPendingAds();
   }
@@ -155,13 +154,13 @@ function showUser() {
 
 async function loadMine() {
   try {
-    const songs = await api("/api/songs/mine");
+    const songs = await api("/api/my-songs");
 
     $("#mySongs").innerHTML =
       `<h3>Your submissions</h3>` +
       (songs.length
         ? songs.map(s => `
-          <p>${escapeHtml(s.title)} — 
+          <p>${escapeHtml(s.title)} —
           <span class="muted">${escapeHtml(s.status)}</span></p>
         `).join("")
         : '<p class="muted">No submissions yet.</p>');
@@ -228,7 +227,7 @@ $("#pendingAds").addEventListener("click", async e => {
 
   try {
     await api(`/api/admin/ads/${id}/${action}`, {
-      method: "POST"
+      method: "PATCH"
     });
 
     toast(`Advert ${action}d.`);
@@ -239,7 +238,7 @@ $("#pendingAds").addEventListener("click", async e => {
   }
 });
 
-// ADVERTISING FORM — corrected
+// ADVERTISING FORM
 $("#adForm").addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -276,7 +275,7 @@ $("#pendingSongs").addEventListener("click", async e => {
 
   try {
     await api(`/api/admin/songs/${id}/${action}`, {
-      method: "POST"
+      method: "PATCH"
     });
 
     toast(`Song ${action}d.`);
@@ -287,7 +286,7 @@ $("#pendingSongs").addEventListener("click", async e => {
   }
 });
 
-// MUSIC UPLOAD FORM — corrected
+// MUSIC UPLOAD FORM
 $("#uploadForm").addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -334,7 +333,7 @@ $("#loginOpen").onclick = () => {
   setTab("login");
 };
 
-// REGISTRATION FORM — corrected
+// REGISTRATION FORM
 $("#registerForm").onsubmit = async e => {
   e.preventDefault();
 
@@ -342,7 +341,7 @@ $("#registerForm").onsubmit = async e => {
   const body = Object.fromEntries(new FormData(form));
 
   try {
-    saveUser(await api("/api/auth/register", {
+    saveUser(await api("/api/register", {
       method: "POST",
       body: JSON.stringify(body)
     }));
@@ -354,7 +353,7 @@ $("#registerForm").onsubmit = async e => {
   }
 };
 
-// LOGIN FORM — corrected
+// LOGIN FORM
 $("#loginForm").onsubmit = async e => {
   e.preventDefault();
 
@@ -362,7 +361,7 @@ $("#loginForm").onsubmit = async e => {
   const body = Object.fromEntries(new FormData(form));
 
   try {
-    saveUser(await api("/api/auth/login", {
+    saveUser(await api("/api/login", {
       method: "POST",
       body: JSON.stringify(body)
     }));
@@ -382,6 +381,7 @@ $("#logout").onclick = () => {
   localStorage.removeItem("paya_user");
 
   $("#userPanel").classList.add("hidden");
+  $("#adminPanel").classList.add("hidden");
   $("#loginOpen").textContent = "Sign in";
 
   toast("Signed out.");
@@ -395,4 +395,4 @@ loadSongs().catch(() => {
 });
 
 loadAds();
-    
+  
