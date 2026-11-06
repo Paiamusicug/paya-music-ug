@@ -8,19 +8,28 @@ const multer = require("multer");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { createClient } = require("@supabase/supabase-js");
+const { Readable } = require("stream");
 
 const app = express();
 app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 3000;
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("Supabase environment variables are missing");
+}
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is missing");
+}
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET is missing");
-}
+const MUSIC_BUCKET = "music";
+const IMAGE_BUCKET = "paya-images";
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -34,9 +43,29 @@ app.use(rateLimit({
   limit: 200
 }));
 
+// AUDIO UPLOAD
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 25 * 1024 * 1024 }
+});
+
+// IMAGE UPLOAD
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, callback) => {
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp"
+    ];
+
+    if (!allowedTypes.includes(file.mimetype)) {
+      return callback(new Error("Upload a JPG, PNG, or WEBP image"));
+    }
+
+    callback(null, true);
+  }
 });
 
 function makeToken(user) {
@@ -47,6 +76,7 @@ function makeToken(user) {
   );
 }
 
+// AUTHENTICATION
 async function auth(req, res, next) {
   try {
     const header = req.headers.authorization || "";
@@ -71,21 +101,29 @@ async function auth(req, res, next) {
     req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({ error: "Invalid or expired session" });
+    return res.status(401).json({
+      error: "Invalid or expired session"
+    });
   }
 }
 
 function admin(req, res, next) {
   if (!["admin", "owner"].includes(req.user.role)) {
-    return res.status(403).json({ error: "Admin access required" });
+    return res.status(403).json({
+      error: "Admin access required"
+    });
   }
+
   next();
 }
 
 function owner(req, res, next) {
   if (req.user.role !== "owner") {
-    return res.status(403).json({ error: "Owner access required" });
+    return res.status(403).json({
+      error: "Owner access required"
+    });
   }
+
   next();
 }
 
@@ -94,7 +132,12 @@ app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password || password.length < 10) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      password.length < 10
+    ) {
       return res.status(400).json({
         error: "Enter your name, email and a password of at least 10 characters"
       });
@@ -109,7 +152,9 @@ app.post("/api/register", async (req, res) => {
       .maybeSingle();
 
     if (existing) {
-      return res.status(409).json({ error: "Email already registered" });
+      return res.status(409).json({
+        error: "Email already registered"
+      });
     }
 
     const password_hash = await bcrypt.hash(password, 12);
@@ -132,14 +177,19 @@ app.post("/api/register", async (req, res) => {
       user
     });
   } catch (error) {
-    res.status(500).json({ error: "Registration failed" });
+    console.error("Registration error:", error);
+    res.status(500).json({
+      error: "Registration failed"
+    });
   }
 });
 
 // LOGIN
 app.post("/api/login", async (req, res) => {
   try {
-    const email = String(req.body.email || "").toLowerCase().trim();
+    const email = String(req.body.email || "")
+      .toLowerCase()
+      .trim();
 
     const { data: user, error } = await supabase
       .from("users")
@@ -147,9 +197,17 @@ app.post("/api/login", async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (error || !user ||
-        !(await bcrypt.compare(req.body.password || "", user.password_hash))) {
-      return res.status(401).json({ error: "Incorrect email or password" });
+    if (
+      error ||
+      !user ||
+      !(await bcrypt.compare(
+        req.body.password || "",
+        user.password_hash
+      ))
+    ) {
+      return res.status(401).json({
+        error: "Incorrect email or password"
+      });
     }
 
     delete user.password_hash;
@@ -159,7 +217,10 @@ app.post("/api/login", async (req, res) => {
       user
     });
   } catch (error) {
-    res.status(500).json({ error: "Login failed" });
+    console.error("Login error:", error);
+    res.status(500).json({
+      error: "Login failed"
+    });
   }
 });
 
@@ -172,16 +233,26 @@ app.get("/api/me", auth, (req, res) => {
 app.patch("/api/profile", auth, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
-
     const updates = {};
 
-    if (typeof name === "string") updates.name = name.trim().slice(0, 120);
-    if (typeof bio === "string") updates.bio = bio.slice(0, 1000);
+    if (typeof name === "string") {
+      updates.name = name.trim().slice(0, 120);
+    }
+
+    if (typeof bio === "string") {
+      updates.bio = bio.slice(0, 1000);
+    }
 
     if (typeof avatar_url === "string") {
-      if (avatar_url && !/^https:\/\//i.test(avatar_url)) {
-        return res.status(400).json({ error: "Avatar must use HTTPS" });
+      if (
+        avatar_url &&
+        !/^https:\/\//i.test(avatar_url)
+      ) {
+        return res.status(400).json({
+          error: "Avatar must use HTTPS"
+        });
       }
+
       updates.avatar_url = avatar_url;
     }
 
@@ -193,11 +264,72 @@ app.patch("/api/profile", auth, async (req, res) => {
       .single();
 
     if (error) throw error;
+
     res.json({ user: data });
   } catch (error) {
-    res.status(500).json({ error: "Profile update failed" });
+    console.error("Profile update error:", error);
+    res.status(500).json({
+      error: "Profile update failed"
+    });
   }
 });
+
+// UPLOAD ARTIST PROFILE PICTURE
+app.post(
+  "/api/profile/avatar",
+  auth,
+  imageUpload.single("image"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "Please choose an image"
+        });
+      }
+
+      const extension =
+        req.file.mimetype === "image/png"
+          ? "png"
+          : req.file.mimetype === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const filename =
+        `profiles/${req.user.id}-${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(IMAGE_BUCKET)
+        .upload(filename, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from(IMAGE_BUCKET)
+        .getPublicUrl(filename);
+
+      const avatar_url = publicData.publicUrl;
+
+      const { data: user, error: updateError } = await supabase
+        .from("users")
+        .update({ avatar_url })
+        .eq("id", req.user.id)
+        .select("id, name, email, role, bio, avatar_url")
+        .single();
+
+      if (updateError) throw updateError;
+
+      res.json({ user, avatar_url });
+    } catch (error) {
+      console.error("Profile image upload error:", error);
+      res.status(500).json({
+        error: "Profile picture upload failed"
+      });
+    }
+  }
+);
 
 // UPLOAD SONG
 app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
@@ -205,19 +337,26 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
     const file = req.file;
     const { title, artist, genre, description } = req.body;
 
-    if (!file || !file.originalname.toLowerCase().endsWith(".mp3") ||
-        file.mimetype !== "audio/mpeg") {
-      return res.status(400).json({ error: "Please upload an MP3 file" });
+    if (
+      !file ||
+      !file.originalname.toLowerCase().endsWith(".mp3") ||
+      file.mimetype !== "audio/mpeg"
+    ) {
+      return res.status(400).json({
+        error: "Please upload an MP3 file"
+      });
     }
 
     if (!title || !artist) {
-      return res.status(400).json({ error: "Song title and artist are required" });
+      return res.status(400).json({
+        error: "Song title and artist are required"
+      });
     }
 
     const filename = `${Date.now()}-${req.user.id}.mp3`;
 
     const { error: storageError } = await supabase.storage
-      .from("music")
+      .from(MUSIC_BUCKET)
       .upload(filename, file.buffer, {
         contentType: "audio/mpeg",
         upsert: false
@@ -243,7 +382,10 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
       .single();
 
     if (error) {
-      await supabase.storage.from("music").remove([filename]);
+      await supabase.storage
+        .from(MUSIC_BUCKET)
+        .remove([filename]);
+
       throw error;
     }
 
@@ -252,7 +394,10 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
       song: data
     });
   } catch (error) {
-    res.status(500).json({ error: "Song upload failed" });
+    console.error("Song upload error:", error);
+    res.status(500).json({
+      error: "Song upload failed"
+    });
   }
 });
 
@@ -266,9 +411,12 @@ app.get("/api/songs", async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+
     res.json({ songs: data || [] });
   } catch (error) {
-    res.status(500).json({ error: "Could not load songs" });
+    res.status(500).json({
+      error: "Could not load songs"
+    });
   }
 });
 
@@ -282,9 +430,12 @@ app.get("/api/my-songs", auth, async (req, res) => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
+
     res.json({ songs: data || [] });
   } catch (error) {
-    res.status(500).json({ error: "Could not load your songs" });
+    res.status(500).json({
+      error: "Could not load your songs"
+    });
   }
 });
 
@@ -298,9 +449,12 @@ app.get("/api/admin/songs", auth, admin, async (req, res) => {
       .order("created_at", { ascending: true });
 
     if (error) throw error;
+
     res.json({ songs: data || [] });
   } catch (error) {
-    res.status(500).json({ error: "Could not load pending songs" });
+    res.status(500).json({
+      error: "Could not load pending songs"
+    });
   }
 });
 
@@ -310,7 +464,9 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
     const { status } = req.body;
 
     if (!["approved", "rejected"].includes(status)) {
-      return res.status(400).json({ error: "Invalid song status" });
+      return res.status(400).json({
+        error: "Invalid song status"
+      });
     }
 
     const { data, error } = await supabase
@@ -321,9 +477,12 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
       .single();
 
     if (error) throw error;
+
     res.json({ song: data });
   } catch (error) {
-    res.status(500).json({ error: "Song review failed" });
+    res.status(500).json({
+      error: "Song review failed"
+    });
   }
 });
 
@@ -333,7 +492,9 @@ app.get("/api/songs/:id/:action", async (req, res) => {
     const { id, action } = req.params;
 
     if (!["stream", "download"].includes(action)) {
-      return res.status(400).json({ error: "Invalid action" });
+      return res.status(400).json({
+        error: "Invalid action"
+      });
     }
 
     const { data: song, error } = await supabase
@@ -344,25 +505,27 @@ app.get("/api/songs/:id/:action", async (req, res) => {
       .single();
 
     if (error || !song) {
-      return res.status(404).json({ error: "Song not found" });
+      return res.status(404).json({
+        error: "Song not found"
+      });
     }
 
     const { data, error: storageError } = await supabase.storage
-      .from("music")
+      .from(MUSIC_BUCKET)
       .createSignedUrl(song.filename, 300, {
         download: action === "download"
       });
 
     if (storageError || !data?.signedUrl) {
-      return res.status(500).json({ error: "Could not access audio file" });
+      return res.status(500).json({
+        error: "Could not access audio file"
+      });
     }
 
-    // Keep the existing download behavior
     if (action === "download") {
       return res.redirect(data.signedUrl);
     }
 
-    // Fetch audio for browser playback
     const headers = {};
 
     if (req.headers.range) {
@@ -372,7 +535,9 @@ app.get("/api/songs/:id/:action", async (req, res) => {
     const audioResponse = await fetch(data.signedUrl, { headers });
 
     if (!audioResponse.ok && audioResponse.status !== 206) {
-      return res.status(502).json({ error: "Audio file could not be streamed" });
+      return res.status(502).json({
+        error: "Audio file could not be streamed"
+      });
     }
 
     res.status(audioResponse.status);
@@ -395,56 +560,32 @@ app.get("/api/songs/:id/:action", async (req, res) => {
       return res.status(502).end("Audio response is empty");
     }
 
-    const { Readable } = require("stream");
-
     Readable.fromWeb(audioResponse.body).pipe(res);
-
   } catch (error) {
     console.error("Song streaming error:", error);
+
     if (!res.headersSent) {
-      res.status(500).json({ error: "Song unavailable" });
-    }
-  }
-});
-app.get("/api/songs/:id/:action", async (req, res) => {
-  try {
-    const { id, action } = req.params;
-
-    if (!["stream", "download"].includes(action)) {
-      return res.status(400).json({ error: "Invalid action" });
-    }
-
-    const { data: song, error } = await supabase
-      .from("songs")
-      .select("filename, original_name, mime_type")
-      .eq("id", id)
-      .eq("status", "approved")
-      .single();
-
-    if (error || !song) {
-      return res.status(404).json({ error: "Song not found" });
-    }
-
-    const { data, error: storageError } = await supabase.storage
-      .from("music")
-      .createSignedUrl(song.filename, 300, {
-        download: action === "download"
+      res.status(500).json({
+        error: "Song unavailable"
       });
-
-    if (storageError) throw storageError;
-    res.redirect(data.signedUrl);
-  } catch (error) {
-    res.status(500).json({ error: "Song unavailable" });
+    }
   }
 });
+
 // PUBLIC SONG LIKES
 app.post("/api/songs/:id/like", async (req, res) => {
   try {
     const songId = Number(req.params.id);
     const visitorKey = String(req.body.visitor_key || "");
 
-    if (!Number.isInteger(songId) || visitorKey.length < 10 || visitorKey.length > 100) {
-      return res.status(400).json({ error: "Invalid like request" });
+    if (
+      !Number.isInteger(songId) ||
+      visitorKey.length < 10 ||
+      visitorKey.length > 100
+    ) {
+      return res.status(400).json({
+        error: "Invalid like request"
+      });
     }
 
     const { data: song } = await supabase
@@ -454,7 +595,11 @@ app.post("/api/songs/:id/like", async (req, res) => {
       .eq("status", "approved")
       .maybeSingle();
 
-    if (!song) return res.status(404).json({ error: "Song not found" });
+    if (!song) {
+      return res.status(404).json({
+        error: "Song not found"
+      });
+    }
 
     const { data: existing } = await supabase
       .from("song_likes")
@@ -464,23 +609,39 @@ app.post("/api/songs/:id/like", async (req, res) => {
       .maybeSingle();
 
     if (existing) {
-      await supabase.from("song_likes").delete().eq("id", existing.id);
+      const { error } = await supabase
+        .from("song_likes")
+        .delete()
+        .eq("id", existing.id);
+
+      if (error) throw error;
     } else {
-      const { error } = await supabase.from("song_likes").insert({
-        song_id: songId,
-        visitor_key: visitorKey
-      });
+      const { error } = await supabase
+        .from("song_likes")
+        .insert({
+          song_id: songId,
+          visitor_key: visitorKey
+        });
+
       if (error) throw error;
     }
 
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("song_likes")
       .select("*", { count: "exact", head: true })
       .eq("song_id", songId);
 
-    res.json({ liked: !existing, likes: count || 0 });
+    if (countError) throw countError;
+
+    res.json({
+      liked: !existing,
+      likes: count || 0
+    });
   } catch (error) {
-    res.status(500).json({ error: "Like action failed" });
+    console.error("Like action error:", error);
+    res.status(500).json({
+      error: "Like action failed"
+    });
   }
 });
 
@@ -488,19 +649,38 @@ app.post("/api/songs/:id/like", async (req, res) => {
 app.post("/api/ads", async (req, res) => {
   try {
     const {
-      business_name, title, description, image_url,
-      target_url, placement, contact_email, contact_whatsapp
+      business_name,
+      title,
+      description,
+      image_url,
+      target_url,
+      placement,
+      contact_email,
+      contact_whatsapp
     } = req.body;
 
-    if (!business_name || !title || !image_url || !target_url || !contact_email) {
-      return res.status(400).json({ error: "Complete the required advert details" });
+    if (
+      !business_name ||
+      !title ||
+      !image_url ||
+      !target_url ||
+      !contact_email
+    ) {
+      return res.status(400).json({
+        error: "Complete the required advert details"
+      });
     }
 
     if (![image_url, target_url].every(value => {
-      try { return new URL(value).protocol === "https:"; }
-      catch { return false; }
+      try {
+        return new URL(value).protocol === "https:";
+      } catch {
+        return false;
+      }
     })) {
-      return res.status(400).json({ error: "Links must use HTTPS" });
+      return res.status(400).json({
+        error: "Links must use HTTPS"
+      });
     }
 
     const { data, error } = await supabase
@@ -520,9 +700,16 @@ app.post("/api/ads", async (req, res) => {
       .single();
 
     if (error) throw error;
-    res.status(201).json({ message: "Advert submitted for review", advert: data });
+
+    res.status(201).json({
+      message: "Advert submitted for review",
+      advert: data
+    });
   } catch (error) {
-    res.status(500).json({ error: "Advert submission failed" });
+    console.error("Advert submission error:", error);
+    res.status(500).json({
+      error: "Advert submission failed"
+    });
   }
 });
 
@@ -533,7 +720,12 @@ app.get("/api/ads", async (req, res) => {
     .select("id, business_name, title, description, image_url, target_url, placement")
     .eq("status", "approved");
 
-  if (error) return res.status(500).json({ error: "Could not load adverts" });
+  if (error) {
+    return res.status(500).json({
+      error: "Could not load adverts"
+    });
+  }
+
   res.json({ ads: data || [] });
 });
 
@@ -545,7 +737,12 @@ app.get("/api/admin/ads", auth, admin, async (req, res) => {
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
-  if (error) return res.status(500).json({ error: "Could not load adverts" });
+  if (error) {
+    return res.status(500).json({
+      error: "Could not load adverts"
+    });
+  }
+
   res.json({ ads: data || [] });
 });
 
@@ -554,7 +751,9 @@ app.patch("/api/admin/ads/:id", auth, admin, async (req, res) => {
   const { status } = req.body;
 
   if (!["approved", "rejected"].includes(status)) {
-    return res.status(400).json({ error: "Invalid advert status" });
+    return res.status(400).json({
+      error: "Invalid advert status"
+    });
   }
 
   const { data, error } = await supabase
@@ -564,7 +763,12 @@ app.patch("/api/admin/ads/:id", auth, admin, async (req, res) => {
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: "Advert review failed" });
+  if (error) {
+    return res.status(500).json({
+      error: "Advert review failed"
+    });
+  }
+
   res.json({ advert: data });
 });
 
@@ -576,7 +780,12 @@ app.get("/api/news", async (req, res) => {
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
-  if (error) return res.status(500).json({ error: "Could not load news" });
+  if (error) {
+    return res.status(500).json({
+      error: "Could not load news"
+    });
+  }
+
   res.json({ news: data || [] });
 });
 
@@ -585,7 +794,9 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
   const { title, content, category, image_url } = req.body;
 
   if (!title || !content) {
-    return res.status(400).json({ error: "Title and content are required" });
+    return res.status(400).json({
+      error: "Title and content are required"
+    });
   }
 
   const { data, error } = await supabase
@@ -602,102 +813,63 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: "News publishing failed" });
+  if (error) {
+    return res.status(500).json({
+      error: "News publishing failed"
+    });
+  }
+
   res.status(201).json({ article: data });
 });
 
+// ADMIN: UPLOAD NEWS PICTURE
+app.post(
+  "/api/admin/news/image",
+  auth,
+  admin,
+  imageUpload.single("image"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "Please choose an image"
+        });
+      }
+
+      const extension =
+        req.file.mimetype === "image/png"
+          ? "png"
+          : req.file.mimetype === "image/webp"
+          ? "webp"
+          : "jpg";
+
+      const filename =
+        `news/${req.user.id}-${Date.now()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(IMAGE_BUCKET)
+        .upload(filename, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage
+        .from(IMAGE_BUCKET)
+        .getPublicUrl(filename);
+
+      res.json({
+        image_url: publicData.publicUrl
+      });
+    } catch (error) {
+      console.error("News image upload error:", error);
+      res.status(500).json({
+        error: "News image upload failed"
+      });
+    }
+  }
+);
+
 // TRACK WEBSITE EVENTS
-app.post("/api/events", async (req, res) => {
-  try {
-    const { event_type, song_id, visitor_key } = req.body;
-
-    if (!["visit", "play", "download"].includes(event_type)) {
-      return res.status(400).json({ error: "Invalid event" });
-    }
-
-    const { error } = await supabase.from("website_events").insert({
-      event_type,
-      song_id: song_id || null,
-      visitor_key: String(visitor_key || "").slice(0, 100)
-    });
-
-    if (error) throw error;
-    res.json({ recorded: true });
-  } catch (error) {
-    res.status(500).json({ error: "Event recording failed" });
-  }
-});
-
-// OWNER: CHANGE USER ROLE
-app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
-  try {
-    const { role } = req.body;
-
-    if (!["artist", "admin"].includes(role)) {
-      return res.status(400).json({ error: "Choose artist or admin" });
-    }
-
-    if (Number(req.params.id) === req.user.id) {
-      return res.status(400).json({ error: "You cannot change your own role" });
-    }
-
-    const { data, error } = await supabase
-      .from("users")
-      .update({ role })
-      .eq("id", req.params.id)
-      .neq("role", "owner")
-      .select("id, name, email, role")
-      .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: "User not found or cannot be changed" });
-    }
-
-    res.json({ user: data });
-  } catch (error) {
-    res.status(500).json({ error: "Role update failed" });
-  }
-});
-
-// OWNER: VIEW USERS
-app.get("/api/owner/users", auth, owner, async (req, res) => {
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, name, email, role, created_at")
-    .order("created_at", { ascending: false });
-
-  if (error) return res.status(500).json({ error: "Could not load users" });
-  res.json({ users: data || [] });
-});
-
-// ADMIN: ANALYTICS
-app.get("/api/admin/analytics", auth, admin, async (req, res) => {
-  try {
-    const [visits, plays, downloads, songs, users] = await Promise.all([
-      supabase.from("website_events").select("*", { count: "exact", head: true }).eq("event_type", "visit"),
-      supabase.from("website_events").select("*", { count: "exact", head: true }).eq("event_type", "play"),
-      supabase.from("website_events").select("*", { count: "exact", head: true }).eq("event_type", "download"),
-      supabase.from("songs").select("*", { count: "exact", head: true }),
-      supabase.from("users").select("*", { count: "exact", head: true })
-    ]);
-
-    res.json({
-      visits: visits.count || 0,
-      plays: plays.count || 0,
-      downloads: downloads.count || 0,
-      songs: songs.count || 0,
-      accounts: users.count || 0
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Analytics unavailable" });
-  }
-});
-
-// START SERVER
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
-
-app.listen(PORT, () => {
-  console.log(`Paya Music UG running on port ${PORT}`);
-});
-
-                          
+app.post("
