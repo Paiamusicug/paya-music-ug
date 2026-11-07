@@ -143,6 +143,11 @@
       <input name="audio" type="file" accept=".mp3,audio/mpeg" required>
     </label>
 
+    <label class="file-label">Song cover image (optional)
+      <input name="cover_image" id="songCoverImage" type="file" accept="image/jpeg,image/png,image/webp">
+    </label>
+    <img id="songCoverPreview" class="song-upload-preview" alt="Song cover preview" hidden>
+
     <button class="gold-btn full" type="submit">Submit for review</button>
 
     <p class="fine">MP3 only. Maximum file size is set by the platform administrator.</p>
