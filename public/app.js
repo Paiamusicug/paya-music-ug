@@ -95,7 +95,10 @@ function updateAccountUI() {
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const loginOpen = $("#loginOpen");
+  const songSort = $("#songSort");
+if (songSort) songSort.addEventListener("change", () => loadSongs($("#search")?.value || ""));
+
+const loginOpen = $("#loginOpen");
   const account = $("#account");
 
   if (userPanel) userPanel.hidden = !currentUser;
@@ -243,9 +246,10 @@ async function shareSong(song) {
 
 async function loadSongs(query = "") {
   const container = $("#songs");
+  const sort = $("#songSort")?.value || "newest";
   if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
   try {
-    const result = await api(`/api/songs?q=${encodeURIComponent(query)}`);
+    const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}`);
     renderSongs(result.songs || []);
   } catch (error) {
     if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
