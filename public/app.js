@@ -630,19 +630,37 @@ const profilePicturePicker = $("#profilePreview");
 const profileImageInput = $("#profileImage");
 const profileAvatarPreview = $("#profileAvatar");
 const profilePlaceholder = $("#profilePlaceholder");
-let profilePreviewObjectUrl = "";
+
+function showSelectedProfilePhoto(file) {
+  if (!file || !profileAvatarPreview || !profilePlaceholder || !profilePicturePicker) return;
+  if (!file.type || !file.type.startsWith("image/")) {
+    toast("Please choose a JPG, PNG, or WEBP image.");
+    profileImageInput.value = "";
+    return;
+  }
+
+  // FileReader works reliably in mobile browsers and previews the photo
+  // directly from the phone before any upload is attempted.
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (typeof reader.result !== "string" || !reader.result) {
+      toast("The photo could not be previewed. Please choose it again.");
+      return;
+    }
+    profileAvatarPreview.src = reader.result;
+    profileAvatarPreview.hidden = false;
+    profilePlaceholder.hidden = true;
+    profilePicturePicker.classList.add("has-image");
+  };
+  reader.onerror = () => toast("The photo could not be opened. Please choose another image.");
+  reader.readAsDataURL(file);
+}
+
 if (profilePicturePicker && profileImageInput) {
   profilePicturePicker.addEventListener("click", () => profileImageInput.click());
   profileImageInput.addEventListener("change", () => {
     const file = profileImageInput.files && profileImageInput.files[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { toast("Please choose an image file."); profileImageInput.value = ""; return; }
-    if (profilePreviewObjectUrl) URL.revokeObjectURL(profilePreviewObjectUrl);
-    profilePreviewObjectUrl = URL.createObjectURL(file);
-    profileAvatarPreview.src = profilePreviewObjectUrl;
-    profileAvatarPreview.hidden = false;
-    profilePlaceholder.hidden = true;
-    profilePicturePicker.classList.add("has-image");
+    showSelectedProfilePhoto(file);
   });
 }
 bindForm("#profileForm", async (form) => {
