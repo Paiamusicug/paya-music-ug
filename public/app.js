@@ -1,3 +1,21 @@
+// Mobile-safe account tab switching: use delegated capture so tabs keep
+// working even if other page initialization code fails later.
+document.addEventListener("click", (event) => {
+  const tab = event.target.closest(".tab[data-tab]");
+  if (!tab) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const mode = tab.dataset.tab;
+  document.querySelectorAll(".tabs .tab").forEach((item) => {
+    item.classList.toggle("active", item === tab);
+    item.setAttribute("aria-selected", item === tab ? "true" : "false");
+  });
+  const registerForm = document.getElementById("registerForm");
+  const loginForm = document.getElementById("loginForm");
+  if (registerForm) registerForm.classList.toggle("hidden", mode !== "register");
+  if (loginForm) loginForm.classList.toggle("hidden", mode !== "login");
+}, true);
+
 /* Paya Music UG - public/app.js
    Complete frontend script. It safely checks optional page elements so the same
    file can run on pages where some forms/panels are not present.
