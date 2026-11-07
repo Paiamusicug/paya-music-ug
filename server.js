@@ -251,7 +251,12 @@ app.patch("/api/profile", auth, async (req, res) => {
       .select("id, name, email, role, bio, avatar_url")
       .single();
     if (error) throw error;
-    res.json({ message: "Artist profile updated successfully. Your picture is now live.", user: data });
+    res.json({
+      message: data.avatar_url
+        ? "Artist profile saved successfully."
+        : "Artist profile saved. Choose a photo to add your profile picture.",
+      user: data
+    });
   } catch (error) {
     console.error("Profile update error:", error.message, error.code || "");
     res.status(500).json({ error: "Profile update failed. Please try again." });
