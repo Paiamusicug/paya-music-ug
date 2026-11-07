@@ -165,7 +165,8 @@ app.post("/api/register", async (req, res) => {
         name: name.trim(),
         email: normalizedEmail,
         password_hash,
-        role: "artist"
+        role: "artist",
+        bio: ""
       })
       .select("id, name, email, role, bio, avatar_url")
       .single();
@@ -838,6 +839,21 @@ app.get("/api/news", async (req, res) => {
   res.json({ news: data || [] });
 });
 
+// ADMIN: PENDING NEWS REVIEW
+app.get("/api/admin/news", auth, admin, async (req, res) => {
+  const { data, error } = await supabase.from("news").select("*").eq("status", "pending").order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load pending news" });
+  res.json({ news: data || [] });
+});
+
+app.patch("/api/admin/news/:id", auth, admin, async (req, res) => {
+  const status = req.body.status;
+  if (!["published", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid news review status" });
+  const { data, error } = await supabase.from("news").update({ status, published_at: status === "published" ? new Date().toISOString() : null }).eq("id", req.params.id).eq("status", "pending").select().single();
+  if (error || !data) return res.status(404).json({ error: "Pending news article not found" });
+  res.json({ article: data });
+});
+
 // ADMIN: CREATE NEWS
 app.post("/api/admin/news", auth, admin, async (req, res) => {
   const { title, content, category, image_url } = req.body;
@@ -855,9 +871,9 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
       content: String(content).slice(0, 10000),
       category: category || "music",
       image_url: image_url || null,
-      status: "published",
+      status: "pending",
       author_id: req.user.id,
-      published_at: new Date().toISOString()
+      published_at: null
     })
     .select()
     .single();
@@ -868,7 +884,7 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     });
   }
 
-  res.status(201).json({ article: data });
+  res.status(201).json({ message: "News submitted for approval.", article: data });
 });
 
 // ADMIN: UPLOAD NEWS PICTURE
