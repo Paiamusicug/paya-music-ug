@@ -524,14 +524,7 @@ function firstFile(form, selectors) {
   });
 }
 
-$(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const mode = tab.dataset.tab;
-    $(".tab").forEach((item) => item.classList.toggle("active", item === tab));
-    $("#registerForm")?.classList.toggle("hidden", mode !== "register");
-    $("#loginForm")?.classList.toggle("hidden", mode !== "login");
-  });
-});
+// Tab switching is handled by the delegated listener at the top of this file.
 
 bindForm("#registerForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
