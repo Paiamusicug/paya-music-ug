@@ -373,6 +373,34 @@ async function loadNews() {
 }
 
 async function uploadImage(endpoint, file) {
+   // NEWS IMAGE PREVIEW
+const newsImageInput = $("#newsImage");
+
+if (newsImageInput) {
+  const preview = document.createElement("img");
+
+  preview.alt = "News image preview";
+  preview.style.display = "none";
+  preview.style.maxWidth = "100%";
+  preview.style.maxHeight = "250px";
+  preview.style.marginTop = "10px";
+  preview.style.borderRadius = "10px";
+
+  newsImageInput.insertAdjacentElement("afterend", preview);
+
+  newsImageInput.addEventListener("change", () => {
+    const file = newsImageInput.files?.[0];
+
+    if (!file) {
+      preview.removeAttribute("src");
+      preview.style.display = "none";
+      return;
+    }
+
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+  });
+          }
   const formData = new FormData();
   formData.append("image", file);
   return api(endpoint, { method: "POST", body: formData });
@@ -490,6 +518,67 @@ bindForm("#profileForm", async (form) => {
 });
 
 bindForm("#newsForm", async (form) => {
+  if (!isAdmin()) {
+    throw new Error("Only an administrator can post news.");
+  }
+
+  const title =
+    $('input[name="title"]', form)?.value?.trim() || "";
+
+  const content =
+    $('textarea[name="content"]', form)?.value?.trim() || "";
+
+  const category =
+    $('select[name="category"]', form)?.value || "music";
+
+  const file = firstFile(form, ['input[name="image"]']);
+
+  const typedImageUrl =
+    $('input[name="image_url"]', form)?.value?.trim() || "";
+
+  let image_url = typedImageUrl;
+
+  if (file) {
+    const uploaded = await uploadImage(
+      "/api/admin/news/image",
+      file
+    );
+
+    image_url =
+      uploaded.image_url ||
+      uploaded.url ||
+      uploaded.publicUrl ||
+      typedImageUrl;
+  }
+
+  await api("/api/admin/news", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      title,
+      content,
+      category,
+      image_url
+    })
+  });
+
+  form.reset();
+
+  if (newsImageInput) {
+    newsImageInput.dispatchEvent(new Event("change"));
+  }
+
+  const message = $("#newsMsg");
+  if (message) {
+    message.textContent = "News published successfully.";
+  }
+
+  toast("News published.");
+
+  await loadNews();
+});
   if (!isAdmin()) throw new Error("Only an administrator can post news.");
   const title = $('input[name="title"]', form)?.value?.trim() || "";
   const content = $('textarea[name="content"]', form)?.value?.trim()
