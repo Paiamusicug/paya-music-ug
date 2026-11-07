@@ -646,7 +646,7 @@ bindForm("#profileForm", async (form) => {
     body: JSON.stringify({ name, bio })
   });
   saveSession(result.user || result, token);
-  toast("Profile changes submitted for approval.");
+  toast(result.message || "Profile changes submitted for approval.");
 });
 
 bindForm("#newsForm", async (form) => {
