@@ -513,20 +513,31 @@ bindForm("#registerForm", async (form) => {
 });
 
 bindForm("#loginForm", async (form) => {
+  const submit = form.querySelector('button[type="submit"], input[type="submit"]');
+  const originalLabel = submit?.textContent || submit?.value || "Sign in";
+  const status = $("#loginMsg");
   const data = Object.fromEntries(new FormData(form).entries());
-
-  const result = await api("/api/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  });
-
-  saveSession(result.user || result, result.token);
-  form.reset();
-  toast("Login successful.");
-  await refreshDashboard();
+  if (status) { status.textContent = "Signing in…"; status.setAttribute("role", "status"); }
+  if (submit) { submit.disabled = true; if (submit.tagName === "BUTTON") submit.textContent = "Signing in…"; else submit.value = "Signing in…"; }
+  try {
+    const result = await api("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!result.token || !result.user) throw new Error("The server did not return a valid login session. Please try again.");
+    saveSession(result.user, result.token);
+    form.reset();
+    const name = result.user.name || result.user.email || "your account";
+    if (status) status.textContent = `Signed in successfully as ${name}.`;
+    toast(`Welcome, ${name}! You are signed in.`);
+    await refreshDashboard();
+  } catch (error) {
+    if (status) status.textContent = error.message || "Sign in failed. Please try again.";
+    throw error;
+  } finally {
+    if (submit) { submit.disabled = false; if (submit.tagName === "BUTTON") submit.textContent = originalLabel; else submit.value = originalLabel; }
+  }
 });
 
 const logout = $("#logout");
