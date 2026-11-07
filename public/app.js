@@ -440,11 +440,15 @@ bindForm("#registerForm", async (form) => {
 
 bindForm("#loginForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
+
   const result = await api("/api/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(data)
   });
+
   saveSession(result.user || result, result.token);
   form.reset();
   toast("Login successful.");
