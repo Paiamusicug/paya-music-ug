@@ -854,13 +854,12 @@ async function restoreSession() {
   }
 }
 
-// Reliable header sign-in navigation: open the account area and activate the login form.
+// Reliable header sign-in navigation: directly show the login form.
 const headerSignInButton = $("#loginOpen");
 if (headerSignInButton) {
   headerSignInButton.addEventListener("click", (event) => {
     event.preventDefault();
     const accountSection = $("#account");
-    const tabButtons = $(".tabs .tab");
     const registerForm = $("#registerForm");
     const loginForm = $("#loginForm");
     const userPanel = $("#userPanel");
@@ -868,14 +867,16 @@ if (headerSignInButton) {
       accountSection?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+    if (registerForm) registerForm.hidden = true;
+    if (loginForm) loginForm.hidden = false;
     if (registerForm) registerForm.classList.add("hidden");
     if (loginForm) loginForm.classList.remove("hidden");
-    tabButtons.forEach((tab) => {
+    if (userPanel) userPanel.classList.add("hidden");
+    $$(".tabs .tab").forEach((tab) => {
       const selected = tab.dataset.tab === "login";
       tab.classList.toggle("active", selected);
       tab.setAttribute("aria-selected", selected ? "true" : "false");
     });
-    userPanel?.classList.add("hidden");
     accountSection?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
