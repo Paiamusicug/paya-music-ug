@@ -628,6 +628,25 @@ if (loginOpen) loginOpen.addEventListener("click", () => {
   $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+const profilePicturePicker = $("#profilePreview");
+const profileImageInput = $("#profileImage");
+const profileAvatarPreview = $("#profileAvatar");
+const profilePlaceholder = $("#profilePlaceholder");
+let profilePreviewObjectUrl = "";
+if (profilePicturePicker && profileImageInput) {
+  profilePicturePicker.addEventListener("click", () => profileImageInput.click());
+  profileImageInput.addEventListener("change", () => {
+    const file = profileImageInput.files && profileImageInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast("Please choose an image file."); profileImageInput.value = ""; return; }
+    if (profilePreviewObjectUrl) URL.revokeObjectURL(profilePreviewObjectUrl);
+    profilePreviewObjectUrl = URL.createObjectURL(file);
+    profileAvatarPreview.src = profilePreviewObjectUrl;
+    profileAvatarPreview.hidden = false;
+    profilePlaceholder.hidden = true;
+    profilePicturePicker.classList.add("has-image");
+  });
+}
 bindForm("#profileForm", async (form) => {
   if (!token) throw new Error("Please log in first.");
   const name = $("#profileName", form)?.value?.trim() || "";
