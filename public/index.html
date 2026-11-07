@@ -343,7 +343,11 @@
         <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
         <section id="ownerPanel" class="panel hidden">
           <h3>Owner dashboard</h3>
-          <p class="muted">Manage registered users and grant admin access.</p>
+          <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
+          <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
+          <label>Search registered users
+            <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
+          </label>
 
           <div id="ownerUsers">
             <p class="muted">Loading registered users...</p>
