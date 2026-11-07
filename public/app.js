@@ -142,10 +142,14 @@ function updateAccountUI() {
   const profileBio = $("#profileBio");
   const profileAvatar = $("#profileAvatar");
   const navAvatar = $("#navAvatar");
+  const navArtistName = $("#navArtistName");
   const accountAvatarLink = $("#accountAvatarLink");
   if (navAvatar && accountAvatarLink) {
     navAvatar.src = currentUser?.avatar_url || "";
-    accountAvatarLink.classList.toggle("hidden", !currentUser?.avatar_url);
+    accountAvatarLink.classList.toggle("hidden", !currentUser);
+  }
+  if (navArtistName) {
+    navArtistName.textContent = currentUser?.name || currentUser?.username || "";
   }
   if (profileAvatar) {
     profileAvatar.src = currentUser?.avatar_url || "";
@@ -645,11 +649,19 @@ bindForm("#profileForm", async (form) => {
   if (!token) throw new Error("Please log in first.");
   const name = $("#profileName", form)?.value?.trim() || "";
   const bio = $("#profileBio", form)?.value?.trim() || "";
-  const file = firstFile(form, ['input[name="image"]']);
+  // Read the profile picker by its unique ID so the selected phone photo
+  // cannot be missed by a broad form selector.
+  const file = $("#profileImage", form)?.files?.[0] || null;
   let avatar_url = currentUser?.avatar_url || null;
   if (file) {
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Please choose a JPG, PNG, or WEBP image.");
+    }
     const uploaded = await uploadImage("/api/profile/avatar", file);
-    avatar_url = uploaded.avatar_url || uploaded.image_url || uploaded.url || avatar_url;
+    avatar_url = uploaded.avatar_url || uploaded.image_url || uploaded.url || "";
+    if (!avatar_url) {
+      throw new Error("The profile photo did not upload. Please try again.");
+    }
   }
   const result = await api("/api/profile", {
     method: "PATCH",
@@ -691,24 +703,19 @@ bindForm("#newsForm", async (form) => {
   const category =
     $('select[name="category"]', form)?.value || "music";
 
-  const file = firstFile(form, ['input[name="image"]']);
-
-  const typedImageUrl =
-    $('input[name="image_url"]', form)?.value?.trim() || "";
-
-  let image_url = typedImageUrl;
+  // News pictures are selected directly from the phone gallery.
+  const file = $("#newsImage", form)?.files?.[0] || null;
+  let image_url = "";
 
   if (file) {
-    const uploaded = await uploadImage(
-      "/api/admin/news/image",
-      file
-    );
-
-    image_url =
-      uploaded.image_url ||
-      uploaded.url ||
-      uploaded.publicUrl ||
-      typedImageUrl;
+    if (!file.type.startsWith("image/")) {
+      throw new Error("Please choose a JPG, PNG, or WEBP news photo.");
+    }
+    const uploaded = await uploadImage("/api/admin/news/image", file);
+    image_url = uploaded.image_url || uploaded.url || uploaded.publicUrl || "";
+    if (!image_url) {
+      throw new Error("The news photo did not upload. Please try again.");
+    }
   }
 
   await api("/api/admin/news", {
