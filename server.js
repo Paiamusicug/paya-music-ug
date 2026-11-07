@@ -233,9 +233,9 @@ app.get("/api/me", auth, (req, res) => {
 // SUBMIT ARTIST PROFILE CHANGES FOR ADMIN/OWNER REVIEW
 app.patch("/api/profile", auth, async (req, res) => {
   try {
-    const { name, bio } = req.body;
+    const { name, bio, avatar_url } = req.body;
     if (typeof name !== "string" || name.trim().length < 2 || typeof bio !== "string") return res.status(400).json({ error: "Enter an artist name and biography." });
-    const { data, error } = await supabase.from("profile_submissions").insert({ user_id: req.user.id, name: name.trim().slice(0, 120), bio: bio.slice(0, 1000), avatar_url: req.user.avatar_url || null, status: "pending" }).select("id, status").single();
+    const { data, error } = await supabase.from("profile_submissions").insert({ user_id: req.user.id, name: name.trim().slice(0, 120), bio: bio.slice(0, 1000), avatar_url: (typeof avatar_url === "string" && avatar_url.startsWith("https://")) ? avatar_url : (req.user.avatar_url || null), status: "pending" }).select("id, status").single();
     if (error) throw error;
     res.status(202).json({ message: "Profile changes submitted for approval.", submission: data });
   } catch (error) {
@@ -244,22 +244,19 @@ app.patch("/api/profile", auth, async (req, res) => {
   }
 });
 
-// PROFILE PICTURE UPLOAD (STORED AS PENDING PROFILE SUBMISSION)
+// PROFILE PICTURE UPLOAD; FINAL PROFILE CHANGE IS SUBMITTED BY /api/profile
 app.post("/api/profile/avatar", auth, imageUpload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Please choose an image" });
     const ext = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
     const filename = `profile-submissions/${req.user.id}-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
-    if (uploadError) throw uploadError;
-    const { data: publicData } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
-    const avatar_url = publicData.publicUrl;
-    const { data, error } = await supabase.from("profile_submissions").insert({ user_id: req.user.id, name: req.user.name, bio: req.user.bio || "", avatar_url, status: "pending" }).select("id, status").single();
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
     if (error) throw error;
-    res.status(202).json({ message: "Profile picture submitted for approval.", avatar_url, submission: data });
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
+    res.json({ avatar_url: data.publicUrl });
   } catch (error) {
-    console.error("Profile picture submission error:", error.message, error.code || "");
-    res.status(500).json({ error: "Profile picture submission failed." });
+    console.error("Profile picture upload error:", error.message, error.code || "");
+    res.status(500).json({ error: "Profile picture upload failed." });
   }
 });
 
