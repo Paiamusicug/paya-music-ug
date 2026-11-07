@@ -419,6 +419,18 @@ app.get("/api/songs", async (req, res) => {
 
     let songs = data || [];
     const sort = String(req.query.sort || "newest");
+    if (sort === "played" && songs.length) {
+      const ids = songs.map((song) => song.id);
+      const { data: plays, error: playsError } = await supabase
+        .from("song_plays")
+        .select("song_id")
+        .in("song_id", ids);
+      if (playsError) throw playsError;
+      const counts = new Map();
+      for (const play of plays || []) counts.set(play.song_id, (counts.get(play.song_id) || 0) + 1);
+      songs = songs.map((song) => ({ ...song, play_count: counts.get(song.id) || 0 }))
+        .sort((a, b) => b.play_count - a.play_count || new Date(b.created_at) - new Date(a.created_at));
+    }
     if (sort === "liked" && songs.length) {
       const ids = songs.map((song) => song.id);
       const { data: likes, error: likesError } = await supabase
@@ -506,6 +518,21 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
   }
 });
 
+// Record a successful song play for the Most Played chart.
+app.post("/api/songs/:id/play", async (req, res) => {
+  try {
+    const songId = Number(req.params.id);
+    if (!Number.isInteger(songId)) return res.status(400).json({ error: "Invalid song" });
+    const { data: song, error: songError } = await supabase.from("songs").select("id").eq("id", songId).eq("status", "approved").maybeSingle();
+    if (songError || !song) return res.status(404).json({ error: "Song not found" });
+    const { error } = await supabase.from("song_plays").insert({ song_id: songId });
+    if (error) throw error;
+    res.status(201).json({ recorded: true });
+  } catch (error) {
+    console.error("Song play count error:", error);
+    res.status(500).json({ error: "Could not record play" });
+  }
+});
 // STREAM OR DOWNLOAD SONG
 app.get("/api/songs/:id/:action", async (req, res) => {
   try {
