@@ -525,12 +525,20 @@ bindForm("#adForm", async (form) => {
 const search = $("#search");
 const searchBtn = $("#searchBtn");
 if (searchBtn) searchBtn.addEventListener("click", () => loadSongs(search?.value || ""));
-if (search) search.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    loadSongs(search.value);
-  }
-});
+if (search) {
+  let searchTimer;
+  search.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadSongs(search.value), 250);
+  });
+  search.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      clearTimeout(searchTimer);
+      loadSongs(search.value);
+    }
+  });
+}
 
 const loginOpen = $("#loginOpen");
 if (loginOpen) loginOpen.addEventListener("click", () => {
