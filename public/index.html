@@ -39,6 +39,44 @@
   <div class="account-card">
     <div class="account-brand-avatar" aria-label="Paya Music UG account profile"><span>P</span></div>
     <p class="account-kicker">YOUR CREATOR SPACE</p>
+    <section id="profileEditor" class="panel">
+            <h3>Artist profile</h3>
+    
+            <div id="profilePreview">
+              <img
+                id="profileAvatar"
+                src=""
+                alt="Your private artist profile picture"
+                width="220"
+                height="220">
+            </div>
+    
+            <form id="profileForm" enctype="multipart/form-data">
+              <label>Artist name
+                <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
+              </label>
+    
+              <label>Profile picture
+                <input
+                  name="image"
+                  id="profileImage"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp">
+              </label>
+    
+              <label>Artist bio / description
+                <textarea
+                  name="bio"
+                  id="profileBio"
+                  maxlength="1000"
+                  rows="5"
+                  placeholder="Tell listeners about yourself and your music"></textarea>
+              </label>
+    
+              <button class="gold-btn full" type="submit">Save artist profile</button>
+              <p id="profileMsg" class="message"></p>
+            </form>
+          </section>
     <div class="tabs">
       <button class="tab active" data-tab="register" type="button">Create account</button>
       <button class="tab" data-tab="login" type="button">Sign in</button>
@@ -80,44 +118,7 @@
       <button class="outline" id="logout" type="button">Sign out</button>
 
       <!-- ARTIST PROFILE EDITOR -->
-      <section id="profileEditor" class="panel">
-        <h3>Artist profile</h3>
-
-        <div id="profilePreview">
-          <img
-            id="profileAvatar"
-            src=""
-            alt="Your private artist profile picture"
-            width="220"
-            height="220">
-        </div>
-
-        <form id="profileForm" enctype="multipart/form-data">
-          <label>Artist name
-            <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
-          </label>
-
-          <label>Profile picture
-            <input
-              name="image"
-              id="profileImage"
-              type="file"
-              accept="image/jpeg,image/png,image/webp">
-          </label>
-
-          <label>Artist bio / description
-            <textarea
-              name="bio"
-              id="profileBio"
-              maxlength="1000"
-              rows="5"
-              placeholder="Tell listeners about yourself and your music"></textarea>
-          </label>
-
-          <button class="gold-btn full" type="submit">Save artist profile</button>
-          <p id="profileMsg" class="message"></p>
-        </form>
-      </section>
+      
 
       <h3>My music submissions</h3>
       <div id="mySongs"></div>
