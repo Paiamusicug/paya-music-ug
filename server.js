@@ -404,15 +404,47 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
 // PUBLIC APPROVED SONGS
 app.get("/api/songs", async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const query = String(req.query.q || "").trim().slice(0, 100);
+    let request = supabase
       .from("songs")
       .select("id, title, artist, genre, description, created_at, uploader_id")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false });
+      .eq("status", "approved");
+    if (query) {
+      const safeQuery = query.replace(/[,%()]/g, " ").trim();
+      if (safeQuery) request = request.or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,genre.ilike.%${safeQuery}%`);
+    }
+    const { data, error } = await request.order("created_at", { ascending: false });
 
     if (error) throw error;
 
-    res.json({ songs: data || [] });
+    let songs = data || [];
+    const sort = String(req.query.sort || "newest");
+    if (sort === "played" && songs.length) {
+      const ids = songs.map((song) => song.id);
+      const { data: plays, error: playsError } = await supabase
+        .from("song_plays")
+        .select("song_id")
+        .in("song_id", ids);
+      if (playsError) throw playsError;
+      const counts = new Map();
+      for (const play of plays || []) counts.set(play.song_id, (counts.get(play.song_id) || 0) + 1);
+      songs = songs.map((song) => ({ ...song, play_count: counts.get(song.id) || 0 }))
+        .sort((a, b) => b.play_count - a.play_count || new Date(b.created_at) - new Date(a.created_at));
+    }
+    if (sort === "liked" && songs.length) {
+      const ids = songs.map((song) => song.id);
+      const { data: likes, error: likesError } = await supabase
+        .from("song_likes")
+        .select("song_id")
+        .in("song_id", ids);
+      if (likesError) throw likesError;
+      const counts = new Map();
+      for (const like of likes || []) counts.set(like.song_id, (counts.get(like.song_id) || 0) + 1);
+      songs = songs.map((song) => ({ ...song, likes: counts.get(song.id) || 0 }))
+        .sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    res.json({ songs });
   } catch (error) {
     res.status(500).json({
       error: "Could not load songs"
@@ -486,6 +518,21 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
   }
 });
 
+// Record a successful song play for the Most Played chart.
+app.post("/api/songs/:id/play", async (req, res) => {
+  try {
+    const songId = Number(req.params.id);
+    if (!Number.isInteger(songId)) return res.status(400).json({ error: "Invalid song" });
+    const { data: song, error: songError } = await supabase.from("songs").select("id").eq("id", songId).eq("status", "approved").maybeSingle();
+    if (songError || !song) return res.status(404).json({ error: "Song not found" });
+    const { error } = await supabase.from("song_plays").insert({ song_id: songId });
+    if (error) throw error;
+    res.status(201).json({ recorded: true });
+  } catch (error) {
+    console.error("Song play count error:", error);
+    res.status(500).json({ error: "Could not record play" });
+  }
+});
 // STREAM OR DOWNLOAD SONG
 app.get("/api/songs/:id/:action", async (req, res) => {
   try {
@@ -499,7 +546,7 @@ app.get("/api/songs/:id/:action", async (req, res) => {
 
     const { data: song, error } = await supabase
       .from("songs")
-      .select("filename, original_name, mime_type")
+      .select("filename, original_name, mime_type, title, artist")
       .eq("id", id)
       .eq("status", "approved")
       .single();
@@ -514,6 +561,8 @@ app.get("/api/songs/:id/:action", async (req, res) => {
       .from(MUSIC_BUCKET)
       .createSignedUrl(song.filename, 300, {
         download: action === "download"
+          ? (String(song.title || "Song") + " - " + String(song.artist || "Artist") + " - Paya Music UG.mp3").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim()
+          : false
       });
 
     if (storageError || !data?.signedUrl) {

@@ -75,6 +75,11 @@
   <div class="search-row">
     <input id="search" placeholder="Search songs, artists or genres…" aria-label="Search music">
     <button class="gold-btn" id="searchBtn">Search</button>
+    <select id="songSort" aria-label="Sort songs">
+      <option value="newest">Newest Songs</option>
+      <option value="liked">Most Liked</option>
+      <option value="played">Most Played</option>
+    </select>
   </div>
 
   <div id="songs" class="song-grid">
@@ -246,6 +251,10 @@
         </div>
 
         <form id="profileForm" enctype="multipart/form-data">
+          <label>Artist name
+            <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
+          </label>
+
           <label>Profile picture
             <input
               name="image"
@@ -339,7 +348,11 @@
         <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
         <section id="ownerPanel" class="panel hidden">
           <h3>Owner dashboard</h3>
-          <p class="muted">Manage registered users and grant admin access.</p>
+          <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
+          <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
+          <label>Search registered users
+            <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
+          </label>
 
           <div id="ownerUsers">
             <p class="muted">Loading registered users...</p>

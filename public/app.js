@@ -7,6 +7,9 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const TOKEN_KEY = "paya_token";
 const USER_KEY = "paya_user";
+const LIKES_KEY = "paya_liked_songs";
+function savedLikes() { try { return JSON.parse(localStorage.getItem(LIKES_KEY) || "[]").map(String); } catch { return []; } }
+function saveLike(id, liked) { const ids = new Set(savedLikes()); if (liked) ids.add(String(id)); else ids.delete(String(id)); localStorage.setItem(LIKES_KEY, JSON.stringify([...ids])); }
 let token = localStorage.getItem(TOKEN_KEY) || "";
 let currentUser = null;
 
@@ -92,7 +95,10 @@ function updateAccountUI() {
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const loginOpen = $("#loginOpen");
+  const songSort = $("#songSort");
+if (songSort) songSort.addEventListener("change", () => loadSongs($("#search")?.value || ""));
+
+const loginOpen = $("#loginOpen");
   const account = $("#account");
 
   if (userPanel) userPanel.hidden = !currentUser;
@@ -161,7 +167,7 @@ function renderSongs(items = []) {
         </div>
         <div class="song-actions">
           <button type="button" data-play="${id}">Play</button>
-          <button type="button" data-like="${id}">Like</button>
+          <button type="button" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "Liked" : "Like"}</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
         </div>
@@ -185,8 +191,18 @@ function renderSongs(items = []) {
   });
 }
 
+let lastCountedPlay = "";
+audio?.addEventListener("playing", () => {
+  const id = audio.dataset.payaSongId;
+  if (!id || lastCountedPlay === id) return;
+  lastCountedPlay = id;
+  api(`/api/songs/${encodeURIComponent(id)}/play`, { method: "POST" })
+    .catch((error) => console.warn("Could not record song play:", error.message));
+});
+
 function playSong(song) {
   if (!audio) return toast("Audio player is not available on this page.");
+  audio.dataset.payaSongId = String(songId(song));
   const url = songAudioUrl(song) || `/api/songs/${encodeURIComponent(songId(song))}/stream`;
   audio.src = url;
   const title = $("#playingTitle");
@@ -213,7 +229,9 @@ async function likeSong(id, button) {
     const card = button.closest(".song-card");
     const count = $("[data-like-count]", card);
     if (count && result.likes !== undefined) count.textContent = `${result.likes} likes`;
+    saveLike(id, result.liked !== false);
     button.textContent = result.liked === false ? "Like" : "Liked";
+    button.setAttribute("aria-pressed", String(result.liked !== false));
     toast(result.message || (result.liked === false ? "Like removed" : "Song liked"));
   } catch (error) {
     toast(error.message);
@@ -238,9 +256,10 @@ async function shareSong(song) {
 
 async function loadSongs(query = "") {
   const container = $("#songs");
+  const sort = $("#songSort")?.value || "newest";
   if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
   try {
-    const result = await api(`/api/songs?q=${encodeURIComponent(query)}`);
+    const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}`);
     renderSongs(result.songs || []);
   } catch (error) {
     if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
@@ -372,6 +391,29 @@ async function loadNews() {
   }
 }
 
+const newsImageInput = $("#newsImage");
+if (newsImageInput) {
+  const preview = document.createElement("img");
+  preview.alt = "News image preview";
+  preview.hidden = true;
+  preview.style.maxWidth = "100%";
+  preview.style.maxHeight = "250px";
+  preview.style.marginTop = "10px";
+  preview.style.borderRadius = "10px";
+  newsImageInput.insertAdjacentElement("afterend", preview);
+  newsImageInput.addEventListener("change", () => {
+    const file = newsImageInput.files?.[0];
+    if (!file) {
+      if (preview.src.startsWith("blob:")) URL.revokeObjectURL(preview.src);
+      preview.removeAttribute("src");
+      preview.hidden = true;
+      return;
+    }
+    if (preview.src.startsWith("blob:")) URL.revokeObjectURL(preview.src);
+    preview.src = URL.createObjectURL(file);
+    preview.hidden = false;
+  });
+}
 async function uploadImage(endpoint, file) {
    // NEWS IMAGE PREVIEW
 const newsImageInput = $("#newsImage");
@@ -424,6 +466,15 @@ function firstFile(form, selectors) {
     }
   });
 }
+
+$(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const mode = tab.dataset.tab;
+    $(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+    $("#registerForm")?.classList.toggle("hidden", mode !== "register");
+    $("#loginForm")?.classList.toggle("hidden", mode !== "login");
+  });
+});
 
 bindForm("#registerForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
@@ -488,15 +539,24 @@ bindForm("#adForm", async (form) => {
 const search = $("#search");
 const searchBtn = $("#searchBtn");
 if (searchBtn) searchBtn.addEventListener("click", () => loadSongs(search?.value || ""));
-if (search) search.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    loadSongs(search.value);
-  }
-});
+if (search) {
+  let searchTimer;
+  search.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => loadSongs(search.value), 250);
+  });
+  search.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      clearTimeout(searchTimer);
+      loadSongs(search.value);
+    }
+  });
+}
 
 const loginOpen = $("#loginOpen");
 if (loginOpen) loginOpen.addEventListener("click", () => {
+  $('.tab[data-tab="login"]')?.click();
   $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
@@ -587,42 +647,66 @@ bindForm("#newsForm", async (form) => {
   
 
 async function loadOwnerUsers() {
-  const container = $("#ownerUsers") || $("#usersList");
+  const container = $("#ownerUsers");
+  const summary = $("#ownerSummary");
+  const searchInput = $("#ownerUserSearch");
   if (!container || !isOwner()) return;
   try {
     const result = await api("/api/owner/users");
     const users = result.users || [];
-    container.innerHTML = users.length ? users.map((user) => `
-      <div class="admin-item">
-        <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
-        <span>${escapeHTML(user.email || "")}</span>
-        <span>Role: ${escapeHTML(user.role || "user")}</span>
-        <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
-          <option value="user" ${user.role === "user" ? "selected" : ""}>User</option>
-          <option value="admin" ${user.role === "admin" ? "selected" : ""}>Admin</option>
-          <option value="owner" ${user.role === "owner" ? "selected" : ""}>Owner</option>
-        </select>
-        <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>
-      </div>`).join("") : "<p>No users found.</p>";
+    const admins = users.filter((user) => user.role === "admin").length;
+    if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators`;
 
-    $$("[data-save-role]", container).forEach((button) => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.saveRole;
-        const select = $(`[data-user-role="${CSS.escape(id)}"]`, container);
-        if (!select) return;
-        try {
-          await api(`/api/owner/users/${encodeURIComponent(id)}/role`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role: select.value })
-          });
-          toast("User role updated.");
-          loadOwnerUsers();
-        } catch (error) {
-          toast(error.message);
-        }
+    const render = () => {
+      const query = (searchInput?.value || "").trim().toLowerCase();
+      const filtered = users.filter((user) =>
+        [user.name, user.username, user.email, user.role].some((value) =>
+          String(value || "").toLowerCase().includes(query)
+        )
+      );
+      container.innerHTML = filtered.length ? filtered.map((user) => {
+        const role = String(user.role || "artist").toLowerCase();
+        const isProtectedOwner = role === "owner";
+        return `
+          <div class="admin-item">
+            <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
+            <span>${escapeHTML(user.email || "")}</span>
+            <span>Role: ${escapeHTML(role)}</span>
+            ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
+              <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
+                <option value="artist" ${role === "artist" ? "selected" : ""}>Artist / standard account</option>
+                <option value="admin" ${role === "admin" ? "selected" : ""}>Admin</option>
+              </select>
+              <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>`}
+          </div>`;
+      }).join("") : "<p>No matching users found.</p>";
+
+      $$("[data-save-role]", container).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.saveRole;
+          const select = container.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
+          if (!select) return;
+          button.disabled = true;
+          try {
+            await api(`/api/owner/users/${encodeURIComponent(id)}/role`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ role: select.value })
+            });
+            toast("User role updated.");
+            await loadOwnerUsers();
+          } catch (error) {
+            toast(error.message);
+            button.disabled = false;
+          }
+        });
       });
-    });
+    };
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.addEventListener("input", render);
+      searchInput.dataset.bound = "true";
+    }
+    render();
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
