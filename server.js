@@ -417,7 +417,22 @@ app.get("/api/songs", async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ songs: data || [] });
+    let songs = data || [];
+    const sort = String(req.query.sort || "newest");
+    if (sort === "liked" && songs.length) {
+      const ids = songs.map((song) => song.id);
+      const { data: likes, error: likesError } = await supabase
+        .from("song_likes")
+        .select("song_id")
+        .in("song_id", ids);
+      if (likesError) throw likesError;
+      const counts = new Map();
+      for (const like of likes || []) counts.set(like.song_id, (counts.get(like.song_id) || 0) + 1);
+      songs = songs.map((song) => ({ ...song, likes: counts.get(song.id) || 0 }))
+        .sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    res.json({ songs });
   } catch (error) {
     res.status(500).json({
       error: "Could not load songs"
