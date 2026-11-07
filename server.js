@@ -404,11 +404,16 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
 // PUBLIC APPROVED SONGS
 app.get("/api/songs", async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const query = String(req.query.q || "").trim().slice(0, 100);
+    let request = supabase
       .from("songs")
       .select("id, title, artist, genre, description, created_at, uploader_id")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false });
+      .eq("status", "approved");
+    if (query) {
+      const safeQuery = query.replace(/[,%()]/g, " ").trim();
+      if (safeQuery) request = request.or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,genre.ilike.%${safeQuery}%`);
+    }
+    const { data, error } = await request.order("created_at", { ascending: false });
 
     if (error) throw error;
 
