@@ -854,6 +854,33 @@ async function restoreSession() {
   }
 }
 
+// Reliable header sign-in navigation: open the account area and activate the login form.
+const headerSignInButton = $("#loginOpen");
+if (headerSignInButton) {
+  headerSignInButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    const accountSection = $("#account");
+    const tabs = $(".tabs .tab");
+    const registerForm = $("#registerForm");
+    const loginForm = $("#loginForm");
+    const userPanel = $("#userPanel");
+    if (currentUser) {
+      accountSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (registerForm) registerForm.classList.add("hidden");
+    if (loginForm) loginForm.classList.remove("hidden");
+    tabs.forEach((tab) => {
+      const selected = tab.dataset.tab === "login";
+      tab.classList.toggle("active", selected);
+      tab.setAttribute("aria-selected", selected ? "true" : "false");
+    });
+    userPanel?.classList.add("hidden");
+    accountSection?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => $("#loginForm input[name='email']")?.focus(), 350);
+  });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   await restoreSession();
   await Promise.allSettled([
