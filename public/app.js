@@ -145,7 +145,9 @@ function updateAccountUI() {
   const navArtistName = $("#navArtistName");
   const accountAvatarLink = $("#accountAvatarLink");
   if (navAvatar && accountAvatarLink) {
-    navAvatar.src = currentUser?.avatar_url || "";
+    const savedAvatar = currentUser?.avatar_url || "";
+    if (savedAvatar) { navAvatar.src = savedAvatar; navAvatar.hidden = false; navAvatar.style.display = "block"; }
+    else { navAvatar.removeAttribute("src"); navAvatar.hidden = true; }
     accountAvatarLink.classList.toggle("hidden", !currentUser);
   }
   if (navArtistName) {
@@ -547,11 +549,33 @@ bindForm("#uploadForm", async (form) => {
   const formData = new FormData(form);
   await api("/api/songs", { method: "POST", body: formData });
   form.reset();
+  const preview = $("#songCoverPreview");
+  if (preview) { preview.removeAttribute("src"); preview.hidden = true; }
   const message = $("#uploadMsg");
   if (message) message.textContent = "Song submitted for approval.";
   toast("Song uploaded.");
   loadMine();
 });
+
+const songCoverInput = $("#songCoverImage");
+const songCoverPreview = $("#songCoverPreview");
+if (songCoverInput && songCoverPreview) {
+  songCoverInput.addEventListener("change", () => {
+    const file = songCoverInput.files?.[0];
+    if (!file) { songCoverPreview.removeAttribute("src"); songCoverPreview.hidden = true; return; }
+    if (!file.type.startsWith("image/")) {
+      toast("Please choose a JPG, PNG, or WEBP song cover.");
+      songCoverInput.value = "";
+      songCoverPreview.removeAttribute("src");
+      songCoverPreview.hidden = true;
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => { songCoverPreview.src = reader.result; songCoverPreview.hidden = false; };
+    reader.onerror = () => toast("The song cover could not be previewed.");
+    reader.readAsDataURL(file);
+  });
+}
 
 bindForm("#adForm", async (form) => {
   if (!token) throw new Error("Please log in before submitting an advert.");
