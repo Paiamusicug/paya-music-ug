@@ -233,39 +233,21 @@ app.get("/api/me", auth, (req, res) => {
 app.patch("/api/profile", auth, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
-    const updates = {};
-
-    if (typeof name === "string") {
-      updates.name = name.trim().slice(0, 120);
-    }
-
-    if (typeof bio === "string") {
-      updates.bio = bio.slice(0, 1000);
-    }
-
+    const payload = {};
+    if (typeof name === "string") payload.name = name.trim().slice(0, 120);
+    if (typeof bio === "string") payload.bio = bio.slice(0, 1000);
     if (typeof avatar_url === "string") {
-      if (
-        avatar_url &&
-        !/^https:\/\//i.test(avatar_url)
-      ) {
-        return res.status(400).json({
-          error: "Avatar must use HTTPS"
-        });
+      if (avatar_url && !/^https:\/\//i.test(avatar_url)) {
+        return res.status(400).json({ error: "Avatar must use HTTPS" });
       }
-
-      updates.avatar_url = avatar_url;
+      payload.avatar_url = avatar_url;
     }
-
-    const { data, error } = await supabase
-      .from("users")
-      .update(updates)
-      .eq("id", req.user.id)
-      .select("id, name, email, role, bio, avatar_url")
-      .single();
-
+    if (!Object.keys(payload).length) return res.status(400).json({ error: "There are no profile changes to submit" });
+    const { data, error } = await supabase.from("content_submissions").insert({
+      user_id: req.user.id, submission_type: "profile", payload, status: "pending"
+    }).select("id, submission_type, status, created_at").single();
     if (error) throw error;
-
-    res.json({ user: data });
+    res.status(202).json({ message: "Profile changes submitted for Owner approval", submission: data });
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({
@@ -312,16 +294,7 @@ app.post(
 
       const avatar_url = publicData.publicUrl;
 
-      const { data: user, error: updateError } = await supabase
-        .from("users")
-        .update({ avatar_url })
-        .eq("id", req.user.id)
-        .select("id, name, email, role, bio, avatar_url")
-        .single();
-
-      if (updateError) throw updateError;
-
-      res.json({ user, avatar_url });
+      res.json({ avatar_url, message: "Profile picture uploaded. Submit your profile changes for Owner approval." });
     } catch (error) {
       console.error("Profile image upload error:", error);
       res.status(500).json({
@@ -472,7 +445,7 @@ app.get("/api/my-songs", auth, async (req, res) => {
 });
 
 // ADMIN: PENDING SONGS
-app.get("/api/admin/songs", auth, admin, async (req, res) => {
+app.get("/api/owner/songs", auth, owner, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("songs")
@@ -491,7 +464,7 @@ app.get("/api/admin/songs", auth, admin, async (req, res) => {
 });
 
 // APPROVE OR REJECT SONG
-app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
+app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -779,7 +752,7 @@ app.get("/api/ads", async (req, res) => {
 });
 
 // ADMIN: PENDING ADVERTS
-app.get("/api/admin/ads", auth, admin, async (req, res) => {
+app.get("/api/owner/ads", auth, owner, async (req, res) => {
   const { data, error } = await supabase
     .from("ads")
     .select("*")
@@ -796,7 +769,7 @@ app.get("/api/admin/ads", auth, admin, async (req, res) => {
 });
 
 // ADMIN: REVIEW ADVERT
-app.patch("/api/admin/ads/:id", auth, admin, async (req, res) => {
+app.patch("/api/owner/ads/:id", auth, owner, async (req, res) => {
   const { status } = req.body;
 
   if (!["approved", "rejected"].includes(status)) {
@@ -855,9 +828,9 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
       content: String(content).slice(0, 10000),
       category: category || "music",
       image_url: image_url || null,
-      status: "published",
+      status: "pending",
       author_id: req.user.id,
-      published_at: new Date().toISOString()
+      published_at: null
     })
     .select()
     .single();
@@ -868,7 +841,7 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     });
   }
 
-  res.status(201).json({ article: data });
+  res.status(202).json({ message: "News submitted for Owner approval", article: data });
 });
 
 // ADMIN: UPLOAD NEWS PICTURE
@@ -919,6 +892,52 @@ app.post(
     }
   }
 );
+
+// OWNER: REVIEW NEWS
+app.get("/api/owner/news", auth, owner, async (req, res) => {
+  const { data, error } = await supabase.from("news").select("*")
+    .eq("status", "pending").order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load pending news" });
+  res.json({ news: data || [] });
+});
+app.patch("/api/owner/news/:id", auth, owner, async (req, res) => {
+  const { status } = req.body;
+  if (!["published", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid news review status" });
+  const updates = { status, published_at: status === "published" ? new Date().toISOString() : null };
+  const { data, error } = await supabase.from("news").update(updates).eq("id", req.params.id).select().single();
+  if (error) return res.status(500).json({ error: "News review failed" });
+  res.json({ article: data });
+});
+
+// OWNER: REVIEW PROFILE CHANGES
+app.get("/api/owner/reviews", auth, owner, async (req, res) => {
+  const { data, error } = await supabase.from("content_submissions")
+    .select("id, user_id, submission_type, payload, status, created_at, users(name, email)")
+    .eq("status", "pending").order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load pending profile changes" });
+  res.json({ submissions: data || [] });
+});
+app.patch("/api/owner/reviews/:id", auth, owner, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!["approved", "rejected"].includes(status)) return res.status(400).json({ error: "Choose approved or rejected" });
+    const { data: submission, error: readError } = await supabase.from("content_submissions")
+      .select("*").eq("id", req.params.id).eq("status", "pending").single();
+    if (readError || !submission) return res.status(404).json({ error: "Pending submission not found" });
+    if (status === "approved" && submission.submission_type === "profile") {
+      const { error: updateError } = await supabase.from("users").update(submission.payload || {}).eq("id", submission.user_id);
+      if (updateError) throw updateError;
+    }
+    const { data, error } = await supabase.from("content_submissions").update({
+      status, reviewed_at: new Date().toISOString(), reviewed_by: req.user.id
+    }).eq("id", submission.id).select().single();
+    if (error) throw error;
+    res.json({ submission: data });
+  } catch (error) {
+    console.error("Owner review error:", error);
+    res.status(500).json({ error: "Could not complete review" });
+  }
+});
 
 // TRACK WEBSITE EVENTS
 
