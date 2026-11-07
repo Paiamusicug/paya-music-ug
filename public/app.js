@@ -191,8 +191,18 @@ function renderSongs(items = []) {
   });
 }
 
+let lastCountedPlay = "";
+audio?.addEventListener("playing", () => {
+  const id = audio.dataset.payaSongId;
+  if (!id || lastCountedPlay === id) return;
+  lastCountedPlay = id;
+  api(`/api/songs/${encodeURIComponent(id)}/play`, { method: "POST" })
+    .catch((error) => console.warn("Could not record song play:", error.message));
+});
+
 function playSong(song) {
   if (!audio) return toast("Audio player is not available on this page.");
+  audio.dataset.payaSongId = String(songId(song));
   const url = songAudioUrl(song) || `/api/songs/${encodeURIComponent(songId(song))}/stream`;
   audio.src = url;
   const title = $("#playingTitle");
