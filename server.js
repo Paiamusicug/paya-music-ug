@@ -29,7 +29,7 @@ const supabase = createClient(
 );
 
 const MUSIC_BUCKET = "music";
-const IMAGE_BUCKET = "paya-images";
+const IMAGE_BUCKET = "media";
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
