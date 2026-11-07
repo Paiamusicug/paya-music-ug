@@ -131,6 +131,7 @@ function updateAccountUI() {
     : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
+  $(".owner-review-only").forEach(section => section.classList.toggle("hidden", !isOwner()));
   if (loginOpen) loginOpen.hidden = !!currentUser;
 
   const roleLabel = $("#userRole");
@@ -323,9 +324,9 @@ async function loadMine() {
 
 async function loadPendingSongs() {
   const container = $("#pendingSongs");
-  if (!container || !isAdmin()) return;
+  if (!container || !isOwner()) return;
   try {
-    const result = await api("/api/admin/songs");
+    const result = await api("/api/owner/songs");
     const songs = result.songs || [];
     container.innerHTML = songs.length ? songs.map((song) => `
       <div class="admin-item">
@@ -346,7 +347,7 @@ async function loadPendingSongs() {
 
 async function moderateSong(id, status) {
   try {
-    await api(`/api/admin/songs/${encodeURIComponent(id)}`, {
+    await api(`/api/owner/songs/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
@@ -361,9 +362,9 @@ async function moderateSong(id, status) {
 
 async function loadPendingAds() {
   const container = $("#pendingAds");
-  if (!container || !isAdmin()) return;
+  if (!container || !isOwner()) return;
   try {
-    const result = await api("/api/admin/ads");
+    const result = await api("/api/owner/ads");
     const ads = result.ads || [];
     container.innerHTML = ads.length ? ads.map((ad) => `
       <div class="admin-item">
@@ -383,7 +384,7 @@ async function loadPendingAds() {
 
 async function moderateAd(id, status) {
   try {
-    await api(`/api/admin/ads/${encodeURIComponent(id)}`, {
+    await api(`/api/owner/ads/${encodeURIComponent(id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status })
@@ -600,19 +601,20 @@ bindForm("#profileForm", async (form) => {
   const bio = $("#profileBio", form)?.value?.trim() || "";
   const file = firstFile(form, ["#profileAvatar", 'input[name="avatar"]', 'input[name="image"]']);
 
+  let avatar_url;
   if (file) {
     const uploaded = await uploadImage("/api/profile/avatar", file);
-    const avatarUrl = uploaded.avatar_url || uploaded.image_url || uploaded.url;
-    if (avatarUrl) currentUser = { ...currentUser, avatar_url: avatarUrl };
+    avatar_url = uploaded.avatar_url || uploaded.image_url || uploaded.url;
   }
-
   const result = await api("/api/profile", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, bio })
+    body: JSON.stringify({ name, bio, ...(avatar_url ? { avatar_url } : {}) })
   });
-  saveSession(result.user || result, token);
-  toast("Profile updated.");
+  form.reset();
+  const message = $("#profileMsg");
+  if (message) message.textContent = "Profile changes submitted. Your public profile will change after Owner approval.";
+  toast(result.message || "Profile submitted for Owner approval.");
 });
 
 bindForm("#newsForm", async (form) => {
@@ -649,7 +651,7 @@ bindForm("#newsForm", async (form) => {
       typedImageUrl;
   }
 
-  await api("/api/admin/news", {
+  const result = await api("/api/admin/news", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -670,15 +672,63 @@ bindForm("#newsForm", async (form) => {
 
   const message = $("#newsMsg");
   if (message) {
-    message.textContent = "News published successfully.";
+    message.textContent = "News submitted for Owner approval.";
   }
 
-  toast("News published.");
+  toast(result.message || "News submitted for Owner approval.");
 
   await loadNews();
 });
   
   
+
+async function loadPendingNews() {
+  const container = $("#pendingNews");
+  if (!container || !isOwner()) return;
+  try {
+    const result = await api("/api/owner/news");
+    const items = result.news || [];
+    container.innerHTML = items.length ? items.map(item =>
+      '<div class="admin-item"><strong>' + escapeHTML(item.title) + '</strong><span>' + escapeHTML(item.category || "music") + '</span>' +
+      '<button type="button" data-news-approve="' + escapeHTML(item.id) + '">Approve & publish</button>' +
+      '<button type="button" data-news-reject="' + escapeHTML(item.id) + '">Reject</button></div>'
+    ).join("") : "<p>No news awaiting approval.</p>";
+    $("[data-news-approve]", container).forEach(b => b.addEventListener("click", () => reviewNews(b.dataset.newsApprove, "published")));
+    $("[data-news-reject]", container).forEach(b => b.addEventListener("click", () => reviewNews(b.dataset.newsReject, "rejected")));
+  } catch (error) { container.innerHTML = '<p>' + escapeHTML(error.message) + '</p>'; }
+}
+async function reviewNews(id, status) {
+  try {
+    await api("/api/owner/news/" + encodeURIComponent(id), { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({status}) });
+    toast(status === "published" ? "News approved and published." : "News rejected.");
+    loadPendingNews(); loadNews();
+  } catch (error) { toast(error.message); }
+}
+async function loadPendingProfiles() {
+  const container = $("#pendingProfiles");
+  if (!container || !isOwner()) return;
+  try {
+    const result = await api("/api/owner/reviews");
+    const items = (result.submissions || []).filter(item => item.submission_type === "profile");
+    container.innerHTML = items.length ? items.map(item => {
+      const p = item.payload || {}, user = item.users || {};
+      return '<div class="admin-item"><strong>' + escapeHTML(user.name || user.email || "User") + ' — profile update</strong>' +
+        '<span>Name: ' + escapeHTML(p.name || "No change") + '</span><span>Bio: ' + escapeHTML(p.bio || "No change") + '</span>' +
+        (p.avatar_url ? '<a href="' + escapeHTML(p.avatar_url) + '" target="_blank" rel="noopener">View proposed picture</a>' : '') +
+        '<button type="button" data-profile-approve="' + escapeHTML(item.id) + '">Approve</button>' +
+        '<button type="button" data-profile-reject="' + escapeHTML(item.id) + '">Reject</button></div>';
+    }).join("") : "<p>No profile changes awaiting approval.</p>";
+    $("[data-profile-approve]", container).forEach(b => b.addEventListener("click", () => reviewProfile(b.dataset.profileApprove, "approved")));
+    $("[data-profile-reject]", container).forEach(b => b.addEventListener("click", () => reviewProfile(b.dataset.profileReject, "rejected")));
+  } catch (error) { container.innerHTML = '<p>' + escapeHTML(error.message) + '</p>'; }
+}
+async function reviewProfile(id, status) {
+  try {
+    await api("/api/owner/reviews/" + encodeURIComponent(id), { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({status}) });
+    toast(status === "approved" ? "Profile changes approved." : "Profile changes rejected.");
+    loadPendingProfiles();
+  } catch (error) { toast(error.message); }
+}
 
 async function loadOwnerUsers() {
   const container = $("#ownerUsers");
@@ -752,6 +802,8 @@ async function refreshDashboard() {
     loadMine(),
     loadPendingSongs(),
     loadPendingAds(),
+    loadPendingNews(),
+    loadPendingProfiles(),
     loadOwnerUsers()
   ]);
 }
