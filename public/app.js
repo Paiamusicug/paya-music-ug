@@ -95,20 +95,25 @@ function updateAccountUI() {
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const songSort = $("#songSort");
-if (songSort) songSort.addEventListener("change", () => loadSongs($("#search")?.value || ""));
-
-const loginOpen = $("#loginOpen");
+  const loginOpen = $("#loginOpen");
   const account = $("#account");
+  const tabs = $(".tabs", account || document);
+  const registerForm = $("#registerForm");
+  const loginForm = $("#loginForm");
 
-  if (userPanel) userPanel.hidden = !currentUser;
+  // Keep the account section visible after authentication so the user can
+  // access their profile, uploads and dashboard. Only hide the auth forms.
+  if (account) account.hidden = false;
+  if (userPanel) userPanel.classList.toggle("hidden", !currentUser);
+  if (tabs) tabs.hidden = !!currentUser;
+  if (registerForm) registerForm.classList.toggle("hidden", !!currentUser);
+  if (loginForm) loginForm.classList.toggle("hidden", !!currentUser);
   if (welcome) welcome.textContent = currentUser
     ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
     : "";
-  if (adminPanel) adminPanel.hidden = !isAdmin();
-  if (ownerPanel) ownerPanel.hidden = !isOwner();
+  if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
+  if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
   if (loginOpen) loginOpen.hidden = !!currentUser;
-  if (account) account.hidden = !!currentUser;
 
   const roleLabel = $("#userRole");
   if (roleLabel && currentUser) roleLabel.textContent = currentUser.role || "user";
