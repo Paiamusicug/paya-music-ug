@@ -860,7 +860,7 @@ if (headerSignInButton) {
   headerSignInButton.addEventListener("click", (event) => {
     event.preventDefault();
     const accountSection = $("#account");
-    const tabs = $(".tabs .tab");
+    const tabButtons = $(".tabs .tab");
     const registerForm = $("#registerForm");
     const loginForm = $("#loginForm");
     const userPanel = $("#userPanel");
@@ -870,14 +870,13 @@ if (headerSignInButton) {
     }
     if (registerForm) registerForm.classList.add("hidden");
     if (loginForm) loginForm.classList.remove("hidden");
-    tabs.forEach((tab) => {
+    tabButtons.forEach((tab) => {
       const selected = tab.dataset.tab === "login";
       tab.classList.toggle("active", selected);
       tab.setAttribute("aria-selected", selected ? "true" : "false");
     });
     userPanel?.classList.add("hidden");
     accountSection?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setTimeout(() => $("#loginForm input[name='email']")?.focus(), 350);
   });
 }
 
