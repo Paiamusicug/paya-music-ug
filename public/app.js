@@ -633,19 +633,16 @@ bindForm("#profileForm", async (form) => {
   const name = $("#profileName", form)?.value?.trim() || "";
   const bio = $("#profileBio", form)?.value?.trim() || "";
   const file = firstFile(form, ["#profileAvatar", 'input[name="avatar"]', 'input[name="image"]']);
-
+  let avatar_url = currentUser?.avatar_url || null;
   if (file) {
     const uploaded = await uploadImage("/api/profile/avatar", file);
-    const avatarUrl = uploaded.avatar_url || uploaded.image_url || uploaded.url;
-    if (avatarUrl) currentUser = { ...currentUser, avatar_url: avatarUrl };
+    avatar_url = uploaded.avatar_url || uploaded.image_url || uploaded.url || avatar_url;
   }
-
   const result = await api("/api/profile", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, bio })
+    body: JSON.stringify({ name, bio, avatar_url })
   });
-  saveSession(result.user || result, token);
   toast(result.message || "Profile changes submitted for approval.");
 });
 
