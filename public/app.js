@@ -583,27 +583,8 @@ bindForm("#newsForm", async (form) => {
 
   await loadNews();
 });
-  if (!isAdmin()) throw new Error("Only an administrator can post news.");
-  const title = $('input[name="title"]', form)?.value?.trim() || "";
-  const content = $('textarea[name="content"]', form)?.value?.trim()
-    || $('textarea[name="body"]', form)?.value?.trim() || "";
-  const file = firstFile(form, ['input[name="image"]', "#newsImage"]);
-  let image_url = "";
-
-  if (file) {
-    const uploaded = await uploadImage("/api/admin/news/image", file);
-    image_url = uploaded.image_url || uploaded.url || uploaded.publicUrl || "";
-  }
-
-  await api("/api/admin/news", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, content, image_url })
-  });
-  form.reset();
-  toast("News published.");
-  loadNews();
-});
+  
+  
 
 async function loadOwnerUsers() {
   const container = $("#ownerUsers") || $("#usersList");
