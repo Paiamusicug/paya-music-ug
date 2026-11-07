@@ -625,7 +625,7 @@ bindForm("#profileForm", async (form) => {
   if (!token) throw new Error("Please log in first.");
   const name = $("#profileName", form)?.value?.trim() || "";
   const bio = $("#profileBio", form)?.value?.trim() || "";
-  const file = firstFile(form, ["#profileAvatar", 'input[name="avatar"]', 'input[name="image"]']);
+  const file = firstFile(form, ['input[name="image"]']);
   let avatar_url = currentUser?.avatar_url || null;
   if (file) {
     const uploaded = await uploadImage("/api/profile/avatar", file);
@@ -636,7 +636,19 @@ bindForm("#profileForm", async (form) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, bio, avatar_url })
   });
-  toast(result.message || "Profile changes submitted for approval.");
+  if (result.user) {
+    currentUser = result.user;
+    localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+  }
+  const avatar = $("#profileAvatar");
+  if (avatar && currentUser?.avatar_url) {
+    avatar.src = currentUser.avatar_url;
+    avatar.hidden = false;
+  }
+  updateAccountUI();
+  const message = $("#profileMsg");
+  if (message) message.textContent = result.message || "Artist profile updated successfully.";
+  toast(result.message || "Artist profile updated successfully.");
 });
 
 bindForm("#newsForm", async (form) => {
@@ -776,7 +788,6 @@ async function refreshDashboard() {
     loadMine(),
     loadPendingSongs(),
     loadPendingAds(),
-    loadPendingProfiles(),
     loadPendingNews(),
     loadOwnerUsers()
   ]);
