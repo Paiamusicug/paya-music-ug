@@ -24,7 +24,7 @@
   </nav>
 
   <button class="outline small" id="loginOpen">Sign in</button>
-  <button id="accountAvatarLink" class="header-avatar hidden" type="button" aria-label="Open your account"><img id="navAvatar" alt="Your account profile picture"></button>
+  <button id="accountAvatarLink" class="header-avatar hidden" type="button" aria-label="Open your account"><img id="navAvatar" alt="Your account profile picture"><span id="navArtistName"></span></button>
 </header>
 
 <main>
@@ -336,13 +336,6 @@
                 id="newsImage"
                 type="file"
                 accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <label>News image URL (optional)
-              <input
-                name="image_url"
-                type="url"
-                placeholder="https://example.com/news-image.jpg">
             </label>
 
             <label>News content
