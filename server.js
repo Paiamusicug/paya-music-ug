@@ -230,17 +230,31 @@ app.get("/api/me", auth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// SUBMIT ARTIST PROFILE CHANGES FOR ADMIN/OWNER REVIEW
+// UPDATE ARTIST PROFILE DIRECTLY; profile pictures do not require approval.
 app.patch("/api/profile", auth, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
-    if (typeof name !== "string" || name.trim().length < 2 || typeof bio !== "string") return res.status(400).json({ error: "Enter an artist name and biography." });
-    const { data, error } = await supabase.from("profile_submissions").insert({ user_id: req.user.id, name: name.trim().slice(0, 120), bio: bio.slice(0, 1000), avatar_url: (typeof avatar_url === "string" && avatar_url.startsWith("https://")) ? avatar_url : (req.user.avatar_url || null), status: "pending" }).select("id, status").single();
+    if (typeof name !== "string" || name.trim().length < 2 || typeof bio !== "string") {
+      return res.status(400).json({ error: "Enter an artist name and biography." });
+    }
+    const updates = {
+      name: name.trim().slice(0, 120),
+      bio: bio.slice(0, 1000)
+    };
+    if (typeof avatar_url === "string" && avatar_url.startsWith("https://")) {
+      updates.avatar_url = avatar_url;
+    }
+    const { data, error } = await supabase
+      .from("users")
+      .update(updates)
+      .eq("id", req.user.id)
+      .select("id, name, email, role, bio, avatar_url")
+      .single();
     if (error) throw error;
-    res.status(202).json({ message: "Profile changes submitted for approval.", submission: data });
+    res.json({ message: "Artist profile updated successfully. Your picture is now live.", user: data });
   } catch (error) {
-    console.error("Profile submission error:", error.message, error.code || "");
-    res.status(500).json({ error: "Profile submission failed. Please try again." });
+    console.error("Profile update error:", error.message, error.code || "");
+    res.status(500).json({ error: "Profile update failed. Please try again." });
   }
 });
 
