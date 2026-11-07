@@ -461,29 +461,6 @@ async function loadNews() {
   }
 }
 
-const newsImageInput = $("#newsImage");
-if (newsImageInput) {
-  const preview = document.createElement("img");
-  preview.alt = "News image preview";
-  preview.hidden = true;
-  preview.style.maxWidth = "100%";
-  preview.style.maxHeight = "250px";
-  preview.style.marginTop = "10px";
-  preview.style.borderRadius = "10px";
-  newsImageInput.insertAdjacentElement("afterend", preview);
-  newsImageInput.addEventListener("change", () => {
-    const file = newsImageInput.files?.[0];
-    if (!file) {
-      if (preview.src.startsWith("blob:")) URL.revokeObjectURL(preview.src);
-      preview.removeAttribute("src");
-      preview.hidden = true;
-      return;
-    }
-    if (preview.src.startsWith("blob:")) URL.revokeObjectURL(preview.src);
-    preview.src = URL.createObjectURL(file);
-    preview.hidden = false;
-  });
-}
 // Upload a selected image file to the requested protected endpoint.
 async function uploadImage(endpoint, file) {
   const formData = new FormData();
