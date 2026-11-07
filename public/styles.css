@@ -278,7 +278,7 @@ footer p,footer small{color:var(--muted);font-size:12px}
  .topbar nav a{font-size:12px}
  .topbar nav a:nth-child(3){display:none}
  .topbar .outline{padding:8px 12px}
- .header-avatar{width:36px;height:36px;flex-basis:36px}
+ .header-avatar{width:42px;height:42px;min-width:42px;flex-basis:42px;padding:2px}
  .genre-rail{top:62px}
  .hero{min-height:0;padding:54px 22px 36px;grid-template-columns:1fr;gap:24px}
  .hero h1{font-size:clamp(44px,12vw,64px)}
