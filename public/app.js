@@ -7,6 +7,9 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
 const TOKEN_KEY = "paya_token";
 const USER_KEY = "paya_user";
+const LIKES_KEY = "paya_liked_songs";
+function savedLikes() { try { return JSON.parse(localStorage.getItem(LIKES_KEY) || "[]").map(String); } catch { return []; } }
+function saveLike(id, liked) { const ids = new Set(savedLikes()); if (liked) ids.add(String(id)); else ids.delete(String(id)); localStorage.setItem(LIKES_KEY, JSON.stringify([...ids])); }
 let token = localStorage.getItem(TOKEN_KEY) || "";
 let currentUser = null;
 
@@ -161,7 +164,7 @@ function renderSongs(items = []) {
         </div>
         <div class="song-actions">
           <button type="button" data-play="${id}">Play</button>
-          <button type="button" data-like="${id}">Like</button>
+          <button type="button" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "Liked" : "Like"}</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
         </div>
@@ -213,7 +216,9 @@ async function likeSong(id, button) {
     const card = button.closest(".song-card");
     const count = $("[data-like-count]", card);
     if (count && result.likes !== undefined) count.textContent = `${result.likes} likes`;
+    saveLike(id, result.liked !== false);
     button.textContent = result.liked === false ? "Like" : "Liked";
+    button.setAttribute("aria-pressed", String(result.liked !== false));
     toast(result.message || (result.liked === false ? "Like removed" : "Song liked"));
   } catch (error) {
     toast(error.message);
@@ -425,6 +430,15 @@ function firstFile(form, selectors) {
   });
 }
 
+$(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    const mode = tab.dataset.tab;
+    $(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+    $("#registerForm")?.classList.toggle("hidden", mode !== "register");
+    $("#loginForm")?.classList.toggle("hidden", mode !== "login");
+  });
+});
+
 bindForm("#registerForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
   const result = await api("/api/register", {
@@ -497,6 +511,7 @@ if (search) search.addEventListener("keydown", (event) => {
 
 const loginOpen = $("#loginOpen");
 if (loginOpen) loginOpen.addEventListener("click", () => {
+  $('.tab[data-tab="login"]')?.click();
   $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
