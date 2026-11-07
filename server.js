@@ -499,7 +499,7 @@ app.get("/api/songs/:id/:action", async (req, res) => {
 
     const { data: song, error } = await supabase
       .from("songs")
-      .select("filename, original_name, mime_type")
+      .select("filename, original_name, mime_type, title, artist")
       .eq("id", id)
       .eq("status", "approved")
       .single();
@@ -514,6 +514,8 @@ app.get("/api/songs/:id/:action", async (req, res) => {
       .from(MUSIC_BUCKET)
       .createSignedUrl(song.filename, 300, {
         download: action === "download"
+          ? (String(song.title || "Song") + " - " + String(song.artist || "Artist") + " - Paya Music UG.mp3").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim()
+          : false
       });
 
     if (storageError || !data?.signedUrl) {
