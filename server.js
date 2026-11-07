@@ -165,7 +165,8 @@ app.post("/api/register", async (req, res) => {
         name: name.trim(),
         email: normalizedEmail,
         password_hash,
-        role: "artist"
+        role: "artist",
+        bio: ""
       })
       .select("id, name, email, role, bio, avatar_url")
       .single();
@@ -229,107 +230,35 @@ app.get("/api/me", auth, (req, res) => {
   res.json({ user: req.user });
 });
 
-// UPDATE ARTIST PROFILE
+// SUBMIT ARTIST PROFILE CHANGES FOR ADMIN/OWNER REVIEW
 app.patch("/api/profile", auth, async (req, res) => {
   try {
     const { name, bio, avatar_url } = req.body;
-    const updates = {};
-
-    if (typeof name === "string") {
-      updates.name = name.trim().slice(0, 120);
-    }
-
-    if (typeof bio === "string") {
-      updates.bio = bio.slice(0, 1000);
-    }
-
-    if (typeof avatar_url === "string") {
-      if (
-        avatar_url &&
-        !/^https:\/\//i.test(avatar_url)
-      ) {
-        return res.status(400).json({
-          error: "Avatar must use HTTPS"
-        });
-      }
-
-      updates.avatar_url = avatar_url;
-    }
-
-    const { data, error } = await supabase
-      .from("users")
-      .update(updates)
-      .eq("id", req.user.id)
-      .select("id, name, email, role, bio, avatar_url")
-      .single();
-
+    if (typeof name !== "string" || name.trim().length < 2 || typeof bio !== "string") return res.status(400).json({ error: "Enter an artist name and biography." });
+    const { data, error } = await supabase.from("profile_submissions").insert({ user_id: req.user.id, name: name.trim().slice(0, 120), bio: bio.slice(0, 1000), avatar_url: (typeof avatar_url === "string" && avatar_url.startsWith("https://")) ? avatar_url : (req.user.avatar_url || null), status: "pending" }).select("id, status").single();
     if (error) throw error;
-
-    res.json({ user: data });
+    res.status(202).json({ message: "Profile changes submitted for approval.", submission: data });
   } catch (error) {
-    console.error("Profile update error:", error);
-    res.status(500).json({
-      error: "Profile update failed"
-    });
+    console.error("Profile submission error:", error.message, error.code || "");
+    res.status(500).json({ error: "Profile submission failed. Please try again." });
   }
 });
 
-// UPLOAD ARTIST PROFILE PICTURE
-app.post(
-  "/api/profile/avatar",
-  auth,
-  imageUpload.single("image"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({
-          error: "Please choose an image"
-        });
-      }
-
-      const extension =
-        req.file.mimetype === "image/png"
-          ? "png"
-          : req.file.mimetype === "image/webp"
-          ? "webp"
-          : "jpg";
-
-      const filename =
-        `profiles/${req.user.id}-${Date.now()}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from(IMAGE_BUCKET)
-        .upload(filename, req.file.buffer, {
-          contentType: req.file.mimetype,
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicData } = supabase.storage
-        .from(IMAGE_BUCKET)
-        .getPublicUrl(filename);
-
-      const avatar_url = publicData.publicUrl;
-
-      const { data: user, error: updateError } = await supabase
-        .from("users")
-        .update({ avatar_url })
-        .eq("id", req.user.id)
-        .select("id, name, email, role, bio, avatar_url")
-        .single();
-
-      if (updateError) throw updateError;
-
-      res.json({ user, avatar_url });
-    } catch (error) {
-      console.error("Profile image upload error:", error);
-      res.status(500).json({
-        error: "Profile picture upload failed"
-      });
-    }
+// PROFILE PICTURE UPLOAD; FINAL PROFILE CHANGE IS SUBMITTED BY /api/profile
+app.post("/api/profile/avatar", auth, imageUpload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Please choose an image" });
+    const ext = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
+    const filename = `profile-submissions/${req.user.id}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
+    res.json({ avatar_url: data.publicUrl });
+  } catch (error) {
+    console.error("Profile picture upload error:", error.message, error.code || "");
+    res.status(500).json({ error: "Profile picture upload failed." });
   }
-);
+});
 
 // UPLOAD SONG
 app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
@@ -821,6 +750,27 @@ app.patch("/api/admin/ads/:id", auth, admin, async (req, res) => {
   res.json({ advert: data });
 });
 
+// ADMIN: PENDING PROFILE SUBMISSIONS
+app.get("/api/admin/profiles", auth, admin, async (req, res) => {
+  const { data, error } = await supabase.from("profile_submissions").select("*").eq("status", "pending").order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load profile submissions" });
+  res.json({ submissions: data || [] });
+});
+
+app.patch("/api/admin/profiles/:id", auth, admin, async (req, res) => {
+  const status = req.body.status;
+  if (!["approved", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid profile review status" });
+  const { data: item, error: readError } = await supabase.from("profile_submissions").select("*").eq("id", req.params.id).eq("status", "pending").single();
+  if (readError || !item) return res.status(404).json({ error: "Pending profile submission not found" });
+  if (status === "approved") {
+    const { error: updateError } = await supabase.from("users").update({ name: item.name, bio: item.bio, avatar_url: item.avatar_url }).eq("id", item.user_id);
+    if (updateError) return res.status(500).json({ error: "Could not apply profile changes" });
+  }
+  const { data, error } = await supabase.from("profile_submissions").update({ status, reviewed_by: req.user.id, reviewed_at: new Date().toISOString() }).eq("id", item.id).select().single();
+  if (error) return res.status(500).json({ error: "Could not save profile review" });
+  res.json({ submission: data });
+});
+
 // PUBLIC NEWS
 app.get("/api/news", async (req, res) => {
   const { data, error } = await supabase
@@ -836,6 +786,21 @@ app.get("/api/news", async (req, res) => {
   }
 
   res.json({ news: data || [] });
+});
+
+// ADMIN: PENDING NEWS REVIEW
+app.get("/api/admin/news", auth, admin, async (req, res) => {
+  const { data, error } = await supabase.from("news").select("*").eq("status", "pending").order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load pending news" });
+  res.json({ news: data || [] });
+});
+
+app.patch("/api/admin/news/:id", auth, admin, async (req, res) => {
+  const status = req.body.status;
+  if (!["published", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid news review status" });
+  const { data, error } = await supabase.from("news").update({ status, published_at: status === "published" ? new Date().toISOString() : null }).eq("id", req.params.id).eq("status", "pending").select().single();
+  if (error || !data) return res.status(404).json({ error: "Pending news article not found" });
+  res.json({ article: data });
 });
 
 // ADMIN: CREATE NEWS
@@ -855,9 +820,9 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
       content: String(content).slice(0, 10000),
       category: category || "music",
       image_url: image_url || null,
-      status: "published",
+      status: "pending",
       author_id: req.user.id,
-      published_at: new Date().toISOString()
+      published_at: null
     })
     .select()
     .single();
@@ -868,7 +833,7 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     });
   }
 
-  res.status(201).json({ article: data });
+  res.status(201).json({ message: "News submitted for approval.", article: data });
 });
 
 // ADMIN: UPLOAD NEWS PICTURE

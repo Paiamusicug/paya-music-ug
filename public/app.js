@@ -381,6 +381,40 @@ async function loadPendingAds() {
   }
 }
 
+async function loadPendingProfiles() {
+  const container = $("#pendingProfiles");
+  if (!container || !isAdmin()) return;
+  try {
+    const result = await api("/api/admin/profiles");
+    const items = result.submissions || [];
+    container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.name || "Artist profile")}</strong><p>${escapeHTML(item.bio || "")}</p>${item.avatar_url ? `<img src="${escapeHTML(item.avatar_url)}" alt="Pending profile" width="90">` : ""}<button type="button" data-profile-approve="${escapeHTML(item.id)}">Approve</button><button type="button" data-profile-reject="${escapeHTML(item.id)}">Reject</button></div>`).join("") : "<p>No artist profiles awaiting review.</p>";
+    $$("[data-profile-approve]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileApprove, "approved")));
+    $$("[data-profile-reject]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileReject, "rejected")));
+  } catch (error) { container.innerHTML = `<p>${escapeHTML(error.message)}</p>`; }
+}
+
+async function moderateProfile(id, status) {
+  try { await api(`/api/admin/profiles/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); toast(`Artist profile ${status}.`); loadPendingProfiles(); }
+  catch (error) { toast(error.message); }
+}
+
+async function loadPendingNews() {
+  const container = $("#pendingNews");
+  if (!container || !isAdmin()) return;
+  try {
+    const result = await api("/api/admin/news");
+    const items = result.news || [];
+    container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.title || "News article")}</strong><p>${escapeHTML((item.content || "").slice(0, 240))}</p><button type="button" data-news-approve="${escapeHTML(item.id)}">Approve & publish</button><button type="button" data-news-reject="${escapeHTML(item.id)}">Reject</button></div>`).join("") : "<p>No news awaiting review.</p>";
+    $$("[data-news-approve]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsApprove, "published")));
+    $$("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected")));
+  } catch (error) { container.innerHTML = `<p>${escapeHTML(error.message)}</p>`; }
+}
+
+async function moderateNews(id, status) {
+  try { await api(`/api/admin/news/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) }); toast(status === "published" ? "News published." : "News rejected."); loadPendingNews(); loadNews(); }
+  catch (error) { toast(error.message); }
+}
+
 async function moderateAd(id, status) {
   try {
     await api(`/api/admin/ads/${encodeURIComponent(id)}`, {
@@ -599,20 +633,17 @@ bindForm("#profileForm", async (form) => {
   const name = $("#profileName", form)?.value?.trim() || "";
   const bio = $("#profileBio", form)?.value?.trim() || "";
   const file = firstFile(form, ["#profileAvatar", 'input[name="avatar"]', 'input[name="image"]']);
-
+  let avatar_url = currentUser?.avatar_url || null;
   if (file) {
     const uploaded = await uploadImage("/api/profile/avatar", file);
-    const avatarUrl = uploaded.avatar_url || uploaded.image_url || uploaded.url;
-    if (avatarUrl) currentUser = { ...currentUser, avatar_url: avatarUrl };
+    avatar_url = uploaded.avatar_url || uploaded.image_url || uploaded.url || avatar_url;
   }
-
   const result = await api("/api/profile", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, bio })
+    body: JSON.stringify({ name, bio, avatar_url })
   });
-  saveSession(result.user || result, token);
-  toast("Profile updated.");
+  toast(result.message || "Profile changes submitted for approval.");
 });
 
 bindForm("#newsForm", async (form) => {
@@ -670,10 +701,10 @@ bindForm("#newsForm", async (form) => {
 
   const message = $("#newsMsg");
   if (message) {
-    message.textContent = "News published successfully.";
+    message.textContent = "News submitted for approval.";
   }
 
-  toast("News published.");
+  toast("News submitted for approval.");
 
   await loadNews();
 });
@@ -752,6 +783,8 @@ async function refreshDashboard() {
     loadMine(),
     loadPendingSongs(),
     loadPendingAds(),
+    loadPendingProfiles(),
+    loadPendingNews(),
     loadOwnerUsers()
   ]);
 }
