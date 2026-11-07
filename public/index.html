@@ -29,6 +29,189 @@
 
 <main>
 
+<section class="account-section" id="account">
+  <div>
+    <p class="eyebrow">JOIN THE COMMUNITY</p>
+    <h2>Make room for<br><span>your sound.</span></h2>
+    <p class="muted">Create an account to upload tracks and follow your submissions.</p>
+  </div>
+
+  <div class="account-card">
+    <div class="account-brand-avatar" aria-label="Paya Music UG account profile"><span>P</span></div>
+    <p class="account-kicker">YOUR CREATOR SPACE</p>
+    <div class="tabs">
+      <button class="tab active" data-tab="register" type="button">Create account</button>
+      <button class="tab" data-tab="login" type="button">Sign in</button>
+    </div>
+
+    <form id="registerForm">
+      <label>Your name
+        <input name="name" required minlength="2" placeholder="Artist or listener name">
+      </label>
+
+      <label>Email address
+        <input name="email" type="email" required placeholder="you@example.com">
+      </label>
+
+      <label>Password
+        <input name="password" type="password" required minlength="10" placeholder="At least 10 characters">
+      </label>
+
+      <button class="gold-btn full" type="submit">Create account</button>
+    </form>
+
+    <form id="loginForm" class="hidden">
+      <label>Email address
+        <input name="email" type="email" required>
+      </label>
+
+      <label>Password
+        <input name="password" type="password" required>
+      </label>
+
+      <button class="gold-btn full" type="submit">Sign in</button>
+    </form>
+
+    <div id="accountMsg" class="message"></div>
+
+    <div id="userPanel" class="hidden">
+      <p id="welcome"></p>
+
+      <button class="outline" id="logout" type="button">Sign out</button>
+
+      <!-- ARTIST PROFILE EDITOR -->
+      <section id="profileEditor" class="panel">
+        <h3>Artist profile</h3>
+
+        <div id="profilePreview">
+          <img
+            id="profileAvatar"
+            src=""
+            alt="Your private artist profile picture"
+            width="220"
+            height="220">
+        </div>
+
+        <form id="profileForm" enctype="multipart/form-data">
+          <label>Artist name
+            <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
+          </label>
+
+          <label>Profile picture
+            <input
+              name="image"
+              id="profileImage"
+              type="file"
+              accept="image/jpeg,image/png,image/webp">
+          </label>
+
+          <label>Artist bio / description
+            <textarea
+              name="bio"
+              id="profileBio"
+              maxlength="1000"
+              rows="5"
+              placeholder="Tell listeners about yourself and your music"></textarea>
+          </label>
+
+          <button class="gold-btn full" type="submit">Save artist profile</button>
+          <p id="profileMsg" class="message"></p>
+        </form>
+      </section>
+
+      <h3>My music submissions</h3>
+      <div id="mySongs"></div>
+
+      <!-- ADMIN AND OWNER PANEL -->
+      <div id="adminPanel" class="hidden">
+
+        <h3>Pending song approvals</h3>
+        <div id="pendingSongs"></div>
+
+        <h3>Pending advertising campaigns</h3>
+        <div id="pendingAds"></div>
+
+        <h3>Pending news and articles</h3>
+        <div id="pendingNews"></div>
+
+        <!-- ADMIN: PUBLISH MUSIC NEWS -->
+        <div class="admin-news">
+          <h3>Submit Music News for Approval</h3>
+
+          <form id="newsForm" enctype="multipart/form-data">
+
+            <label>News headline
+              <input
+                name="title"
+                required
+                maxlength="180"
+                placeholder="Enter the news headline">
+            </label>
+
+            <label>News category
+              <select name="category" required>
+                <option value="breaking">Breaking News</option>
+                <option value="artist">Artist Story</option>
+                <option value="music">Music News</option>
+                <option value="release">New Release</option>
+                <option value="interview">Interview</option>
+              </select>
+            </label>
+
+            <label>News image from your phone
+              <input
+                name="image"
+                id="newsImage"
+                type="file"
+                accept="image/jpeg,image/png,image/webp">
+            </label>
+
+            <label>News image URL (optional)
+              <input
+                name="image_url"
+                type="url"
+                placeholder="https://example.com/news-image.jpg">
+            </label>
+
+            <label>News content
+              <textarea
+                name="content"
+                required
+                maxlength="10000"
+                rows="6"
+                placeholder="Write the full news story here..."></textarea>
+            </label>
+
+            <button class="gold-btn full" type="submit">
+              Publish News
+            </button>
+
+            <p id="newsMsg" class="message"></p>
+          </form>
+        </div>
+
+        <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
+        <section id="ownerPanel" class="panel hidden">
+          <h3>Owner dashboard</h3>
+          <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
+          <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
+          <label>Search registered users
+            <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
+          </label>
+
+          <div id="ownerUsers">
+            <p class="muted">Loading registered users...</p>
+          </div>
+
+          <p id="ownerMsg" class="message"></p>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
 <section class="hero">
   <div class="hero-copy">
     <p class="eyebrow">UGANDAN MUSIC • NEW VOICES • BIG ENERGY</p>
@@ -189,185 +372,7 @@
   </form>
 </section>
 
-<section class="account-section" id="account">
-  <div>
-    <p class="eyebrow">JOIN THE COMMUNITY</p>
-    <h2>Make room for<br><span>your sound.</span></h2>
-    <p class="muted">Create an account to upload tracks and follow your submissions.</p>
-  </div>
 
-  <div class="account-card">
-    <div class="tabs">
-      <button class="tab active" data-tab="register" type="button">Create account</button>
-      <button class="tab" data-tab="login" type="button">Sign in</button>
-    </div>
-
-    <form id="registerForm">
-      <label>Your name
-        <input name="name" required minlength="2" placeholder="Artist or listener name">
-      </label>
-
-      <label>Email address
-        <input name="email" type="email" required placeholder="you@example.com">
-      </label>
-
-      <label>Password
-        <input name="password" type="password" required minlength="10" placeholder="At least 10 characters">
-      </label>
-
-      <button class="gold-btn full" type="submit">Create account</button>
-    </form>
-
-    <form id="loginForm" class="hidden">
-      <label>Email address
-        <input name="email" type="email" required>
-      </label>
-
-      <label>Password
-        <input name="password" type="password" required>
-      </label>
-
-      <button class="gold-btn full" type="submit">Sign in</button>
-    </form>
-
-    <div id="accountMsg" class="message"></div>
-
-    <div id="userPanel" class="hidden">
-      <p id="welcome"></p>
-
-      <button class="outline" id="logout" type="button">Sign out</button>
-
-      <!-- ARTIST PROFILE EDITOR -->
-      <section id="profileEditor" class="panel">
-        <h3>Artist profile</h3>
-
-        <div id="profilePreview">
-          <img
-            id="profileAvatar"
-            src=""
-            alt="Artist profile picture"
-            width="120"
-            height="120">
-        </div>
-
-        <form id="profileForm" enctype="multipart/form-data">
-          <label>Artist name
-            <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
-          </label>
-
-          <label>Profile picture
-            <input
-              name="image"
-              id="profileImage"
-              type="file"
-              accept="image/jpeg,image/png,image/webp">
-          </label>
-
-          <label>Artist bio / description
-            <textarea
-              name="bio"
-              id="profileBio"
-              maxlength="1000"
-              rows="5"
-              placeholder="Tell listeners about yourself and your music"></textarea>
-          </label>
-
-          <button class="gold-btn full" type="submit">Save artist profile</button>
-          <p id="profileMsg" class="message"></p>
-        </form>
-      </section>
-
-      <h3>My music submissions</h3>
-      <div id="mySongs"></div>
-
-      <!-- ADMIN AND OWNER PANEL -->
-      <div id="adminPanel" class="hidden">
-
-        <h3>Pending song approvals</h3>
-        <div id="pendingSongs"></div>
-
-        <h3>Pending advertising campaigns</h3>
-        <div id="pendingAds"></div>
-
-        <h3>Pending news and articles</h3>
-        <div id="pendingNews"></div>
-
-        <!-- ADMIN: PUBLISH MUSIC NEWS -->
-        <div class="admin-news">
-          <h3>Submit Music News for Approval</h3>
-
-          <form id="newsForm" enctype="multipart/form-data">
-
-            <label>News headline
-              <input
-                name="title"
-                required
-                maxlength="180"
-                placeholder="Enter the news headline">
-            </label>
-
-            <label>News category
-              <select name="category" required>
-                <option value="breaking">Breaking News</option>
-                <option value="artist">Artist Story</option>
-                <option value="music">Music News</option>
-                <option value="release">New Release</option>
-                <option value="interview">Interview</option>
-              </select>
-            </label>
-
-            <label>News image from your phone
-              <input
-                name="image"
-                id="newsImage"
-                type="file"
-                accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <label>News image URL (optional)
-              <input
-                name="image_url"
-                type="url"
-                placeholder="https://example.com/news-image.jpg">
-            </label>
-
-            <label>News content
-              <textarea
-                name="content"
-                required
-                maxlength="10000"
-                rows="6"
-                placeholder="Write the full news story here..."></textarea>
-            </label>
-
-            <button class="gold-btn full" type="submit">
-              Publish News
-            </button>
-
-            <p id="newsMsg" class="message"></p>
-          </form>
-        </div>
-
-        <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
-        <section id="ownerPanel" class="panel hidden">
-          <h3>Owner dashboard</h3>
-          <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
-          <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
-          <label>Search registered users
-            <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
-          </label>
-
-          <div id="ownerUsers">
-            <p class="muted">Loading registered users...</p>
-          </div>
-
-          <p id="ownerMsg" class="message"></p>
-        </section>
-
-      </div>
-    </div>
-  </div>
-</section>
 
 </main>
 
