@@ -114,7 +114,10 @@ function updateAccountUI() {
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const loginOpen = $("#loginOpen");
+  const accountAvatarLink = $("#accountAvatarLink");
+if (accountAvatarLink) accountAvatarLink.addEventListener("click", () => $("#account")?.scrollIntoView({behavior:"smooth"}));
+
+const loginOpen = $("#loginOpen");
   const account = $("#account");
   const tabs = $(".tabs", account || document);
   const registerForm = $("#registerForm");
@@ -141,6 +144,12 @@ function updateAccountUI() {
   const profileName = $("#profileName");
   const profileBio = $("#profileBio");
   const profileAvatar = $("#profileAvatar");
+  const navAvatar = $("#navAvatar");
+  const accountAvatarLink = $("#accountAvatarLink");
+  if (navAvatar && accountAvatarLink) {
+    navAvatar.src = currentUser?.avatar_url || "";
+    accountAvatarLink.classList.toggle("hidden", !currentUser?.avatar_url);
+  }
   if (profileAvatar) {
     profileAvatar.src = currentUser?.avatar_url || "";
     profileAvatar.hidden = !currentUser?.avatar_url;
@@ -672,6 +681,12 @@ bindForm("#profileForm", async (form) => {
     avatar.hidden = false;
   }
   updateAccountUI();
+  if (profileAvatarPreview && currentUser?.avatar_url) {
+    profileAvatarPreview.src = currentUser.avatar_url;
+    profileAvatarPreview.hidden = false;
+    profilePlaceholder.hidden = true;
+    profilePicturePicker.classList.add("has-image");
+  }
   const message = $("#profileMsg");
   if (message) message.textContent = result.message || "Artist profile updated successfully.";
   toast(result.message || "Artist profile updated successfully.");
