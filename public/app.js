@@ -625,42 +625,66 @@ bindForm("#newsForm", async (form) => {
   
 
 async function loadOwnerUsers() {
-  const container = $("#ownerUsers") || $("#usersList");
+  const container = $("#ownerUsers");
+  const summary = $("#ownerSummary");
+  const searchInput = $("#ownerUserSearch");
   if (!container || !isOwner()) return;
   try {
     const result = await api("/api/owner/users");
     const users = result.users || [];
-    container.innerHTML = users.length ? users.map((user) => `
-      <div class="admin-item">
-        <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
-        <span>${escapeHTML(user.email || "")}</span>
-        <span>Role: ${escapeHTML(user.role || "user")}</span>
-        <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
-          <option value="user" ${user.role === "user" ? "selected" : ""}>User</option>
-          <option value="admin" ${user.role === "admin" ? "selected" : ""}>Admin</option>
-          <option value="owner" ${user.role === "owner" ? "selected" : ""}>Owner</option>
-        </select>
-        <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>
-      </div>`).join("") : "<p>No users found.</p>";
+    const admins = users.filter((user) => user.role === "admin").length;
+    if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators`;
 
-    $$("[data-save-role]", container).forEach((button) => {
-      button.addEventListener("click", async () => {
-        const id = button.dataset.saveRole;
-        const select = $(`[data-user-role="${CSS.escape(id)}"]`, container);
-        if (!select) return;
-        try {
-          await api(`/api/owner/users/${encodeURIComponent(id)}/role`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ role: select.value })
-          });
-          toast("User role updated.");
-          loadOwnerUsers();
-        } catch (error) {
-          toast(error.message);
-        }
+    const render = () => {
+      const query = (searchInput?.value || "").trim().toLowerCase();
+      const filtered = users.filter((user) =>
+        [user.name, user.username, user.email, user.role].some((value) =>
+          String(value || "").toLowerCase().includes(query)
+        )
+      );
+      container.innerHTML = filtered.length ? filtered.map((user) => {
+        const role = String(user.role || "artist").toLowerCase();
+        const isProtectedOwner = role === "owner";
+        return `
+          <div class="admin-item">
+            <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
+            <span>${escapeHTML(user.email || "")}</span>
+            <span>Role: ${escapeHTML(role)}</span>
+            ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
+              <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
+                <option value="artist" ${role === "artist" ? "selected" : ""}>Artist / standard account</option>
+                <option value="admin" ${role === "admin" ? "selected" : ""}>Admin</option>
+              </select>
+              <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>`}
+          </div>`;
+      }).join("") : "<p>No matching users found.</p>";
+
+      $$("[data-save-role]", container).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.saveRole;
+          const select = container.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
+          if (!select) return;
+          button.disabled = true;
+          try {
+            await api(`/api/owner/users/${encodeURIComponent(id)}/role`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ role: select.value })
+            });
+            toast("User role updated.");
+            await loadOwnerUsers();
+          } catch (error) {
+            toast(error.message);
+            button.disabled = false;
+          }
+        });
       });
-    });
+    };
+    if (searchInput && !searchInput.dataset.bound) {
+      searchInput.addEventListener("input", render);
+      searchInput.dataset.bound = "true";
+    }
+    render();
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
