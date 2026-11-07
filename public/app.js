@@ -114,10 +114,7 @@ function updateAccountUI() {
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const accountAvatarLink = $("#accountAvatarLink");
-if (accountAvatarLink) accountAvatarLink.addEventListener("click", () => $("#account")?.scrollIntoView({behavior:"smooth"}));
-
-const loginOpen = $("#loginOpen");
+  const loginOpen = $("#loginOpen");
   const account = $("#account");
   const tabs = $(".tabs", account || document);
   const registerForm = $("#registerForm");
@@ -487,35 +484,8 @@ if (newsImageInput) {
     preview.hidden = false;
   });
 }
+// Upload a selected image file to the requested protected endpoint.
 async function uploadImage(endpoint, file) {
-   // NEWS IMAGE PREVIEW
-const newsImageInput = $("#newsImage");
-
-if (newsImageInput) {
-  const preview = document.createElement("img");
-
-  preview.alt = "News image preview";
-  preview.style.display = "none";
-  preview.style.maxWidth = "100%";
-  preview.style.maxHeight = "250px";
-  preview.style.marginTop = "10px";
-  preview.style.borderRadius = "10px";
-
-  newsImageInput.insertAdjacentElement("afterend", preview);
-
-  newsImageInput.addEventListener("change", () => {
-    const file = newsImageInput.files?.[0];
-
-    if (!file) {
-      preview.removeAttribute("src");
-      preview.style.display = "none";
-      return;
-    }
-
-    preview.src = URL.createObjectURL(file);
-    preview.style.display = "block";
-  });
-          }
   const formData = new FormData();
   formData.append("image", file);
   return api(endpoint, { method: "POST", body: formData });
@@ -637,6 +607,44 @@ if (loginOpen) loginOpen.addEventListener("click", () => {
   $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
+const accountAvatarButton = $("#accountAvatarLink");
+if (accountAvatarButton) {
+  accountAvatarButton.addEventListener("click", () => {
+    $("#account")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+
+// Show a local preview as soon as an owner chooses a news photo.
+const newsImageInput = $("#newsImage");
+if (newsImageInput) {
+  const newsPreview = document.createElement("img");
+  newsPreview.alt = "Selected news photo preview";
+  newsPreview.hidden = true;
+  newsPreview.style.cssText = "display:block;max-width:100%;max-height:280px;object-fit:contain;margin-top:12px;border-radius:12px";
+  newsImageInput.insertAdjacentElement("afterend", newsPreview);
+  newsImageInput.addEventListener("change", () => {
+    const selected = newsImageInput.files && newsImageInput.files[0];
+    if (!selected) {
+      newsPreview.removeAttribute("src");
+      newsPreview.hidden = true;
+      return;
+    }
+    if (!selected.type.startsWith("image/")) {
+      toast("Please choose an image file.");
+      newsImageInput.value = "";
+      newsPreview.removeAttribute("src");
+      newsPreview.hidden = true;
+      return;
+    }
+    if (newsPreview.dataset.objectUrl) URL.revokeObjectURL(newsPreview.dataset.objectUrl);
+    const previewUrl = URL.createObjectURL(selected);
+    newsPreview.dataset.objectUrl = previewUrl;
+    newsPreview.src = previewUrl;
+    newsPreview.hidden = false;
+  });
+}
+
 const profilePicturePicker = $("#profilePreview");
 const profileImageInput = $("#profileImage");
 const profileAvatarPreview = $("#profileAvatar");
@@ -740,10 +748,6 @@ bindForm("#newsForm", async (form) => {
   });
 
   form.reset();
-
-  if (newsImageInput) {
-    newsImageInput.dispatchEvent(new Event("change"));
-  }
 
   const message = $("#newsMsg");
   if (message) {
