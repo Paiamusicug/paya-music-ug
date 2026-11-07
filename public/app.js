@@ -110,6 +110,7 @@ function isOwner() {
 
 function updateAccountUI() {
   const userPanel = $("#userPanel");
+  const profileEditor = $("#profileEditor");
   const welcome = $("#welcome");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
@@ -123,6 +124,7 @@ function updateAccountUI() {
   // access their profile, uploads and dashboard. Only hide the auth forms.
   if (account) account.hidden = false;
   if (userPanel) userPanel.classList.toggle("hidden", !currentUser);
+  if (profileEditor) profileEditor.classList.toggle("hidden", !currentUser);
   if (tabs) tabs.hidden = !!currentUser;
   if (registerForm) registerForm.classList.toggle("hidden", !!currentUser);
   if (loginForm) loginForm.classList.toggle("hidden", !!currentUser);
@@ -138,6 +140,11 @@ function updateAccountUI() {
 
   const profileName = $("#profileName");
   const profileBio = $("#profileBio");
+  const profileAvatar = $("#profileAvatar");
+  if (profileAvatar) {
+    profileAvatar.src = currentUser?.avatar_url || "";
+    profileAvatar.hidden = !currentUser?.avatar_url;
+  }
   if (profileName && currentUser && !profileName.value) {
     profileName.value = currentUser.name || currentUser.username || "";
   }
