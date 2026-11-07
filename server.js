@@ -280,9 +280,10 @@ app.post("/api/profile/avatar", auth, imageUpload.single("image"), async (req, r
 });
 
 // UPLOAD SONG
-app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
+app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { name: "cover_image", maxCount: 1 }]), async (req, res) => {
   try {
-    const file = req.file;
+    const file = req.files?.audio?.[0] || null;
+    const coverFile = req.files?.cover_image?.[0] || null;
     const { title, artist, genre, description } = req.body;
 
     if (
@@ -302,20 +303,24 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
     }
 
     const filename = `${Date.now()}-${req.user.id}.mp3`;
-
-    const { error: storageError } = await supabase.storage
-      .from(MUSIC_BUCKET)
-      .upload(filename, file.buffer, {
-        contentType: "audio/mpeg",
-        upsert: false
-      });
-
+    let cover_url = null;
+    let coverFilename = null;
+    const { error: storageError } = await supabase.storage.from(MUSIC_BUCKET).upload(filename, file.buffer, { contentType: "audio/mpeg", upsert: false });
     if (storageError) throw storageError;
-
-    const { data, error } = await supabase
-      .from("songs")
-      .insert({
+    if (coverFile) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(coverFile.mimetype) || coverFile.size > 5 * 1024 * 1024) {
+        await supabase.storage.from(MUSIC_BUCKET).remove([filename]);
+        return res.status(400).json({ error: "Song cover must be JPG, PNG, or WEBP and no larger than 5 MB." });
+      }
+      const ext = coverFile.mimetype === "image/png" ? "png" : coverFile.mimetype === "image/webp" ? "webp" : "jpg";
+      coverFilename = `song-covers/${req.user.id}-${Date.now()}.${ext}`;
+      const { error: coverError } = await supabase.storage.from(IMAGE_BUCKET).upload(coverFilename, coverFile.buffer, { contentType: coverFile.mimetype, upsert: false });
+      if (coverError) { await supabase.storage.from(MUSIC_BUCKET).remove([filename]); throw coverError; }
+      cover_url = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(coverFilename).data.publicUrl;
+    }
+    const { data, error } = await supabase.from("songs").insert({
         title: title.slice(0, 120),
+        cover_url,
         artist: artist.slice(0, 120),
         genre: (genre || "").slice(0, 60),
         description: (description || "").slice(0, 500),
@@ -330,10 +335,8 @@ app.post("/api/songs", auth, upload.single("audio"), async (req, res) => {
       .single();
 
     if (error) {
-      await supabase.storage
-        .from(MUSIC_BUCKET)
-        .remove([filename]);
-
+      await supabase.storage.from(MUSIC_BUCKET).remove([filename]);
+      if (coverFilename) await supabase.storage.from(IMAGE_BUCKET).remove([coverFilename]);
       throw error;
     }
 
@@ -355,7 +358,7 @@ app.get("/api/songs", async (req, res) => {
     const query = String(req.query.q || "").trim().slice(0, 100);
     let request = supabase
       .from("songs")
-      .select("id, title, artist, genre, description, created_at, uploader_id")
+      .select("id, title, artist, genre, description, cover_url, created_at, uploader_id")
       .eq("status", "approved");
     if (query) {
       const safeQuery = query.replace(/[,%()]/g, " ").trim();
@@ -379,19 +382,15 @@ app.get("/api/songs", async (req, res) => {
       songs = songs.map((song) => ({ ...song, play_count: counts.get(song.id) || 0 }))
         .sort((a, b) => b.play_count - a.play_count || new Date(b.created_at) - new Date(a.created_at));
     }
-    if (sort === "liked" && songs.length) {
+    if (songs.length) {
       const ids = songs.map((song) => song.id);
-      const { data: likes, error: likesError } = await supabase
-        .from("song_likes")
-        .select("song_id")
-        .in("song_id", ids);
+      const { data: likes, error: likesError } = await supabase.from("song_likes").select("song_id").in("song_id", ids);
       if (likesError) throw likesError;
       const counts = new Map();
       for (const like of likes || []) counts.set(like.song_id, (counts.get(like.song_id) || 0) + 1);
-      songs = songs.map((song) => ({ ...song, likes: counts.get(song.id) || 0 }))
-        .sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
+      songs = songs.map((song) => ({ ...song, likes: counts.get(song.id) || 0 }));
+      if (sort === "liked") songs.sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
     }
-
     res.json({ songs });
   } catch (error) {
     res.status(500).json({
