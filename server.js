@@ -582,6 +582,33 @@ app.get("/api/my-songs", auth, async (req, res) => {
   }
 });
 
+// ARTISTS: EDIT ONLY THEIR OWN SONG DETAILS
+app.patch("/api/my-songs/:id", auth, async (req, res) => {
+  try {
+    const { title, artist, genre, description } = req.body || {};
+    const updates = {};
+    if (typeof title === "string") updates.title = title.trim().slice(0, 120);
+    if (typeof artist === "string") updates.artist = artist.trim().slice(0, 120);
+    if (typeof genre === "string") updates.genre = genre.trim().slice(0, 60);
+    if (typeof description === "string") updates.description = description.trim().slice(0, 500);
+    if (!updates.title || !updates.artist) {
+      return res.status(400).json({ error: "Song title and artist are required" });
+    }
+    const { data, error } = await supabase.from("songs")
+      .update(updates)
+      .eq("id", req.params.id)
+      .eq("uploader_id", req.user.id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Song not found in your account" });
+    res.json({ song: data });
+  } catch (error) {
+    console.error("Artist song edit failed:", error);
+    res.status(500).json({ error: "Could not update your song" });
+  }
+});
+
 // ADMIN: PENDING SONGS
 app.get("/api/admin/songs", auth, admin, async (req, res) => {
   try {
@@ -1160,6 +1187,55 @@ app.get("/api/owner/users", auth, owner, async (req, res) => {
   }
 
   res.json({ users: data || [] });
+});
+
+// OWNER: EDIT ANY SONG IN THE CATALOGUE
+app.get("/api/owner/songs", auth, owner, async (req, res) => {
+  const { data, error } = await supabase.from("songs")
+    .select("id, title, artist, status, uploader_id, created_at")
+    .order("created_at", { ascending: false });
+  if (error) return res.status(500).json({ error: "Could not load catalogue" });
+  res.json({ songs: data || [] });
+});
+
+app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
+  try {
+    const { title, artist } = req.body || {};
+    if (typeof title !== "string" || !title.trim() || typeof artist !== "string" || !artist.trim()) {
+      return res.status(400).json({ error: "Song title and artist are required" });
+    }
+    const { data, error } = await supabase.from("songs")
+      .update({ title: title.trim().slice(0, 120), artist: artist.trim().slice(0, 120) })
+      .eq("id", req.params.id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Song not found" });
+    res.json({ song: data });
+  } catch (error) {
+    console.error("Owner song edit failed:", error);
+    res.status(500).json({ error: "Could not update song" });
+  }
+});
+
+// OWNER: CHANGE A REGISTERED ARTIST'S PROFILE NAME
+app.patch("/api/owner/users/:id/name", auth, owner, async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim().slice(0, 100);
+    if (!name) return res.status(400).json({ error: "Artist name is required" });
+    const { data, error } = await supabase.from("users")
+      .update({ name })
+      .eq("id", req.params.id)
+      .neq("role", "owner")
+      .select("id, name, email, role")
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "User not found or protected" });
+    res.json({ user: data });
+  } catch (error) {
+    console.error("Owner artist name update failed:", error);
+    res.status(500).json({ error: "Could not update artist name" });
+  }
 });
 
 // ADMIN: ANALYTICS
