@@ -32,6 +32,12 @@ const MUSIC_BUCKET = "music";
 const IMAGE_BUCKET = "media";
 
 app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      imgSrc: ["'self'", "data:", "https://knedortbcjaaprmwuqqg.supabase.co"]
+    }
+  },
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
