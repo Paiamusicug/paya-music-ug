@@ -427,3 +427,27 @@ footer p,footer small{color:var(--muted);font-size:12px}
   }
   .song-info{padding-top:9px}
 }
+
+
+/* Dedicated shareable artist registration page mode */
+body.artist-registration-only .header-avatar,
+body.artist-registration-only #loginOpen,
+body.artist-registration-only #profileEditor,
+body.artist-registration-only #userPanel,
+body.artist-registration-only .account-section>div:first-child,
+body.artist-registration-only .account-card .account-kicker,
+body.artist-registration-only .account-card .tabs,
+body.artist-registration-only #loginForm{
+  display:none!important;
+}
+body.artist-registration-only .account-section{
+  display:flex;
+  justify-content:center;
+  min-height:65vh;
+  padding:42px 16px;
+}
+body.artist-registration-only .account-card{
+  width:min(100%,520px);
+  max-width:520px;
+}
+body.artist-registration-only #registerForm{display:block!important}
