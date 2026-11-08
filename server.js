@@ -31,6 +31,28 @@ const supabase = createClient(
 const MUSIC_BUCKET = "music";
 const IMAGE_BUCKET = "media";
 
+async function getSongEventCounts(table, songIds) {
+  const { data, error } = await supabase
+    .from(table)
+    .select("song_id")
+    .in("song_id", songIds);
+
+  if (error) {
+    // Keep the site working if the download-count migration has not yet been run.
+    if (table === "song_downloads") {
+      console.warn("Song download counts are not ready yet:", error.message);
+      return new Map();
+    }
+    throw error;
+  }
+
+  const counts = new Map();
+  for (const event of data || []) {
+    counts.set(event.song_id, (counts.get(event.song_id) || 0) + 1);
+  }
+  return counts;
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -376,25 +398,25 @@ app.get("/api/songs", async (req, res) => {
 
     let songs = data || [];
     const sort = String(req.query.sort || "newest");
-    if (sort === "played" && songs.length) {
-      const ids = songs.map((song) => song.id);
-      const { data: plays, error: playsError } = await supabase
-        .from("song_plays")
-        .select("song_id")
-        .in("song_id", ids);
-      if (playsError) throw playsError;
-      const counts = new Map();
-      for (const play of plays || []) counts.set(play.song_id, (counts.get(play.song_id) || 0) + 1);
-      songs = songs.map((song) => ({ ...song, play_count: counts.get(song.id) || 0 }))
-        .sort((a, b) => b.play_count - a.play_count || new Date(b.created_at) - new Date(a.created_at));
-    }
     if (songs.length) {
       const ids = songs.map((song) => song.id);
+      const [playCounts, downloadCounts] = await Promise.all([
+        getSongEventCounts("song_plays", ids),
+        getSongEventCounts("song_downloads", ids)
+      ]);
+      songs = songs.map((song) => ({
+        ...song,
+        play_count: playCounts.get(song.id) || 0,
+        download_count: downloadCounts.get(song.id) || 0
+      }));
+      if (sort === "played") {
+        songs.sort((a, b) => b.play_count - a.play_count || new Date(b.created_at) - new Date(a.created_at));
+      }
       const { data: likes, error: likesError } = await supabase.from("song_likes").select("song_id").in("song_id", ids);
       if (likesError) throw likesError;
-      const counts = new Map();
-      for (const like of likes || []) counts.set(like.song_id, (counts.get(like.song_id) || 0) + 1);
-      songs = songs.map((song) => ({ ...song, likes: counts.get(song.id) || 0 }));
+      const likeCounts = new Map();
+      for (const like of likes || []) likeCounts.set(like.song_id, (likeCounts.get(like.song_id) || 0) + 1);
+      songs = songs.map((song) => ({ ...song, likes: likeCounts.get(song.id) || 0 }));
       if (sort === "liked") songs.sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
     }
     res.json({ songs });
@@ -416,7 +438,20 @@ app.get("/api/my-songs", auth, async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ songs: data || [] });
+    const songs = data || [];
+    if (songs.length) {
+      const ids = songs.map((song) => song.id);
+      const [playCounts, downloadCounts] = await Promise.all([
+        getSongEventCounts("song_plays", ids),
+        getSongEventCounts("song_downloads", ids)
+      ]);
+      for (const song of songs) {
+        song.play_count = playCounts.get(song.id) || 0;
+        song.download_count = downloadCounts.get(song.id) || 0;
+      }
+    }
+
+    res.json({ songs });
   } catch (error) {
     res.status(500).json({
       error: "Could not load your songs"
@@ -525,6 +560,13 @@ app.get("/api/songs/:id/:action", async (req, res) => {
     }
 
     if (action === "download") {
+      const { error: countError } = await supabase
+        .from("song_downloads")
+        .insert({ song_id: Number(id) });
+      if (countError) {
+        // A download should still work if the tracking migration is not installed yet.
+        console.error("Song download count error:", countError.message);
+      }
       return res.redirect(data.signedUrl);
     }
 
