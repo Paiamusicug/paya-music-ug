@@ -128,9 +128,10 @@ function updateAccountUI() {
   if (account) account.hidden = false;
   if (userPanel) userPanel.classList.toggle("hidden", registrationOnly || !currentUser);
   if (profileEditor) profileEditor.classList.toggle("hidden", registrationOnly || !currentUser);
-  if (tabs) tabs.hidden = registrationOnly || !!currentUser;
-  if (registerForm) registerForm.classList.toggle("hidden", registrationOnly ? false : !!currentUser);
-  if (loginForm) loginForm.classList.toggle("hidden", registrationOnly || !!currentUser);
+  const activeAccountMode = $(".tabs .tab.active", account || document)?.dataset.tab || "register";
+  if (tabs) tabs.hidden = !!currentUser;
+  if (registerForm) registerForm.classList.toggle("hidden", !!currentUser || activeAccountMode !== "register");
+  if (loginForm) loginForm.classList.toggle("hidden", !!currentUser || activeAccountMode !== "login");
   if (welcome) welcome.textContent = currentUser
     ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
     : "";
@@ -612,7 +613,10 @@ bindForm("#registerForm", async (form) => {
       : "Artist account created successfully. The artist can now sign in.";
     const accountMsg = $("#accountMsg");
     if (accountMsg) accountMsg.textContent = message;
-    toast("Artist account created successfully.");
+    // Keep the artist on the registration page, but switch to sign-in after registration.
+    const loginTab = $('.tab[data-tab="login"]');
+    if (loginTab) loginTab.click();
+    toast("Artist account created successfully. Please sign in.");
     return;
   }
   saveSession(result.user || result, result.token);
@@ -639,6 +643,11 @@ bindForm("#loginForm", async (form) => {
     const name = result.user.name || result.user.email || "your account";
     if (status) status.textContent = `Signed in successfully as ${name}.`;
     toast(`Welcome, ${name}! You are signed in.`);
+    // Leave the registration-only URL after authentication so the real account dashboard is shown.
+    if (new URLSearchParams(window.location.search).get("artist-register") === "1") {
+      window.location.replace("/");
+      return;
+    }
     await refreshDashboard();
   } catch (error) {
     if (status) status.textContent = error.message || "Sign in failed. Please try again.";
