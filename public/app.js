@@ -723,21 +723,39 @@ bindForm("#profileForm", async (form) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, bio, avatar_url })
   });
-  if (result.user) {
-    currentUser = result.user;
-    localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
-  }
-  const avatar = $("#profileAvatar");
-  if (avatar && currentUser?.avatar_url) {
-    avatar.src = currentUser.avatar_url;
-    avatar.hidden = false;
-  }
+  // Keep the uploaded URL even if the profile response omits that field.
+  // Apply the same saved URL to both profile and header images.
+  const savedAvatarUrl =
+    result.user?.avatar_url ||
+    (typeof avatar_url === "string" ? avatar_url : "") ||
+    currentUser?.avatar_url ||
+    "";
+  currentUser = {
+    ...(currentUser || {}),
+    ...(result.user || {}),
+    ...(savedAvatarUrl ? { avatar_url: savedAvatarUrl } : {})
+  };
+  localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
   updateAccountUI();
-  if (profileAvatarPreview && currentUser?.avatar_url) {
-    profileAvatarPreview.src = currentUser.avatar_url;
-    profileAvatarPreview.hidden = false;
-    profilePlaceholder.hidden = true;
-    profilePicturePicker.classList.add("has-image");
+  if (savedAvatarUrl) {
+    const avatar = $("#profileAvatar");
+    const navAvatar = $("#navAvatar");
+    if (avatar) {
+      avatar.src = savedAvatarUrl;
+      avatar.hidden = false;
+    }
+    if (navAvatar) {
+      navAvatar.src = savedAvatarUrl;
+      navAvatar.hidden = false;
+      navAvatar.style.display = "block";
+    }
+    if (profileAvatarPreview) {
+      profileAvatarPreview.src = savedAvatarUrl;
+      profileAvatarPreview.hidden = false;
+    }
+    if (profilePlaceholder) profilePlaceholder.hidden = true;
+    profilePicturePicker?.classList.add("has-image");
+    $("#accountAvatarLink")?.classList.remove("hidden");
   }
   const message = $("#profileMsg");
   if (message) message.textContent = result.message || "Artist profile updated successfully.";
