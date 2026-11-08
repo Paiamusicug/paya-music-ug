@@ -414,7 +414,7 @@ async function loadPendingSongs() {
         <button type="button" data-delete-song="${escapeHTML(songId(song))}">Delete</button>
       </div>`).join("") : "<p>No songs awaiting review.</p>";
 
-    $("[data-song-approve]", container).forEach((button) =>
+    $$("[data-song-approve]", container).forEach((button) =>
       button.addEventListener("click", () => moderateSong(button.dataset.songApprove, "approved")));
     $$("[data-song-reject]", container).forEach((button) =>
       button.addEventListener("click", () => moderateSong(button.dataset.songReject, "rejected")));
@@ -462,9 +462,9 @@ async function loadPendingAds() {
         <button type="button" data-ad-reject="${escapeHTML(ad.id)}">Reject</button>
       </div>`).join("") : "<p>No adverts awaiting review.</p>";
 
-    $("[data-ad-approve]", container).forEach((button) =>
+    $$("[data-ad-approve]", container).forEach((button) =>
       button.addEventListener("click", () => moderateAd(button.dataset.adApprove, "approved")));
-    $("[data-ad-reject]", container).forEach((button) =>
+    $$("[data-ad-reject]", container).forEach((button) =>
       button.addEventListener("click", () => moderateAd(button.dataset.adReject, "rejected")));
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
@@ -478,8 +478,8 @@ async function loadPendingProfiles() {
     const result = await api("/api/admin/profiles");
     const items = result.submissions || [];
     container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.name || "Artist profile")}</strong><p>${escapeHTML(item.bio || "")}</p>${item.avatar_url ? `<img src="${escapeHTML(item.avatar_url)}" alt="Pending profile" width="90">` : ""}<button type="button" data-profile-approve="${escapeHTML(item.id)}">Approve</button><button type="button" data-profile-reject="${escapeHTML(item.id)}">Reject</button></div>`).join("") : "<p>No artist profiles awaiting review.</p>";
-    $("[data-profile-approve]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileApprove, "approved")));
-    $("[data-profile-reject]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileReject, "rejected")));
+    $$("[data-profile-approve]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileApprove, "approved")));
+    $$("[data-profile-reject]", container).forEach((button) => button.addEventListener("click", () => moderateProfile(button.dataset.profileReject, "rejected")));
   } catch (error) { container.innerHTML = `<p>${escapeHTML(error.message)}</p>`; }
 }
 
@@ -495,8 +495,8 @@ async function loadPendingNews() {
     const result = await api("/api/admin/news");
     const items = result.news || [];
     container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.title || "News article")}</strong><p>${escapeHTML((item.content || "").slice(0, 240))}</p><button type="button" data-news-approve="${escapeHTML(item.id)}">Approve & publish</button><button type="button" data-news-reject="${escapeHTML(item.id)}">Reject</button></div>`).join("") : "<p>No news awaiting review.</p>";
-    $("[data-news-approve]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsApprove, "published")));
-    $("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected")));
+    $$("[data-news-approve]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsApprove, "published")));
+    $$("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected")));
   } catch (error) { container.innerHTML = `<p>${escapeHTML(error.message)}</p>`; }
 }
 
@@ -993,7 +993,7 @@ async function loadOwnerUsers() {
         <h4>Full song catalogue — edit any song</h4>
         ${songHTML}`;
 
-      $("[data-save-role]", container).forEach((button) => {
+      $$("[data-save-role]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveRole;
           const select = container.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
@@ -1013,7 +1013,7 @@ async function loadOwnerUsers() {
           }
         });
       });
-      $("[data-save-user-name]", container).forEach((button) => {
+      $$("[data-save-user-name]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveUserName;
           const input = container.querySelector(`[data-user-name="${CSS.escape(id)}"]`);
@@ -1033,7 +1033,7 @@ async function loadOwnerUsers() {
           }
         });
       });
-      $("[data-save-owner-song]", container).forEach((button) => {
+      $$("[data-save-owner-song]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveOwnerSong;
           const title = container.querySelector(`[data-owner-song-title="${CSS.escape(id)}"]`)?.value || "";
