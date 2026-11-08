@@ -125,6 +125,7 @@ function updateAccountUI() {
   // A shareable artist-registration view that never exposes the signed-in
   // owner's profile/dashboard and does not replace the owner's local session.
   document.body.classList.toggle("artist-registration-only", registrationOnly);
+  document.body.classList.toggle("signed-in", !!currentUser);
   if (account) account.hidden = false;
   if (userPanel) userPanel.classList.toggle("hidden", registrationOnly || !currentUser);
   if (profileEditor) profileEditor.classList.toggle("hidden", registrationOnly || !currentUser);
