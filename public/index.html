@@ -51,164 +51,6 @@
   </div>
 </section>
 
-<section class="stats">
-  <div><strong>01</strong><span>Discover new music</span></div>
-  <div><strong>02</strong><span>Stream your favourites</span></div>
-  <div><strong>03</strong><span>Support local artists</span></div>
-</section>
-
-<section class="genre-rail" aria-label="Browse music genres">
-  <div class="genre-rail-inner">
-    <button class="genre-chip active" type="button" data-genre="">All music</button>
-    <button class="genre-chip" type="button" data-genre="Afrobeat">Afrobeat</button>
-    <button class="genre-chip" type="button" data-genre="Dancehall">Dancehall</button>
-    <button class="genre-chip" type="button" data-genre="Hip-Hop">Hip-Hop</button>
-    <button class="genre-chip" type="button" data-genre="Gospel">Gospel</button>
-    <button class="genre-chip" type="button" data-genre="R&B">R&amp;B</button>
-    <button class="genre-chip" type="button" data-genre="Pop">Pop</button>
-  </div>
-</section>
-
-<section class="ad-strip" id="homepageAds" aria-label="Sponsored advertisements">
-  <p class="eyebrow">PARTNER SPOTLIGHT</p>
-  <div id="homepageAdList" class="ad-list">
-    <p class="muted">Advertising opportunities available — promote your business on Paya Music UG.</p>
-  </div>
-</section>
-
-<section class="section" id="discover">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">FIND YOUR NEXT FAVOURITE</p>
-      <h2>Explore music</h2>
-    </div>
-    <span class="muted">Discover artists from everywhere</span>
-  </div>
-
-  <div class="search-row">
-    <input id="search" placeholder="Search songs, artists or genres…" aria-label="Search music">
-    <button class="gold-btn" id="searchBtn">Search</button>
-    <select id="songSort" aria-label="Sort songs">
-      <option value="newest">Newest Songs</option>
-      <option value="liked">Most Liked</option>
-      <option value="played">Most Played</option>
-    </select>
-  </div>
-
-  <div id="songs" class="song-grid">
-    <div class="empty">Loading music…</div>
-  </div>
-</section>
-
-<section class="section" id="news">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">LATEST FROM THE MUSIC SCENE</p>
-      <h2>Music News & Artist Stories</h2>
-    </div>
-    <span class="muted">Breaking news. Fresh stories.</span>
-  </div>
-
-  <div id="newsList" class="news-grid">
-    <div class="empty">Loading music news...</div>
-  </div>
-</section>
-
-<section class="upload-section" id="upload">
-  <div>
-    <p class="eyebrow">YOUR MUSIC DESERVES TO BE HEARD</p>
-    <h2>Have a song?<br><span>Bring it to Paya.</span></h2>
-    <p class="muted">Create an artist account and submit your MP3. Every upload is reviewed before it goes public.</p>
-  </div>
-
-  <form id="uploadForm" class="panel">
-    <h3>Submit your music</h3>
-
-    <label>Song title
-      <input name="title" required maxlength="120" placeholder="Enter song title">
-    </label>
-
-    <label>Artist name
-      <input name="artist" required maxlength="120" placeholder="Artist or group name">
-    </label>
-
-    <label>Genre
-      <input name="genre" maxlength="60" placeholder="e.g. Afrobeat, Dancehall">
-    </label>
-
-    <label>About this song
-      <textarea name="description" maxlength="500" placeholder="Optional short description"></textarea>
-    </label>
-
-    <label class="file-label">MP3 audio file
-      <input name="audio" type="file" accept=".mp3,audio/mpeg" required>
-    </label>
-
-    <label class="file-label">Song cover image (optional — Paya artwork is used if left blank)
-      <input name="cover_image" id="songCoverImage" type="file" accept="image/jpeg,image/png,image/webp">
-    </label>
-    <img id="songCoverPreview" class="song-upload-preview" alt="Song cover preview" hidden>
-
-    <button class="gold-btn full" type="submit">Submit for review</button>
-
-    <p class="fine">MP3 only. Maximum file size is set by the platform administrator.</p>
-    <p id="uploadMsg" class="message"></p>
-  </form>
-</section>
-
-<section class="advertise-section" id="advertise">
-  <div>
-    <p class="eyebrow">REACH MUSIC LOVERS</p>
-    <h2>Put your brand<br><span>in the spotlight.</span></h2>
-    <p class="muted">Businesses can submit campaigns for homepage banners, music-page placements and sponsored promotions. Paya Music UG reviews every campaign before publication.</p>
-  </div>
-
-  <form id="adForm" class="panel">
-    <h3>Submit an advertisement</h3>
-
-    <label>Business or brand name
-      <input name="business_name" required maxlength="120" placeholder="Your business name">
-    </label>
-
-    <label>Advert headline
-      <input name="title" required maxlength="120" placeholder="What are you promoting?">
-    </label>
-
-    <label>Short description
-      <textarea name="description" maxlength="500" placeholder="Tell visitors about your offer"></textarea>
-    </label>
-
-    <label>Advert image URL
-      <input name="image_url" type="url" required placeholder="https://example.com/banner.jpg">
-    </label>
-
-    <label>Destination URL
-      <input name="target_url" type="url" required placeholder="https://yourwebsite.com">
-    </label>
-
-    <label>Placement
-      <select name="placement">
-        <option value="homepage">Homepage banner</option>
-        <option value="music">Music pages</option>
-        <option value="sidebar">Sidebar placement</option>
-        <option value="sponsored">Sponsored promotion</option>
-      </select>
-    </label>
-
-    <div class="date-grid">
-      <label>Start date<input name="starts_at" type="date"></label>
-      <label>End date<input name="ends_at" type="date"></label>
-    </div>
-
-    <button class="gold-btn full" type="submit">Submit advert for approval</button>
-
-    <p class="fine">You must sign in first. Submission does not guarantee publication. Campaign pricing and payment are arranged with Paya Music UG.</p>
-    <p id="adMsg" class="message"></p>
-  </form>
-</section>
-
-
-
 <section class="account-section" id="account">
   <div>
     <p class="eyebrow">JOIN THE COMMUNITY</p>
@@ -375,6 +217,166 @@
 
           <p id="ownerMsg" class="message"></p>
         </section>
+
+<section class="stats">
+  <div><strong>01</strong><span>Discover new music</span></div>
+  <div><strong>02</strong><span>Stream your favourites</span></div>
+  <div><strong>03</strong><span>Support local artists</span></div>
+</section>
+
+<section class="genre-rail" aria-label="Browse music genres">
+  <div class="genre-rail-inner">
+    <button class="genre-chip active" type="button" data-genre="">All music</button>
+    <button class="genre-chip" type="button" data-genre="Afrobeat">Afrobeat</button>
+    <button class="genre-chip" type="button" data-genre="Dancehall">Dancehall</button>
+    <button class="genre-chip" type="button" data-genre="Hip-Hop">Hip-Hop</button>
+    <button class="genre-chip" type="button" data-genre="Gospel">Gospel</button>
+    <button class="genre-chip" type="button" data-genre="R&B">R&amp;B</button>
+    <button class="genre-chip" type="button" data-genre="Pop">Pop</button>
+  </div>
+</section>
+
+<section class="ad-strip" id="homepageAds" aria-label="Sponsored advertisements">
+  <p class="eyebrow">PARTNER SPOTLIGHT</p>
+  <div id="homepageAdList" class="ad-list">
+    <p class="muted">Advertising opportunities available — promote your business on Paya Music UG.</p>
+  </div>
+</section>
+
+<section class="section" id="discover">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">FIND YOUR NEXT FAVOURITE</p>
+      <h2>Explore music</h2>
+    </div>
+    <span class="muted">Discover artists from everywhere</span>
+  </div>
+
+  <div class="search-row">
+    <input id="search" placeholder="Search songs, artists or genres…" aria-label="Search music">
+    <button class="gold-btn" id="searchBtn">Search</button>
+    <select id="songSort" aria-label="Sort songs">
+      <option value="newest">Newest Songs</option>
+      <option value="liked">Most Liked</option>
+      <option value="played">Most Played</option>
+    </select>
+  </div>
+
+  <div id="songs" class="song-grid">
+    <div class="empty">Loading music…</div>
+  </div>
+</section>
+
+<section class="section" id="news">
+  <div class="section-head">
+    <div>
+      <p class="eyebrow">LATEST FROM THE MUSIC SCENE</p>
+      <h2>Music News & Artist Stories</h2>
+    </div>
+    <span class="muted">Breaking news. Fresh stories.</span>
+  </div>
+
+  <div id="newsList" class="news-grid">
+    <div class="empty">Loading music news...</div>
+  </div>
+</section>
+
+<section class="upload-section" id="upload">
+  <div>
+    <p class="eyebrow">YOUR MUSIC DESERVES TO BE HEARD</p>
+    <h2>Have a song?<br><span>Bring it to Paya.</span></h2>
+    <p class="muted">Create an artist account and submit your MP3. Every upload is reviewed before it goes public.</p>
+  </div>
+
+  <form id="uploadForm" class="panel">
+    <h3>Submit your music</h3>
+
+    <label>Song title
+      <input name="title" required maxlength="120" placeholder="Enter song title">
+    </label>
+
+    <label>Artist name
+      <input name="artist" required maxlength="120" placeholder="Artist or group name">
+    </label>
+
+    <label>Genre
+      <input name="genre" maxlength="60" placeholder="e.g. Afrobeat, Dancehall">
+    </label>
+
+    <label>About this song
+      <textarea name="description" maxlength="500" placeholder="Optional short description"></textarea>
+    </label>
+
+    <label class="file-label">MP3 audio file
+      <input name="audio" type="file" accept=".mp3,audio/mpeg" required>
+    </label>
+
+    <label class="file-label">Song cover image (optional — Paya artwork is used if left blank)
+      <input name="cover_image" id="songCoverImage" type="file" accept="image/jpeg,image/png,image/webp">
+    </label>
+    <img id="songCoverPreview" class="song-upload-preview" alt="Song cover preview" hidden>
+
+    <button class="gold-btn full" type="submit">Submit for review</button>
+
+    <p class="fine">MP3 only. Maximum file size is set by the platform administrator.</p>
+    <p id="uploadMsg" class="message"></p>
+  </form>
+</section>
+
+<section class="advertise-section" id="advertise">
+  <div>
+    <p class="eyebrow">REACH MUSIC LOVERS</p>
+    <h2>Put your brand<br><span>in the spotlight.</span></h2>
+    <p class="muted">Businesses can submit campaigns for homepage banners, music-page placements and sponsored promotions. Paya Music UG reviews every campaign before publication.</p>
+  </div>
+
+  <form id="adForm" class="panel">
+    <h3>Submit an advertisement</h3>
+
+    <label>Business or brand name
+      <input name="business_name" required maxlength="120" placeholder="Your business name">
+    </label>
+
+    <label>Advert headline
+      <input name="title" required maxlength="120" placeholder="What are you promoting?">
+    </label>
+
+    <label>Short description
+      <textarea name="description" maxlength="500" placeholder="Tell visitors about your offer"></textarea>
+    </label>
+
+    <label>Advert image URL
+      <input name="image_url" type="url" required placeholder="https://example.com/banner.jpg">
+    </label>
+
+    <label>Destination URL
+      <input name="target_url" type="url" required placeholder="https://yourwebsite.com">
+    </label>
+
+    <label>Placement
+      <select name="placement">
+        <option value="homepage">Homepage banner</option>
+        <option value="music">Music pages</option>
+        <option value="sidebar">Sidebar placement</option>
+        <option value="sponsored">Sponsored promotion</option>
+      </select>
+    </label>
+
+    <div class="date-grid">
+      <label>Start date<input name="starts_at" type="date"></label>
+      <label>End date<input name="ends_at" type="date"></label>
+    </div>
+
+    <button class="gold-btn full" type="submit">Submit advert for approval</button>
+
+    <p class="fine">You must sign in first. Submission does not guarantee publication. Campaign pricing and payment are arranged with Paya Music UG.</p>
+    <p id="adMsg" class="message"></p>
+  </form>
+</section>
+
+
+
+
 
       </div>
     </div>
