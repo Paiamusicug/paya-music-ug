@@ -374,3 +374,28 @@ footer p,footer small{color:var(--muted);font-size:12px}
  .news-grid{grid-template-columns:1fr}
  .news-image{height:135px}
 }
+
+
+/* Compact news-writing box: users can tap and zoom while composing */
+.admin-news textarea{
+  min-height:78px;
+  height:78px;
+  padding:9px 10px;
+  font-size:12px;
+  line-height:1.45;
+  resize:vertical;
+}
+.admin-news textarea:focus{
+  min-height:110px;
+}
+@media(max-width:600px){
+  .admin-news textarea{
+    min-height:70px;
+    height:70px;
+    font-size:12px;
+    padding:8px;
+  }
+  .admin-news textarea:focus{
+    min-height:120px;
+  }
+}
