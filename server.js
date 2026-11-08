@@ -207,9 +207,46 @@ app.post("/api/register", async (req, res) => {
 
     if (error) throw error;
 
+    // Automatically move songs uploaded by Paya admins/owner into the
+    // newly registered artist's account when the artist name matches.
+    let claimedSongs = 0;
+    const normalizedArtistName = String(user.name || "").trim().replace(/\\s+/g, " ").toLowerCase();
+    if (normalizedArtistName) {
+      const { data: staff, error: staffError } = await supabase
+        .from("users")
+        .select("id")
+        .in("role", ["owner", "admin"]);
+      if (staffError) throw staffError;
+
+      const staffIds = (staff || []).map((item) => item.id);
+      if (staffIds.length) {
+        const { data: uploadedSongs, error: songsError } = await supabase
+          .from("songs")
+          .select("id, artist")
+          .in("uploader_id", staffIds);
+        if (songsError) throw songsError;
+
+        const matchingSongIds = (uploadedSongs || [])
+          .filter((song) => String(song.artist || "").trim().replace(/\\s+/g, " ").toLowerCase() === normalizedArtistName)
+          .map((song) => song.id);
+
+        if (matchingSongIds.length) {
+          const { data: movedSongs, error: moveError } = await supabase
+            .from("songs")
+            .update({ uploader_id: user.id })
+            .in("id", matchingSongIds)
+            .in("uploader_id", staffIds)
+            .select("id");
+          if (moveError) throw moveError;
+          claimedSongs = (movedSongs || []).length;
+        }
+      }
+    }
+
     res.status(201).json({
       token: makeToken(user),
-      user
+      user,
+      claimed_songs: claimedSongs
     });
   } catch (error) {
     console.error("Registration error:", error);
