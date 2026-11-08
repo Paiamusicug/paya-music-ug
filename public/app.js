@@ -1135,6 +1135,19 @@ if (headerSignInButton) {
   });
 }
 
+function focusSharedSong() {
+  const sharedSongId = new URLSearchParams(window.location.search).get("song");
+  if (!sharedSongId) return;
+  const card = Array.from(document.querySelectorAll(".song-card"))
+    .find((item) => item.dataset.songId === sharedSongId);
+  if (!card) {
+    toast("That song could not be found in the music catalogue.");
+    return;
+  }
+  card.classList.add("shared-song-highlight");
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   await restoreSession();
   await Promise.allSettled([
@@ -1143,4 +1156,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadNews(),
     refreshDashboard()
   ]);
+  focusSharedSong();
 });
