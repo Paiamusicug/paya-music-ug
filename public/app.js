@@ -284,15 +284,19 @@ async function likeSong(id, button) {
 }
 
 async function shareSong(song) {
-  const url = new URL(`/api/songs/${encodeURIComponent(songId(song))}/stream`, location.origin).href;
-  const shareData = { title: songTitle(song), text: `${songTitle(song)} — ${songArtist(song)}`, url };
+  const url = new URL(`/song/${encodeURIComponent(songId(song))}`, location.origin).href;
+  const shareData = {
+    title: `${songTitle(song)} — ${songArtist(song)} | Paya Music UG`,
+    text: `Listen to ${songTitle(song)} by ${songArtist(song)} on Paya Music UG:`,
+    url
+  };
   try {
     if (navigator.share) await navigator.share(shareData);
     else if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
-      toast("Song link copied.");
+      toast("Song page link copied. Share it on WhatsApp to show the artwork.");
     } else {
-      window.prompt("Copy this song link:", url);
+      window.prompt("Copy this song page link:", url);
     }
   } catch (error) {
     if (error.name !== "AbortError") toast("Could not share this song.");
