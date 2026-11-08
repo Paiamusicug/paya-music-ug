@@ -96,6 +96,12 @@ const imageUpload = multer({
   }
 });
 
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[char]);
+}
+
 function makeToken(user) {
   return jwt.sign(
     { id: user.id },
@@ -424,6 +430,74 @@ app.get("/api/songs", async (req, res) => {
     res.status(500).json({
       error: "Could not load songs"
     });
+  }
+});
+
+// PUBLIC SONG SHARE PAGE WITH SERVER-RENDERED OPEN GRAPH METADATA FOR WHATSAPP.
+app.get("/song/:id", async (req, res) => {
+  try {
+    const { data: song, error } = await supabase
+      .from("songs")
+      .select("id, title, artist, description, cover_url, status")
+      .eq("id", req.params.id)
+      .eq("status", "approved")
+      .maybeSingle();
+
+    if (error || !song) return res.status(404).send("Song not found");
+
+    const siteUrl = `${req.protocol}://${req.get("host")}`;
+    const pageUrl = `${siteUrl}/song/${encodeURIComponent(song.id)}`;
+    let imageUrl = `${siteUrl}/paya-default-cover.svg`;
+    try {
+      const candidate = new URL(song.cover_url || "/paya-default-cover.svg", siteUrl);
+      if (candidate.protocol === "https:" || candidate.origin === siteUrl) imageUrl = candidate.href;
+    } catch {}
+    const title = `${song.title || "Song"} — ${song.artist || "Artist"} | Paya Music UG`;
+    const description = String(song.description || `Listen to ${song.title || "this song"} by ${song.artist || "the artist"} on Paya Music UG.`).slice(0, 180);
+    const safeTitle = escapeHTML(title);
+    const safeDescription = escapeHTML(description);
+    const safeImage = escapeHTML(imageUrl);
+    const safePageUrl = escapeHTML(pageUrl);
+    const audioUrl = `/api/songs/${encodeURIComponent(song.id)}/stream`;
+
+    res.set("Cache-Control", "public, max-age=300");
+    res.type("html").send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle}</title>
+<meta name="description" content="${safeDescription}">
+<meta property="og:type" content="music.song">
+<meta property="og:title" content="${safeTitle}">
+<meta property="og:description" content="${safeDescription}">
+<meta property="og:url" content="${safePageUrl}">
+<meta property="og:image" content="${safeImage}">
+<meta property="og:image:alt" content="${safeTitle} cover artwork">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="${safePageUrl}">
+<style>
+body{margin:0;min-height:100vh;background:#101719;color:#f5f3ee;font:16px Arial,sans-serif;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+main{width:min(100%,420px);text-align:center;background:#1b2529;border:1px solid #354044;border-radius:20px;padding:24px;box-sizing:border-box}
+img{width:min(100%,300px);aspect-ratio:1;object-fit:cover;border-radius:14px}
+h1{font-size:25px;margin:20px 0 8px}p{color:#c3c9c7;line-height:1.5}
+audio{width:100%;margin:16px 0}
+a{color:#e6bd64;font-weight:bold}
+</style>
+</head>
+<body>
+<main>
+<img src="${safeImage}" alt="${safeTitle} cover artwork">
+<h1>${safeTitle}</h1>
+<p>${safeDescription}</p>
+<audio controls preload="none" src="${audioUrl}"></audio>
+<p><a href="/">Discover more music on Paya Music UG</a></p>
+</main>
+</body>
+</html>`);
+  } catch (error) {
+    console.error("Song share page error:", error);
+    res.status(500).send("Could not load song");
   }
 });
 
