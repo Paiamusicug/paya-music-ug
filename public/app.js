@@ -737,10 +737,13 @@ if (loginOpen) loginOpen.addEventListener("click", () => {
 const accountAvatarButton = $("#accountAvatarLink");
 if (accountAvatarButton) {
   accountAvatarButton.addEventListener("click", () => {
-    // Open the artist profile editor without bringing back the large sign-in card.
-    document.body.classList.add("show-profile-editor");
-    $("#account")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    $("#profileEditor")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Reveal the profile editor while keeping registration and sign-in hidden.
+    const accountSection = $("#account");
+    const profileEditor = $("#profileEditor");
+    if (!accountSection || !profileEditor) return;
+    accountSection.classList.add("show-profile-editor");
+    accountSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    profileEditor.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
 
