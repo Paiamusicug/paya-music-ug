@@ -593,8 +593,8 @@ bindForm("#uploadForm", async (form) => {
   const preview = $("#songCoverPreview");
   if (preview) { preview.removeAttribute("src"); preview.hidden = true; }
   const message = $("#uploadMsg");
-  if (message) message.textContent = "Song submitted for approval.";
-  toast("Song uploaded.");
+  if (message) message.textContent = isAdmin() ? "Song uploaded and published successfully." : "Song submitted for approval.";
+  toast(isAdmin() ? "Song uploaded and published." : "Song uploaded and submitted for approval.");
   loadMine();
 });
 
