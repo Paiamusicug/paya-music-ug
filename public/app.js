@@ -849,10 +849,10 @@ bindForm("#newsForm", async (form) => {
 
   const message = $("#newsMsg");
   if (message) {
-    message.textContent = "News submitted for approval.";
+    message.textContent = "News published successfully.";
   }
 
-  toast("News submitted for approval.");
+  toast("News published successfully.");
 
   await loadNews();
 });
