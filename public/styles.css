@@ -471,3 +471,27 @@ body.signed-in:not(.artist-registration-only) #account .account-card{
 body.signed-in:not(.artist-registration-only) #account{
   display:none!important;
 }
+
+
+/* Let signed-in artists open their profile editor from the compact header avatar. */
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor{
+  display:block!important;
+  padding-top:24px;
+  padding-bottom:24px;
+}
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor .account-card{
+  display:block!important;
+  max-width:620px;
+  margin:0 auto;
+}
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor .account-card>.account-kicker,
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor .account-card>.tabs,
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor #registerForm,
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor #loginForm,
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor #accountMsg,
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor #userPanel{
+  display:none!important;
+}
+body.signed-in:not(.artist-registration-only) #account.show-profile-editor #profileEditor{
+  display:block!important;
+}
