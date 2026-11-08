@@ -199,13 +199,15 @@ function renderSongs(items = []) {
       ? `<img class="song-cover" src="${escapeHTML(cover)}" alt="${title} cover" loading="lazy">`
       : '<div class="song-cover song-cover-placeholder">♪</div>';
     const likes = Number(song.likes ?? song.like_count ?? 0);
+    const plays = Number(song.play_count ?? 0);
+    const downloads = Number(song.download_count ?? 0);
     return `
       <article class="song-card" data-song-id="${id}">
         ${coverHTML}
         <div class="song-info">
           <h3>${title}</h3>
           <p>${artist}</p>
-          <small data-like-count>${likes} likes</small>
+          <small class="song-stat-line"><span data-like-count>${likes} likes</span> · <span>${plays} plays</span> · <span>${downloads} downloads</span></small>
         </div>
         <div class="song-actions">
           <button type="button" data-play="${id}">Play</button>
@@ -333,7 +335,15 @@ async function loadMine() {
     const result = await api("/api/my-songs");
     const songs = result.songs || [];
     container.innerHTML = songs.length
-      ? songs.map((song) => `<p>${escapeHTML(songTitle(song))} — <span>${escapeHTML(song.status || "pending")}</span></p>`).join("")
+      ? songs.map((song) => `
+        <div class="my-song-stat">
+          <strong>${escapeHTML(songTitle(song))}</strong>
+          <span class="my-song-status">${escapeHTML(song.status || "pending")}</span>
+          <div class="my-song-counts">
+            <span>▶ ${Number(song.play_count || 0)} plays</span>
+            <span>↓ ${Number(song.download_count || 0)} downloads</span>
+          </div>
+        </div>`).join("")
       : "<p>You have not uploaded any songs yet.</p>";
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
