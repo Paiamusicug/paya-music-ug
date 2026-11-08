@@ -886,9 +886,9 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
       content: String(content).slice(0, 10000),
       category: category || "music",
       image_url: image_url || null,
-      status: "pending",
+      status: "published",
       author_id: req.user.id,
-      published_at: null
+      published_at: new Date().toISOString()
     })
     .select()
     .single();
@@ -900,7 +900,7 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     });
   }
 
-  res.status(201).json({ message: "News submitted for approval.", article: data });
+  res.status(201).json({ message: "News published successfully.", article: data });
 });
 
 // ADMIN: UPLOAD NEWS PICTURE
