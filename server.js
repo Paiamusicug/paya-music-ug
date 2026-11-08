@@ -357,7 +357,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         mime_type: "audio/mpeg",
         size: file.size,
         uploader_id: req.user.id,
-        status: "pending"
+        status: ["admin", "owner"].includes(String(req.user.role || "").toLowerCase()) ? "approved" : "pending"
       })
       .select()
       .single();
@@ -369,7 +369,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     }
 
     res.status(201).json({
-      message: "Song submitted for review",
+      message: ["admin", "owner"].includes(String(req.user.role || "").toLowerCase()) ? "Song uploaded and published successfully." : "Song submitted for review",
       song: data
     });
   } catch (error) {
