@@ -477,21 +477,33 @@ app.get("/song/:id", async (req, res) => {
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="${safePageUrl}">
 <style>
-body{margin:0;min-height:100vh;background:#101719;color:#f5f3ee;font:16px Arial,sans-serif;display:grid;place-items:center;padding:24px;box-sizing:border-box}
-main{width:min(100%,420px);text-align:center;background:#1b2529;border:1px solid #354044;border-radius:20px;padding:24px;box-sizing:border-box}
-img{width:min(100%,300px);aspect-ratio:1;object-fit:cover;border-radius:14px}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#101719;color:#f5f3ee;font:16px Arial,sans-serif;padding:0}
+header{padding:18px 22px;border-bottom:1px solid #354044;background:#151e21}
+header a{color:#e6bd64;text-decoration:none;font-weight:800;letter-spacing:1px}
+main{width:min(100% - 32px,480px);margin:34px auto;text-align:center;background:#1b2529;border:1px solid #354044;border-radius:20px;padding:24px}
+img{width:min(100%,320px);aspect-ratio:1;object-fit:cover;border-radius:14px}
 h1{font-size:25px;margin:20px 0 8px}p{color:#c3c9c7;line-height:1.5}
 audio{width:100%;margin:16px 0}
 a{color:#e6bd64;font-weight:bold}
+.actions{display:grid;gap:12px;margin:20px 0}
+.download{display:block;background:#e6bd64;color:#15191a;text-decoration:none;padding:15px 20px;border-radius:10px;font-weight:800}
+.visit{display:inline-block;border:1px solid #e6bd64;padding:13px 20px;border-radius:10px;text-decoration:none}
+.note{font-size:13px}
 </style>
 </head>
 <body>
+<header><a href="/">PAYA MUSIC UG</a></header>
 <main>
 <img src="${safeImage}" alt="${safeTitle} cover artwork">
 <h1>${safeTitle}</h1>
 <p>${safeDescription}</p>
 <audio controls preload="none" src="${audioUrl}"></audio>
-<p><a href="/">Discover more music on Paya Music UG</a></p>
+<div class="actions">
+<a class="download" href="/api/songs/${encodeURIComponent(song.id)}/download">Download this song</a>
+<a class="visit" href="/">Visit Paya Music UG</a>
+</div>
+<p class="note">You are on Paya Music UG. Play the song here or download it using the button above.</p>
 </main>
 </body>
 </html>`);
