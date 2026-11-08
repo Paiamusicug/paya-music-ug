@@ -737,7 +737,10 @@ if (loginOpen) loginOpen.addEventListener("click", () => {
 const accountAvatarButton = $("#accountAvatarLink");
 if (accountAvatarButton) {
   accountAvatarButton.addEventListener("click", () => {
+    // Open the artist profile editor without bringing back the large sign-in card.
+    document.body.classList.add("show-profile-editor");
     $("#account")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    $("#profileEditor")?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
 
