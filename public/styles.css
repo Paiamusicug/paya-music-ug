@@ -337,3 +337,15 @@ footer p,footer small{color:var(--muted);font-size:12px}
 .my-song-stat>strong{color:var(--white);font-size:14px}
 .my-song-status{color:var(--gold);font-size:12px;text-transform:capitalize}
 .my-song-counts{display:flex;flex-wrap:wrap;gap:8px 16px;color:#c7b58d;font-size:12px}
+
+
+/* Compact, readable public news articles */
+.news-card{max-width:100%}
+.news-content{padding:14px}
+.news-content h3{font-size:16px;line-height:1.35;margin:0 0 9px}
+.news-body{color:#d0cec8;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.news-body p{margin:0 0 9px}
+.news-body h4{font-size:13px;line-height:1.4;color:var(--gold);margin:12px 0 6px}
+.news-body ul{margin:4px 0 10px;padding-left:19px}
+.news-body li{margin:0 0 5px}
+.news-content .muted{display:block;margin-top:8px}
