@@ -815,14 +815,9 @@ app.post("/api/songs/:id/like", async (req, res) => {
       .eq("visitor_key", visitorKey)
       .maybeSingle();
 
-    if (existing) {
-      const { error } = await supabase
-        .from("song_likes")
-        .delete()
-        .eq("id", existing.id);
-
-      if (error) throw error;
-    } else {
+    // Likes are permanent per visitor and song: tapping Like again must
+    // never remove an existing like or reduce the public like count.
+    if (!existing) {
       const { error } = await supabase
         .from("song_likes")
         .insert({
@@ -841,7 +836,7 @@ app.post("/api/songs/:id/like", async (req, res) => {
     if (countError) throw countError;
 
     res.json({
-      liked: !existing,
+      liked: true,
       likes: count || 0
     });
   } catch (error) {
