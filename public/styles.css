@@ -454,3 +454,10 @@ body.artist-registration-only #registerForm{display:block!important}
 
 .delete-song-btn{border-color:#8d3838!important;color:#ffb0a8!important}
 .delete-song-btn:hover{background:#351717!important;border-color:#e45c52!important}
+
+
+/* Allow artists to sign in from the shared registration page. */
+body.artist-registration-only .account-card .tabs{display:flex!important}
+body.artist-registration-only #loginForm{display:block!important}
+body.artist-registration-only #loginForm.hidden,
+body.artist-registration-only #registerForm.hidden{display:none!important}
