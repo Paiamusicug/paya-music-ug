@@ -348,7 +348,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     }
     const { data, error } = await supabase.from("songs").insert({
         title: title.slice(0, 120),
-        cover_url,
+        cover_url: cover_url || "/paya-default-cover.svg",
         artist: artist.slice(0, 120),
         genre: (genre || "").slice(0, 60),
         description: (description || "").slice(0, 500),
