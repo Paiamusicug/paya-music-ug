@@ -846,6 +846,7 @@ app.post("/api/admin/news", auth, admin, async (req, res) => {
     .single();
 
   if (error) {
+    console.error("News publishing database error:", error);
     return res.status(500).json({
       error: "News publishing failed"
     });
