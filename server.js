@@ -470,7 +470,7 @@ app.get("/api/songs", async (req, res) => {
   }
 });
 
-// PUBLIC SONG SHARE PAGE WITH SERVER-RENDERED OPEN GRAPH METADATA FOR WHATSAPP.
+// SHARE LINKS KEEP THEIR SOCIAL PREVIEW, THEN OPEN THE SONG INSIDE THE MAIN WEBSITE.
 app.get("/song/:id", async (req, res) => {
   try {
     const { data: song, error } = await supabase
@@ -484,6 +484,7 @@ app.get("/song/:id", async (req, res) => {
 
     const siteUrl = `${req.protocol}://${req.get("host")}`;
     const pageUrl = `${siteUrl}/song/${encodeURIComponent(song.id)}`;
+    const targetUrl = `/?song=${encodeURIComponent(song.id)}`;
     let imageUrl = `${siteUrl}/paya-default-cover.svg`;
     try {
       const candidate = new URL(song.cover_url || "/paya-default-cover.svg", siteUrl);
@@ -495,7 +496,7 @@ app.get("/song/:id", async (req, res) => {
     const safeDescription = escapeHTML(description);
     const safeImage = escapeHTML(imageUrl);
     const safePageUrl = escapeHTML(pageUrl);
-    const audioUrl = `/api/songs/${encodeURIComponent(song.id)}/stream`;
+    const safeTargetUrl = escapeHTML(targetUrl);
 
     res.set("Cache-Control", "public, max-age=300");
     res.type("html").send(`<!doctype html>
@@ -503,7 +504,7 @@ app.get("/song/:id", async (req, res) => {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${safeTitle}</title>
+<title>${safeTitle} | Paya Music UG</title>
 <meta name="description" content="${safeDescription}">
 <meta property="og:type" content="music.song">
 <meta property="og:title" content="${safeTitle}">
@@ -514,39 +515,23 @@ app.get("/song/:id", async (req, res) => {
 <meta name="twitter:card" content="summary_large_image">
 <link rel="canonical" href="${safePageUrl}">
 <style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:#101719;color:#f5f3ee;font:16px Arial,sans-serif;padding:0}
-header{padding:18px 22px;border-bottom:1px solid #354044;background:#151e21}
-header a{color:#e6bd64;text-decoration:none;font-weight:800;letter-spacing:1px}
-main{width:min(100% - 32px,480px);margin:34px auto;text-align:center;background:#1b2529;border:1px solid #354044;border-radius:20px;padding:24px}
-img{width:min(100%,320px);aspect-ratio:1;object-fit:cover;border-radius:14px}
-h1{font-size:25px;margin:20px 0 8px}p{color:#c3c9c7;line-height:1.5}
-audio{width:100%;margin:16px 0}
-a{color:#e6bd64;font-weight:bold}
-.actions{display:grid;gap:12px;margin:20px 0}
-.download{display:block;background:#e6bd64;color:#15191a;text-decoration:none;padding:15px 20px;border-radius:10px;font-weight:800}
-.visit{display:inline-block;border:1px solid #e6bd64;padding:13px 20px;border-radius:10px;text-decoration:none}
-.note{font-size:13px}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;display:grid;place-items:center;padding:24px;text-align:center}
+main{max-width:420px}img{width:min(75vw,260px);aspect-ratio:1;object-fit:cover;border-radius:14px}h1{font-size:24px}p{color:#a6a6a2;line-height:1.6}a{display:inline-block;margin-top:14px;padding:13px 20px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold;border-radius:4px}
 </style>
 </head>
 <body>
-<header><a href="/">PAYA MUSIC UG</a></header>
 <main>
 <img src="${safeImage}" alt="${safeTitle} cover artwork">
 <h1>${safeTitle}</h1>
-<p>${safeDescription}</p>
-<audio controls preload="none" src="${audioUrl}"></audio>
-<div class="actions">
-<a class="download" href="/api/songs/${encodeURIComponent(song.id)}/download">Download this song</a>
-<a class="visit" href="/">Visit Paya Music UG</a>
-</div>
-<p class="note">You are on Paya Music UG. Play the song here or download it using the button above.</p>
+<p>Opening this song in the Paya Music UG website…</p>
+<a href="${safeTargetUrl}">Open song on Paya Music UG</a>
 </main>
+<script>window.location.replace(${JSON.stringify(targetUrl)});</script>
 </body>
 </html>`);
   } catch (error) {
     console.error("Song share page error:", error);
-    res.status(500).send("Could not load song");
+    res.status(500).send("Could not open song");
   }
 });
 
