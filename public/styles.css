@@ -115,6 +115,26 @@ footer p,footer small{color:var(--muted);font-size:12px}
 .admin-news select{color-scheme:dark}
 .admin-news input:focus,.admin-news textarea:focus,.admin-news select:focus{border-color:var(--gold)}
 
+/* Make the news photo upload area larger and easier to tap on phones. */
+.admin-news #newsImage{
+  min-height:82px;
+  padding:22px 14px;
+  border:1px dashed var(--gold);
+  border-radius:10px;
+  cursor:pointer;
+}
+.admin-news #newsImage::file-selector-button{
+  min-height:42px;
+  margin-right:12px;
+  padding:9px 16px;
+  border:1px solid var(--gold);
+  border-radius:6px;
+  background:#201a10;
+  color:var(--white);
+  font:inherit;
+  cursor:pointer;
+}
+
 @media(max-width:760px){
   .topbar{padding:0 5%;height:65px}
   .topbar nav{gap:12px}
