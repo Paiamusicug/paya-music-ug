@@ -461,3 +461,13 @@ body.artist-registration-only .account-card .tabs{display:flex!important}
 body.artist-registration-only #loginForm{display:block!important}
 body.artist-registration-only #loginForm.hidden,
 body.artist-registration-only #registerForm.hidden{display:none!important}
+
+
+/* Once signed in, hide the large account registration card.
+   Keep the compact account/avatar control in the top navigation. */
+body.signed-in:not(.artist-registration-only) #account .account-card{
+  display:none!important;
+}
+body.signed-in:not(.artist-registration-only) #account{
+  display:none!important;
+}
