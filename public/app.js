@@ -642,11 +642,24 @@ if (newsImageInput) {
       newsPreview.hidden = true;
       return;
     }
-    if (newsPreview.dataset.objectUrl) URL.revokeObjectURL(newsPreview.dataset.objectUrl);
-    const previewUrl = URL.createObjectURL(selected);
-    newsPreview.dataset.objectUrl = previewUrl;
-    newsPreview.src = previewUrl;
-    newsPreview.hidden = false;
+    // Use FileReader for a phone-compatible local preview.
+    // This avoids blob URL preview failures on some mobile browsers.
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        toast("Could not display this photo. Please choose another JPG, PNG, or WEBP image.");
+        newsPreview.hidden = true;
+        return;
+      }
+      newsPreview.src = reader.result;
+      newsPreview.hidden = false;
+    };
+    reader.onerror = () => {
+      toast("Could not read this photo. Please choose it again.");
+      newsPreview.removeAttribute("src");
+      newsPreview.hidden = true;
+    };
+    reader.readAsDataURL(selected);
   });
 }
 
