@@ -26,6 +26,7 @@ const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const TOKEN_KEY = "paya_token";
 const USER_KEY = "paya_user";
 const LIKES_KEY = "paya_liked_songs";
+const DEFAULT_SONG_COVER = "/paya-default-cover.svg";
 function savedLikes() { try { return JSON.parse(localStorage.getItem(LIKES_KEY) || "[]").map(String); } catch { return []; } }
 function saveLike(id, liked) { const ids = new Set(savedLikes()); if (liked) ids.add(String(id)); else ids.delete(String(id)); localStorage.setItem(LIKES_KEY, JSON.stringify([...ids])); }
 let token = localStorage.getItem(TOKEN_KEY) || "";
@@ -194,7 +195,7 @@ function renderSongs(items = []) {
     const id = escapeHTML(songId(song));
     const title = escapeHTML(songTitle(song));
     const artist = escapeHTML(songArtist(song));
-    const cover = song.cover_url || song.image_url || song.artwork_url || "";
+    const cover = song.cover_url || song.image_url || song.artwork_url || DEFAULT_SONG_COVER;
     const coverHTML = cover
       ? `<img class="song-cover" src="${escapeHTML(cover)}" alt="${title} cover" loading="lazy">`
       : '<div class="song-cover song-cover-placeholder">♪</div>';
