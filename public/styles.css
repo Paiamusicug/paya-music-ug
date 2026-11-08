@@ -451,3 +451,6 @@ body.artist-registration-only .account-card{
   max-width:520px;
 }
 body.artist-registration-only #registerForm{display:block!important}
+
+.delete-song-btn{border-color:#8d3838!important;color:#ffb0a8!important}
+.delete-song-btn:hover{background:#351717!important;border-color:#e45c52!important}
