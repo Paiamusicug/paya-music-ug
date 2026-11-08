@@ -460,6 +460,34 @@ async function moderateAd(id, status) {
   }
 }
 
+function formatNewsText(value = "") {
+  const lines = String(value).replace(/\r/g, "").split("\n");
+  const inline = (text) => escapeHTML(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<strong>$1</strong>");
+  const output = [];
+  let listOpen = false;
+  const closeList = () => { if (listOpen) { output.push("</ul>"); listOpen = false; } };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) { closeList(); continue; }
+    const heading = line.match(/^#{1,3}\s+(.+)$/);
+    const bullet = line.match(/^[-•]\s+(.+)$/);
+    if (heading) {
+      closeList();
+      output.push("<h4>" + inline(heading[1]) + "</h4>");
+    } else if (bullet) {
+      if (!listOpen) { output.push("<ul>"); listOpen = true; }
+      output.push("<li>" + inline(bullet[1]) + "</li>");
+    } else {
+      closeList();
+      output.push("<p>" + inline(line) + "</p>");
+    }
+  }
+  closeList();
+  return output.join("");
+}
+
 async function loadNews() {
   const container = $("#newsList");
   if (!container) return;
@@ -468,10 +496,12 @@ async function loadNews() {
     const news = result.news || [];
     container.innerHTML = news.length ? news.map((item) => `
       <article class="news-card">
-        ${item.image_url ? `<img src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
-        <h3>${escapeHTML(item.title || "")}</h3>
-        <p>${escapeHTML(item.content || item.body || "")}</p>
-        ${item.created_at ? `<small>${escapeHTML(new Date(item.created_at).toLocaleDateString())}</small>` : ""}
+        ${item.image_url ? `<img class="news-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
+        <div class="news-content">
+          <h3>${escapeHTML(item.title || "")}</h3>
+          <div class="news-body">${formatNewsText(item.content || item.body || "")}</div>
+          ${item.created_at ? `<small class="muted">${escapeHTML(new Date(item.created_at).toLocaleDateString())}</small>` : ""}
+        </div>
       </article>`).join("") : "<p>No news posted yet.</p>";
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
