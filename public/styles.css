@@ -44,6 +44,7 @@ button,input,textarea{font:inherit}
 .song-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .song-card,.panel,.account-card{background:var(--panel);border:1px solid var(--line);padding:20px;border-radius:4px}
 .song-card{min-width:0}
+.song-card.shared-song-highlight{border-color:var(--gold);box-shadow:0 0 0 2px #e8b84c55,0 12px 35px #e8b84c22;}
 .cover{height:125px;background:linear-gradient(135deg,#342b1b,#191a1c);display:grid;place-items:center;color:var(--gold);font:48px Georgia;margin-bottom:16px}
 .song-card h3{margin:0 0 5px;font-size:17px}
 .song-card p{color:var(--muted);font-size:13px;margin:0 0 15px}
