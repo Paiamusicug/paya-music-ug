@@ -629,6 +629,19 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
   }
 });
 
+// OWNER/ADMIN: DELETE A SONG
+app.delete("/api/admin/songs/:id", auth, admin, async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("songs").delete().eq("id", req.params.id).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "Song not found" });
+    res.json({ deleted: true, id: data.id });
+  } catch (error) {
+    console.error("Song deletion failed:", error);
+    res.status(500).json({ error: "Could not delete song" });
+  }
+});
+
 // Record a successful song play for the Most Played chart.
 app.post("/api/songs/:id/play", async (req, res) => {
   try {
