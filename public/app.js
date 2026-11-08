@@ -120,15 +120,17 @@ function updateAccountUI() {
   const tabs = $(".tabs", account || document);
   const registerForm = $("#registerForm");
   const loginForm = $("#loginForm");
+  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
 
-  // Keep the account section visible after authentication so the user can
-  // access their profile, uploads and dashboard. Only hide the auth forms.
+  // A shareable artist-registration view that never exposes the signed-in
+  // owner's profile/dashboard and does not replace the owner's local session.
+  document.body.classList.toggle("artist-registration-only", registrationOnly);
   if (account) account.hidden = false;
-  if (userPanel) userPanel.classList.toggle("hidden", !currentUser);
-  if (profileEditor) profileEditor.classList.toggle("hidden", !currentUser);
-  if (tabs) tabs.hidden = !!currentUser;
-  if (registerForm) registerForm.classList.toggle("hidden", !!currentUser);
-  if (loginForm) loginForm.classList.toggle("hidden", !!currentUser);
+  if (userPanel) userPanel.classList.toggle("hidden", registrationOnly || !currentUser);
+  if (profileEditor) profileEditor.classList.toggle("hidden", registrationOnly || !currentUser);
+  if (tabs) tabs.hidden = registrationOnly || !!currentUser;
+  if (registerForm) registerForm.classList.toggle("hidden", registrationOnly ? false : !!currentUser);
+  if (loginForm) loginForm.classList.toggle("hidden", registrationOnly || !!currentUser);
   if (welcome) welcome.textContent = currentUser
     ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
     : "";
@@ -547,8 +549,19 @@ bindForm("#registerForm", async (form) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-  saveSession(result.user || result, result.token);
+  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
   form.reset();
+  if (registrationOnly) {
+    const claimed = Number(result.claimed_songs || 0);
+    const message = claimed
+      ? `Artist account created. ${claimed} matching song(s) have been added to the artist account. The artist can now sign in.`
+      : "Artist account created successfully. The artist can now sign in.";
+    const accountMsg = $("#accountMsg");
+    if (accountMsg) accountMsg.textContent = message;
+    toast("Artist account created successfully.");
+    return;
+  }
+  saveSession(result.user || result, result.token);
   toast("Account created successfully.");
   await refreshDashboard();
 });
