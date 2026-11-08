@@ -452,7 +452,7 @@ app.get("/song/:id", async (req, res) => {
       const candidate = new URL(song.cover_url || "/paya-default-cover.svg", siteUrl);
       if (candidate.protocol === "https:" || candidate.origin === siteUrl) imageUrl = candidate.href;
     } catch {}
-    const title = `${song.title || "Song"} — ${song.artist || "Artist"} | Paya Music UG`;
+    const title = `${song.title || "Song"} — ${song.artist || "Artist"}`;
     const description = String(song.description || `Listen to ${song.title || "this song"} by ${song.artist || "the artist"} on Paya Music UG.`).slice(0, 180);
     const safeTitle = escapeHTML(title);
     const safeDescription = escapeHTML(description);
