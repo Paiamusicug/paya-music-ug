@@ -217,6 +217,7 @@ function renderSongs(items = []) {
           <button type="button" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "Liked" : "Like"}</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
+          ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
       </article>`;
   }).join("");
@@ -234,6 +235,23 @@ function renderSongs(items = []) {
     button.addEventListener("click", () => {
       const song = items.find((item) => String(songId(item)) === button.dataset.share);
       if (song) shareSong(song);
+    });
+  });
+  container.querySelectorAll("[data-delete-song]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const id = button.dataset.deleteSong;
+      if (!isAdmin() || !window.confirm("Permanently delete this song? This cannot be undone.")) return;
+      button.disabled = true;
+      try {
+        await api(`/api/admin/songs/${encodeURIComponent(id)}`, { method: "DELETE" });
+        toast("Song deleted.");
+        await loadSongs($("#search")?.value || "");
+        await loadMine();
+        await loadPendingSongs();
+      } catch (error) {
+        toast(error.message || "Could not delete song.");
+        button.disabled = false;
+      }
     });
   });
 }
@@ -369,12 +387,24 @@ async function loadPendingSongs() {
         <span>${escapeHTML(songArtist(song))}</span>
         <button type="button" data-song-approve="${escapeHTML(songId(song))}">Approve</button>
         <button type="button" data-song-reject="${escapeHTML(songId(song))}">Reject</button>
+        <button type="button" data-delete-song="${escapeHTML(songId(song))}">Delete</button>
       </div>`).join("") : "<p>No songs awaiting review.</p>";
 
     $$("[data-song-approve]", container).forEach((button) =>
       button.addEventListener("click", () => moderateSong(button.dataset.songApprove, "approved")));
-    $$("[data-song-reject]", container).forEach((button) =>
+    $("[data-song-reject]", container).forEach((button) =>
       button.addEventListener("click", () => moderateSong(button.dataset.songReject, "rejected")));
+    $("[data-delete-song]", container).forEach((button) =>
+      button.addEventListener("click", async () => {
+        if (!isAdmin() || !window.confirm("Permanently delete this song? This cannot be undone.")) return;
+        button.disabled = true;
+        try {
+          await api(`/api/admin/songs/${encodeURIComponent(button.dataset.deleteSong)}`, { method: "DELETE" });
+          toast("Song deleted.");
+          await loadPendingSongs();
+          await loadSongs($("#search")?.value || "");
+        } catch (error) { toast(error.message || "Could not delete song."); button.disabled = false; }
+      }));
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
