@@ -35,7 +35,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      imgSrc: ["'self'", "data:", "https://knedortbcjaaprmwuqqg.supabase.co"]
+      "img-src": ["'self'", "data:", "https://knedortbcjaaprmwuqqg.supabase.co"]
     }
   },
   crossOriginResourcePolicy: { policy: "cross-origin" }
