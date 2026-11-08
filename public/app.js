@@ -368,8 +368,32 @@ async function loadMine() {
             <span>▶ ${Number(song.play_count || 0)} plays</span>
             <span>↓ ${Number(song.download_count || 0)} downloads</span>
           </div>
+          <button type="button" data-edit-own-song="${escapeHTML(songId(song))}">Edit song details</button>
         </div>`).join("")
       : "<p>You have not uploaded any songs yet.</p>";
+    $("[data-edit-own-song]", container).forEach((button) => {
+      button.addEventListener("click", async () => {
+        const song = songs.find((item) => String(songId(item)) === button.dataset.editOwnSong);
+        if (!song) return;
+        const title = window.prompt("Song title:", songTitle(song));
+        if (title === null) return;
+        const artist = window.prompt("Artist name:", songArtist(song));
+        if (artist === null) return;
+        button.disabled = true;
+        try {
+          await api(`/api/my-songs/${encodeURIComponent(songId(song))}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, artist, genre: song.genre || "", description: song.description || "" })
+          });
+          toast("Your song details were updated.");
+          await Promise.all([loadMine(), loadSongs($("#search")?.value || "")]);
+        } catch (error) {
+          toast(error.message || "Could not update song.");
+          button.disabled = false;
+        }
+      });
+    });
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
@@ -912,10 +936,14 @@ async function loadOwnerUsers() {
   const searchInput = $("#ownerUserSearch");
   if (!container || !isOwner()) return;
   try {
-    const result = await api("/api/owner/users");
-    const users = result.users || [];
+    const [userResult, songResult] = await Promise.all([
+      api("/api/owner/users"),
+      api("/api/owner/songs")
+    ]);
+    const users = userResult.users || [];
+    const songs = songResult.songs || [];
     const admins = users.filter((user) => user.role === "admin").length;
-    if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators`;
+    if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators · ${songs.length} songs`;
 
     const render = () => {
       const query = (searchInput?.value || "").trim().toLowerCase();
@@ -924,7 +952,7 @@ async function loadOwnerUsers() {
           String(value || "").toLowerCase().includes(query)
         )
       );
-      container.innerHTML = filtered.length ? filtered.map((user) => {
+      const userHTML = filtered.length ? filtered.map((user) => {
         const role = String(user.role || "artist").toLowerCase();
         const isProtectedOwner = role === "owner";
         return `
@@ -933,6 +961,10 @@ async function loadOwnerUsers() {
             <span>${escapeHTML(user.email || "")}</span>
             <span>Role: ${escapeHTML(role)}</span>
             ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
+              <label>Registered artist name
+                <input type="text" maxlength="100" value="${escapeHTML(user.name || "")}" data-user-name="${escapeHTML(user.id)}">
+              </label>
+              <button type="button" data-save-user-name="${escapeHTML(user.id)}">Save artist name</button>
               <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
                 <option value="artist" ${role === "artist" ? "selected" : ""}>Artist / standard account</option>
                 <option value="admin" ${role === "admin" ? "selected" : ""}>Admin</option>
@@ -940,6 +972,26 @@ async function loadOwnerUsers() {
               <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>`}
           </div>`;
       }).join("") : "<p>No matching users found.</p>";
+
+      const songHTML = songs.filter((song) =>
+        [song.title, song.artist, song.status].some((value) => String(value || "").toLowerCase().includes(query))
+      ).map((song) => `
+        <div class="admin-item">
+          <label>Song title
+            <input type="text" maxlength="120" data-owner-song-title="${escapeHTML(song.id)}" value="${escapeHTML(song.title || "")}">
+          </label>
+          <label>Artist credit
+            <input type="text" maxlength="120" data-owner-song-artist="${escapeHTML(song.id)}" value="${escapeHTML(song.artist || "")}">
+          </label>
+          <span>Status: ${escapeHTML(song.status || "unknown")}</span>
+          <button type="button" data-save-owner-song="${escapeHTML(song.id)}">Save song changes</button>
+        </div>`).join("") || "<p>No matching songs found.</p>";
+
+      container.innerHTML = `
+        <h4>Registered accounts — edit artist names and roles</h4>
+        ${userHTML}
+        <h4>Full song catalogue — edit any song</h4>
+        ${songHTML}`;
 
       $$("[data-save-role]", container).forEach((button) => {
         button.addEventListener("click", async () => {
@@ -955,6 +1007,47 @@ async function loadOwnerUsers() {
             });
             toast("User role updated.");
             await loadOwnerUsers();
+          } catch (error) {
+            toast(error.message);
+            button.disabled = false;
+          }
+        });
+      });
+      $$("[data-save-user-name]", container).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.saveUserName;
+          const input = container.querySelector(`[data-user-name="${CSS.escape(id)}"]`);
+          if (!input) return;
+          button.disabled = true;
+          try {
+            await api(`/api/owner/users/${encodeURIComponent(id)}/name`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: input.value })
+            });
+            toast("Artist profile name updated.");
+            await loadOwnerUsers();
+          } catch (error) {
+            toast(error.message);
+            button.disabled = false;
+          }
+        });
+      });
+      $$("[data-save-owner-song]", container).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.saveOwnerSong;
+          const title = container.querySelector(`[data-owner-song-title="${CSS.escape(id)}"]`)?.value || "";
+          const artist = container.querySelector(`[data-owner-song-artist="${CSS.escape(id)}"]`)?.value || "";
+          button.disabled = true;
+          try {
+            await api(`/api/owner/songs/${encodeURIComponent(id)}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ title, artist })
+            });
+            toast("Song details updated.");
+            await loadOwnerUsers();
+            await loadSongs($("#search")?.value || "");
           } catch (error) {
             toast(error.message);
             button.disabled = false;
