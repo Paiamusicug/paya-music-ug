@@ -139,6 +139,8 @@ function updateAccountUI() {
     : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
+  const newsSubmission = $("#newsSubmission");
+  if (newsSubmission) newsSubmission.classList.toggle("hidden", !currentUser);
   if (loginOpen) loginOpen.hidden = !!currentUser;
   if (headerLogout) headerLogout.classList.toggle("hidden", !currentUser);
 
@@ -1223,6 +1225,7 @@ bindForm("#profileForm", async (form) => {
 });
 
 bindForm("#newsForm", async (form) => {
+  if (!token) throw new Error("Please register or sign in before submitting news.");
   const title =
     $('input[name="title"]', form)?.value?.trim() || "";
 
@@ -1264,10 +1267,10 @@ bindForm("#newsForm", async (form) => {
 
   const message = $("#newsMsg");
   if (message) {
-    message.textContent = "News published successfully.";
+    message.textContent = "News submitted. It will appear after owner/admin approval.";
   }
 
-  toast("News published successfully.");
+  toast("News submitted for approval.");
 
   await loadNews();
   if (isOwner()) await loadOwnerUsers();
