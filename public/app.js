@@ -224,9 +224,10 @@ function renderMusicHome(items = []) {
         <span class="trend-number">${index+1}</span>
         <button type="button" class="trend-play" data-home-play="${escapeHTML(songId(song))}" aria-label="Play ${escapeHTML(songTitle(song))}">▶</button>
         <img src="${escapeHTML(song.cover_url || DEFAULT_SONG_COVER)}" alt="" loading="lazy">
-        <button type="button" class="trend-song-name" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">
-          <strong>${escapeHTML(songTitle(song))}</strong><small>${escapeHTML(songArtist(song))}</small>
-        </button>
+        <div class="trend-song-name">
+          <button type="button" class="trend-title-button" data-expand-song="${escapeHTML(songId(song))}"><strong>${escapeHTML(songTitle(song))}</strong></button>
+          <button type="button" class="trend-artist-button" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">${escapeHTML(songArtist(song))}</button>
+        </div>
         <span class="trend-count">${Number(song.play_count||0)} plays</span>
       </article>`).join("") : '<p class="muted">New releases will appear here.</p>';
   }
@@ -247,6 +248,54 @@ function renderMusicHome(items = []) {
         loadSongs(name);
       }
       $("#discover")?.scrollIntoView({behavior:"smooth",block:"start"});
+    });
+  });
+  document.querySelectorAll("[data-expand-song]").forEach(button => {
+    button.addEventListener("click", () => {
+      const song = items.find(item => String(songId(item)) === button.dataset.expandSong);
+      if (!song) return;
+      const row = button.closest(".trending-row");
+      const existing = row?.nextElementSibling;
+      if (existing?.classList.contains("expanded-song-panel")) {
+        existing.remove();
+        return;
+      }
+      document.querySelectorAll(".expanded-song-panel").forEach(panel => panel.remove());
+      const cover = song.cover_url || song.image_url || song.artwork_url || DEFAULT_SONG_COVER;
+      const title = escapeHTML(songTitle(song));
+      const artist = escapeHTML(songArtist(song));
+      const description = song.description ? escapeHTML(song.description) : "Listen to this release on Paya Music UG.";
+      const likes = Number(song.likes ?? song.like_count ?? 0);
+      const panel = document.createElement("section");
+      panel.className = "expanded-song-panel";
+      panel.innerHTML = `
+        <button type="button" class="expanded-song-close" aria-label="Close song details">×</button>
+        <div class="expanded-song-main">
+          <img class="expanded-song-cover" src="${escapeHTML(cover)}" alt="${title} cover">
+          <div class="expanded-song-meta">
+            <span class="expanded-song-kicker">NOW ON PAYA MUSIC UG</span>
+            <h3>${title}</h3>
+            <button type="button" class="expanded-song-artist" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">${artist}</button>
+            <p>${description}</p>
+            <div class="expanded-song-actions">
+              <button type="button" class="expanded-song-play">▶ Play song</button>
+              <a href="/api/songs/${encodeURIComponent(songId(song))}/download">↓ Download song</a>
+              <span>${likes} likes</span>
+            </div>
+          </div>
+        </div>`;
+      row?.insertAdjacentElement("afterend", panel);
+      panel.querySelector(".expanded-song-close")?.addEventListener("click", () => panel.remove());
+      panel.querySelector(".expanded-song-play")?.addEventListener("click", () => playSong(song));
+      panel.querySelector("[data-open-artist]")?.addEventListener("click", () => {
+        const name = panel.querySelector("[data-open-artist]").dataset.openArtist;
+        const matches = catalogueSongs.filter(item => artistNames(songArtist(item)).some(n => n.toLocaleLowerCase() === name.toLocaleLowerCase()));
+        renderSongs(matches);
+        const heading = $("#discover h2, #discover h3");
+        if (heading) heading.textContent = `${name} — Songs`;
+        $("#discover")?.scrollIntoView({behavior:"smooth",block:"start"});
+      });
+      panel.scrollIntoView({behavior:"smooth",block:"nearest"});
     });
   });
   document.querySelectorAll("[data-home-play]").forEach(button => {
