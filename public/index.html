@@ -150,22 +150,7 @@
       <h3>My music submissions</h3>
       <div id="mySongs"></div>
 
-      <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
-      <section id="ownerPanel" class="panel hidden">
-        <h3>Owner dashboard</h3>
-        <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
-        <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
-        <div class="owner-stats-grid" id="ownerStats"><p class="muted">Loading platform statistics…</p></div>
-        <label>Search registered users
-          <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
-        </label>
 
-        <div id="ownerUsers">
-          <p class="muted">Loading registered users...</p>
-        </div>
-
-        <p id="ownerMsg" class="message"></p>
-      </section>
 
       <!-- ADMIN AND OWNER PANEL -->
       <div id="adminPanel" class="hidden">
@@ -183,6 +168,22 @@
 
       </div>
     </div>
+      <!-- OWNER DASHBOARD -->
+      <section id="ownerPanel" class="panel hidden">
+        <h3>Owner dashboard</h3>
+        <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
+        <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
+        <div class="owner-stats-grid" id="ownerStats"><p class="muted">Loading platform statistics…</p></div>
+        <label>Search registered users
+          <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
+        </label>
+
+        <div id="ownerUsers">
+          <p class="muted">Loading registered users...</p>
+        </div>
+
+        <p id="ownerMsg" class="message"></p>
+      </section>
   </div>
 </section>
 
