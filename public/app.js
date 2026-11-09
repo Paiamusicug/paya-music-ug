@@ -758,8 +758,18 @@ async function loadNews() {
       </article>`).join("") : "<p>No news posted yet.</p>";
     await Promise.all(news.map((item) => loadNewsComments(item.id)));
     // Open a shared story when its hash is present.
-    const sharedNewsId = window.location.hash.match(/^#news-(.+)$/)?.[1];
-    if (sharedNewsId) document.getElementById("news-" + decodeURIComponent(sharedNewsId))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const sharedNewsId = new URLSearchParams(window.location.search).get("news");
+    if (sharedNewsId) {
+      const sharedArticle = document.getElementById("news-" + sharedNewsId);
+      if (sharedArticle) {
+        const details = sharedArticle.querySelector(".news-story-details");
+        if (details) details.open = true;
+        sharedArticle.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    } else {
+      const sharedHashId = window.location.hash.match(/^#news-(.+)$/)?.[1];
+      if (sharedHashId) document.getElementById("news-" + decodeURIComponent(sharedHashId))?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
@@ -771,7 +781,7 @@ document.addEventListener("click", async (event) => {
   if (!shareButton) return;
   const newsId = shareButton.dataset.newsShare;
   const title = shareButton.dataset.newsTitle || "Paya Music UG News";
-  const url = window.location.origin + "/#news-" + encodeURIComponent(newsId);
+  const url = new URL("/news/" + encodeURIComponent(newsId), window.location.origin).href;
   try {
     if (navigator.share) {
       await navigator.share({ title, text: "Read this story on Paya Music UG", url });
