@@ -355,11 +355,10 @@ function renderSongs(items = []) {
         <div class="song-info">
           <h3>${title}</h3>
           <p>${artist}</p>
-          <small class="song-stat-line"><span data-like-count>${likes} likes</span> · <span>${plays} plays</span> · <span>${downloads} downloads</span></small>
+          <small class="song-stat-line"><button type="button" class="song-like-inline" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "♥ Liked" : "♡ Like"}</button><span data-like-count>${likes} likes</span><span>${plays} plays</span><span>${downloads} downloads</span></small>
         </div>
         <div class="song-actions">
           <button type="button" data-play="${id}">Play</button>
-          <button type="button" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "Liked" : "Like"}</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
           ${(isOwner() || (currentUser && String(song.uploader_id) === String(currentUser.id))) ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
