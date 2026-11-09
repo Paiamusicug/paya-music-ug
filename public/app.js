@@ -139,8 +139,6 @@ function updateAccountUI() {
     : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
-  const newsSubmission = $("#newsSubmission");
-  if (newsSubmission) newsSubmission.classList.toggle("hidden", !currentUser);
   if (loginOpen) loginOpen.hidden = !!currentUser;
   if (headerLogout) headerLogout.classList.toggle("hidden", !currentUser);
 
@@ -1031,8 +1029,12 @@ if (songCoverInput && songCoverPreview) {
 }
 
 bindForm("#adForm", async (form) => {
-  const formData = new FormData(form);
-  await api("/api/ads", { method: "POST", body: formData });
+  const formData = Object.fromEntries(new FormData(form).entries());
+  await api("/api/ads", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData)
+  });
   form.reset();
   const message = $("#adMsg");
   if (message) message.textContent = "Advert published successfully.";
