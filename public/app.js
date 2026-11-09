@@ -1293,6 +1293,7 @@ async function loadOwnerUsers() {
     if (statsContainer) statsContainer.innerHTML = [
       ["Registered accounts", stats.registered_accounts],
       ["Unique visitors", stats.unique_visitors],
+      ["Total visits", stats.total_visits],
       ["Songs on Paya", stats.songs],
       ["Published news", stats.published_news],
       ["Active adverts", stats.active_adverts]
