@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Discover, stream and download Ugandan music on Paya Music UG.">
 <title>Paya Music UG — Discover. Stream. Download.</title>
-<link rel="stylesheet" href="/styles.css?v=community-open-publish1">
+<link rel="stylesheet" href="/styles.css?v=password-visible1">
 </head>
 <body>
 
@@ -110,7 +110,7 @@
       </label>
 
       <label>Password
-        <input name="password" type="password" required minlength="10" placeholder="At least 10 characters">
+        <div class="password-field"><input name="password" type="password" required minlength="10" placeholder="At least 10 characters"><button type="button" data-password-toggle>Show</button></div>
       </label>
 
       <button class="gold-btn full" type="submit">Create account</button>
@@ -122,13 +122,20 @@
       </label>
 
       <label>Password
-        <input name="password" type="password" required>
+        <div class="password-field"><input name="password" type="password" required><button type="button" data-password-toggle>Show</button></div>
       </label>
 
       <button class="gold-btn full" type="submit">Sign in</button>
+      <button type="button" id="forgotPasswordOpen">Forgot password?</button>
       <p id="loginMsg" class="message" role="status"></p>
     </form>
 
+    <form id="forgotPasswordForm" class="hidden">
+      <label>Registered email<input name="email" type="email" required></label>
+      <button class="gold-btn full" type="submit">Send recovery link</button>
+      <button type="button" id="backToLogin">Back to sign in</button>
+      <p id="forgotPasswordMsg" class="message"></p>
+    </form>
     <div id="accountMsg" class="message"></div>
 
     <div id="userPanel" class="hidden">
@@ -417,7 +424,7 @@
 
 <div class="toast" id="toast" role="status"></div>
 
-<script src="/app.js?v=community-open-publish2"></script>
+<script src="/app.js?v=password-visible1"></script>
 <script src="/account-ui.js"></script>
 </body>
         </html>
