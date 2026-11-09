@@ -182,6 +182,71 @@ function songArtist(song) {
   return song.artist || song.artist_name || song.username || "Unknown artist";
 }
 
+// Split featured credits so a collaboration appears in every credited artist's catalogue.
+function artistNames(credit) {
+  const names = String(credit || "Unknown artist")
+    .split(/\\s+(?:ft\\.?|feat\\.?|featuring)\\s+|\\s*[&,+]\\s*|\\s+x\\s+/i)
+    .map((name) => name.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+  return [...new Set(names.length ? names : ["Unknown artist"])];
+}
+
+let catalogueSongs = [];
+function renderMusicHome(items = []) {
+  const artistMap = new Map();
+  items.forEach((song) => artistNames(songArtist(song)).forEach((name) => {
+    const key = name.toLocaleLowerCase();
+    if (!artistMap.has(key)) artistMap.set(key, { name, songs: [], latest: song.created_at || "" });
+    const artist = artistMap.get(key);
+    artist.songs.push(song);
+    if (new Date(song.created_at || 0) > new Date(artist.latest || 0)) artist.latest = song.created_at || "";
+  }));
+  const artists = [...artistMap.values()];
+  const top = [...artists].sort((a,b) => b.songs.length-a.songs.length || a.name.localeCompare(b.name));
+  const newest = [...artists].sort((a,b) => new Date(b.latest || 0)-new Date(a.latest || 0));
+  const artistCard = (artist) => {
+    const cover = artist.songs.find(song => song.cover_url)?.cover_url || DEFAULT_SONG_COVER;
+    return `<button class="artist-tile" type="button" data-open-artist="${escapeHTML(artist.name)}">
+      <img src="${escapeHTML(cover)}" alt="" loading="lazy">
+      <span>${escapeHTML(artist.name)}</span>
+      <small>${artist.songs.length} ${artist.songs.length === 1 ? "song" : "songs"}</small>
+    </button>`;
+  };
+  const topEl = $("#topArtistsList");
+  const newEl = $("#newArtistsList");
+  if (topEl) topEl.innerHTML = top.length ? top.slice(0,12).map(artistCard).join("") : '<p class="muted">Artist profiles will appear here as music is published.</p>';
+  if (newEl) newEl.innerHTML = newest.length ? newest.slice(0,12).map(artistCard).join("") : '<p class="muted">New artists will appear here.</p>';
+  const trendingEl = $("#trendingSongsList");
+  if (trendingEl) {
+    const trending = [...items].sort((a,b) => Number(b.play_count||0)-Number(a.play_count||0) || new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,12);
+    trendingEl.innerHTML = trending.length ? trending.map((song,index) => `
+      <article class="trending-row">
+        <span class="trend-number">${index+1}</span>
+        <button type="button" class="trend-play" data-home-play="${escapeHTML(songId(song))}" aria-label="Play ${escapeHTML(songTitle(song))}">▶</button>
+        <img src="${escapeHTML(song.cover_url || DEFAULT_SONG_COVER)}" alt="" loading="lazy">
+        <button type="button" class="trend-song-name" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">
+          <strong>${escapeHTML(songTitle(song))}</strong><small>${escapeHTML(songArtist(song))}</small>
+        </button>
+        <span class="trend-count">${Number(song.play_count||0)} plays</span>
+      </article>`).join("") : '<p class="muted">New releases will appear here.</p>';
+  }
+  document.querySelectorAll("[data-open-artist]").forEach(button => {
+    button.addEventListener("click", () => {
+      const name = button.dataset.openArtist;
+      const input = $("#search");
+      if (input) input.value = name;
+      loadSongs(name);
+      $("#discover")?.scrollIntoView({behavior:"smooth",block:"start"});
+    });
+  });
+  document.querySelectorAll("[data-home-play]").forEach(button => {
+    button.addEventListener("click", () => {
+      const song = items.find(item => String(songId(item)) === button.dataset.homePlay);
+      if (song) playSong(song);
+    });
+  });
+}
+
 function songAudioUrl(song) {
   return song.audio_url || song.file_url || song.url || "";
 }
@@ -197,9 +262,10 @@ function renderSongs(items = []) {
 
   const grouped = new Map();
   for (const song of items) {
-    const artistName = String(songArtist(song) || "Unknown artist").trim() || "Unknown artist";
-    if (!grouped.has(artistName)) grouped.set(artistName, []);
-    grouped.get(artistName).push(song);
+    for (const artistName of artistNames(songArtist(song))) {
+      if (!grouped.has(artistName)) grouped.set(artistName, []);
+      grouped.get(artistName).push(song);
+    }
   }
 
   container.innerHTML = [...grouped.entries()].map(([artistName, artistSongs]) => `
@@ -372,7 +438,9 @@ async function loadSongs(query = "") {
   if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
   try {
     const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}`);
-    renderSongs(result.songs || []);
+    catalogueSongs = result.songs || [];
+    renderMusicHome(catalogueSongs);
+    renderSongs(catalogueSongs);
   } catch (error) {
     if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
   }
