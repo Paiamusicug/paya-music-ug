@@ -113,6 +113,7 @@ function updateAccountUI() {
   const userPanel = $("#userPanel");
   const profileEditor = $("#profileEditor");
   const welcome = $("#welcome");
+  const accountRoleLabel = $("#accountRoleLabel");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
   const loginOpen = $("#loginOpen");
@@ -137,6 +138,7 @@ function updateAccountUI() {
   if (welcome) welcome.textContent = currentUser
     ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
     : "";
+  if (accountRoleLabel) accountRoleLabel.textContent = currentUser ? `Account role: ${currentUser.role || "user"}` : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
   const newsSubmission = $("#newsSubmission");
