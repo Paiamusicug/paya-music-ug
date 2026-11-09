@@ -721,3 +721,15 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
   font:inherit;font-size:12px;font-weight:700;cursor:pointer;
 }
 .news-share-btn:hover{border-color:var(--gold);background:#302719;color:#ffe09a}
+
+
+/* Owner dashboard platform-wide activity totals. */
+.owner-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:16px 0 22px}
+.owner-stat{background:#191b20;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:5px}
+.owner-stat strong{font-size:25px;color:var(--gold);line-height:1.1}
+.owner-stat span{font-size:12px;color:var(--muted)}
+.community-news-submit{margin-top:22px;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.community-news-submit h3{margin:0 0 8px}
+.community-news-submit label{display:block;margin:14px 0;color:var(--muted);font-size:13px}
+.community-news-submit input,.community-news-submit select,.community-news-submit textarea{display:block;width:100%;margin-top:7px;padding:12px;background:#0e0f11;border:1px solid #383a3e;border-radius:6px;color:var(--white);font:inherit}
+.community-news-submit textarea{min-height:130px;resize:vertical}
