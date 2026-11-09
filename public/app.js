@@ -666,13 +666,17 @@ async function loadNews() {
     const result = await api("/api/news");
     const news = result.news || [];
     container.innerHTML = news.length ? news.map((item) => `
-      <article class="news-card">
-        ${item.image_url ? `<img class="news-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
-        <div class="news-content">
+      <article class="news-story">
+        <div class="news-story-copy">
+          <span class="news-category">${escapeHTML(String(item.category || "music").replace(/[-_]/g, " ").toUpperCase())}</span>
           <h3>${escapeHTML(item.title || "")}</h3>
-          <div class="news-body">${formatNewsText(item.content || item.body || "")}</div>
-          ${item.created_at ? `<small class="muted">${escapeHTML(new Date(item.created_at).toLocaleDateString())}</small>` : ""}
+          <small class="news-byline">Story by Paya Music UG${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
         </div>
+        ${item.image_url ? `<img class="news-story-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
+        <details class="news-story-details">
+          <summary>Read full story</summary>
+          <div class="news-body">${formatNewsText(item.content || item.body || "")}</div>
+        </details>
       </article>`).join("") : "<p>No news posted yet.</p>";
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
