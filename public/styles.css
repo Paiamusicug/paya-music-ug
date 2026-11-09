@@ -504,3 +504,44 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .artist-song-group-heading h3{margin:0;font-size:20px}
 .artist-song-group-heading span{color:var(--muted);font-size:12px}
 .artist-song-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
+
+
+/* Mdundo-inspired mobile music discovery layout */
+.mdundo-section{padding:42px clamp(18px,5vw,64px);border-bottom:1px solid #303238;background:#111315}
+.mdundo-section:nth-of-type(even){background:#0d0f11}
+.mdundo-section-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}
+.mdundo-section-head h2{font-size:clamp(23px,3vw,34px);margin:0;letter-spacing:-.5px}
+.mdundo-section-head a{color:var(--gold);text-decoration:none;white-space:nowrap;font-size:13px;font-weight:700}
+.artist-rail{display:flex;gap:18px;overflow-x:auto;padding:4px 2px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.artist-tile{flex:0 0 180px;max-width:180px;padding:0 0 12px;overflow:hidden;text-align:left;background:#1a1c20;color:var(--white);border:1px solid #303238;border-radius:8px;box-shadow:0 3px 9px #0004;cursor:pointer;scroll-snap-align:start}
+.artist-tile img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;background:#24262a}
+.artist-tile span,.artist-tile small{display:block;margin:10px 12px 0}
+.artist-tile span{font-size:16px;font-weight:700}
+.artist-tile small{margin-top:4px;color:var(--muted);font-size:12px}
+.trending-list{display:grid;grid-template-columns:1fr;gap:0}
+.trending-row{display:flex;align-items:center;gap:12px;min-width:0;padding:11px 2px;border-bottom:1px solid #303238}
+.trend-number{width:22px;color:var(--muted);font-size:13px;text-align:center}
+.trend-play{flex:0 0 40px;width:40px;height:40px;border:0;border-radius:50%;background:#f07808;color:#fff;font-size:15px;cursor:pointer}
+.trending-row>img{width:48px;height:48px;object-fit:cover;border-radius:5px}
+.trend-song-name{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;text-align:left;background:none;border:0;color:var(--white);cursor:pointer}
+.trend-song-name strong,.trend-song-name small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trend-song-name strong{font-size:14px}
+.trend-song-name small{font-size:12px;color:var(--muted)}
+.trend-count{font-size:11px;color:var(--muted);white-space:nowrap}
+.artist-song-group{margin-bottom:34px}
+.artist-song-group-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.artist-song-group-heading h3{margin:0;font-size:19px}
+.artist-song-group-heading span{font-size:12px;color:var(--muted)}
+.artist-song-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.artist-song-group-grid .song-card{padding:12px}
+.artist-song-group-grid .song-cover{width:100%;aspect-ratio:1;object-fit:cover;border-radius:5px}
+@media(max-width:700px){
+ .mdundo-section{padding:30px 18px}
+ .mdundo-section-head h2{font-size:23px}
+ .artist-tile{flex-basis:155px;max-width:155px}
+ .trend-count{display:none}
+ .artist-song-group-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .artist-song-group-grid .song-card{padding:9px}
+ .song-actions{flex-wrap:wrap}
+ .song-actions button,.song-actions a{padding:7px 9px}
+}
