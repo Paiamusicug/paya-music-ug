@@ -435,11 +435,19 @@ app.get("/api/songs", async (req, res) => {
       const safeQuery = query.replace(/[,%()]/g, " ").trim();
       if (safeQuery) request = request.or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,genre.ilike.%${safeQuery}%`);
     }
-    const { data, error } = await request.order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    let songs = data || [];
+    // Fetch in small pages so every approved song is returned even when the
+    // Supabase project's configured maximum response size is unusually low.
+    let songs = [];
+    const pageSize = 10;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await request
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const page = data || [];
+      songs.push(...page);
+      if (page.length < pageSize) break;
+    }
     const sort = String(req.query.sort || "newest");
     if (songs.length) {
       const ids = songs.map((song) => song.id);
@@ -1171,11 +1179,24 @@ app.get("/api/owner/users", auth, owner, async (req, res) => {
 
 // OWNER: EDIT ANY SONG IN THE CATALOGUE
 app.get("/api/owner/songs", auth, owner, async (req, res) => {
-  const { data, error } = await supabase.from("songs")
-    .select("id, title, artist, status, uploader_id, created_at")
-    .order("created_at", { ascending: false });
-  if (error) return res.status(500).json({ error: "Could not load catalogue" });
-  res.json({ songs: data || [] });
+  try {
+    let songs = [];
+    const pageSize = 10;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase.from("songs")
+        .select("id, title, artist, status, uploader_id, created_at")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      const page = data || [];
+      songs.push(...page);
+      if (page.length < pageSize) break;
+    }
+    res.json({ songs });
+  } catch (error) {
+    console.error("Owner catalogue load failed:", error);
+    res.status(500).json({ error: "Could not load catalogue" });
+  }
 });
 
 app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
