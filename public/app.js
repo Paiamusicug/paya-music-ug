@@ -1297,25 +1297,33 @@ async function loadOwnerUsers() {
   const searchInput = $("#ownerUserSearch");
   if (!container || !isOwner()) return;
   try {
-    const [userResult, songResult, statsResult] = await Promise.all([
-      api("/api/owner/users"),
-      api("/api/owner/songs"),
-      api("/api/owner/stats")
-    ]);
-    const users = userResult.users || [];
-    const songs = songResult.songs || [];
-    const stats = statsResult || {};
+    // Load account totals independently so a failure in the song or user
+    // management panels cannot hide the registered-account count.
     const statsContainer = $("#ownerStats");
-    if (statsContainer) statsContainer.innerHTML = [
-      ["Registered accounts", stats.registered_accounts],
-      ["Unique visitors", stats.unique_visitors],
-      ["Total visits", stats.total_visits],
-      ["Songs on Paya", stats.songs],
-      ["Published news", stats.published_news],
-      ["Active adverts", stats.active_adverts]
-    ].map(([label, value]) => `<div class="owner-stat"><strong>${Number(value || 0).toLocaleString()}</strong><span>${escapeHTML(label)}</span></div>`).join("");
+    if (statsContainer) statsContainer.innerHTML = '<p class="muted">Loading registered account totals…</p>';
+    const statsPromise = api("/api/owner/stats");
+    const [statsResult, userResult, songResult] = await Promise.allSettled([
+      statsPromise,
+      api("/api/owner/users"),
+      api("/api/owner/songs")
+    ]);
+    const stats = statsResult.status === "fulfilled" ? statsResult.value : {};
+    if (statsContainer) {
+      statsContainer.innerHTML = statsResult.status === "fulfilled" ? [
+        ["Registered accounts", stats.registered_accounts],
+        ["Unique visitors", stats.unique_visitors],
+        ["Total visits", stats.total_visits],
+        ["Songs on Paya", stats.songs],
+        ["Published news", stats.published_news],
+        ["Active adverts", stats.active_adverts]
+      ].map(([label, value]) => `<div class="owner-stat"><strong>${Number(value || 0).toLocaleString()}</strong><span>${escapeHTML(label)}</span></div>`).join("") : `<p class="error">${escapeHTML(statsResult.reason?.message || "Could not load registered account totals.")}</p>`;
+    }
+    if (summary && statsResult.status === "fulfilled") summary.textContent = `${Number(stats.registered_accounts || 0).toLocaleString()} registered accounts`;
+    if (userResult.status === "rejected") throw userResult.reason;
+    const users = userResult.value.users || [];
+    const songs = songResult.status === "fulfilled" ? (songResult.value.songs || []) : [];
     const admins = users.filter((user) => user.role === "admin").length;
-    if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators · ${songs.length} songs`;
+    if (summary) summary.textContent = `${Number(stats.registered_accounts ?? users.length).toLocaleString()} registered accounts · ${admins} administrators · ${songs.length} songs`;
 
     const render = () => {
       const query = (searchInput?.value || "").trim().toLowerCase();
