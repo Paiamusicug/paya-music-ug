@@ -1223,8 +1223,6 @@ bindForm("#profileForm", async (form) => {
 });
 
 bindForm("#newsForm", async (form) => {
-  if (!token) throw new Error("Please sign in with a free account to publish news.");
-
   const title =
     $('input[name="title"]', form)?.value?.trim() || "";
 
