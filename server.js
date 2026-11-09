@@ -1048,7 +1048,8 @@ app.get("/api/news", async (req, res) => {
 
 
 // SIGNED-IN COMMUNITY NEWS SUBMISSION — publish immediately.
-app.post("/api/news", async (req, res) => {
+// REGISTERED COMMUNITY MEMBERS MAY SUBMIT NEWS; OWNER/ADMIN APPROVAL REQUIRED.
+app.post("/api/news", auth, async (req, res) => {
   try {
     const { title, content, category, image_url } = req.body || {};
     if (!String(title || "").trim() || !String(content || "").trim()) {
@@ -1059,22 +1060,22 @@ app.post("/api/news", async (req, res) => {
       content: String(content).trim().slice(0, 10000),
       category: String(category || "music").slice(0, 40),
       image_url: image_url || null,
-      status: "published",
-      published_at: new Date().toISOString()
+      status: "pending",
+      author_id: req.user.id
     }).select().single();
     if (error) throw error;
-    res.status(201).json({ message: "News published successfully.", article: data });
+    res.status(201).json({ message: "News submitted successfully and is awaiting owner/admin approval.", article: data });
   } catch (error) {
-    console.error("Community news publishing error:", error);
-    res.status(500).json({ error: "Could not publish news. Please check your details and try again." });
+    console.error("Community news submission error:", error);
+    res.status(500).json({ error: "Could not submit news. Please check your details and try again." });
   }
 });
 
-app.post("/api/news/image", imageUpload.single("image"), async (req, res) => {
+app.post("/api/news/image", auth, imageUpload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Please choose an image." });
     const extension = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
-    const filename = `news/community-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`
+    const filename = `news/community-${req.user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
     const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
