@@ -154,60 +154,12 @@
         <h3>Pending news and articles</h3>
         <div id="pendingNews"></div>
 
-        <!-- ADMIN: PUBLISH MUSIC NEWS -->
-        <div class="admin-news">
-          <h3>Submit Music News for Approval</h3>
-
-          <form id="newsForm" enctype="multipart/form-data">
-
-            <label>News headline
-              <input
-                name="title"
-                required
-                maxlength="180"
-                placeholder="Enter the news headline">
-            </label>
-
-            <label>News category
-              <select name="category" required>
-                <option value="breaking">Breaking News</option>
-                <option value="artist">Artist Story</option>
-                <option value="music">Music News</option>
-                <option value="release">New Release</option>
-                <option value="interview">Interview</option>
-              </select>
-            </label>
-
-            <label>News image from your phone
-              <input
-                name="image"
-                id="newsImage"
-                type="file"
-                accept="image/jpeg,image/png,image/webp">
-            </label>
-
-            <label>News content
-              <textarea
-                name="content"
-                required
-                maxlength="10000"
-                rows="6"
-                placeholder="Write the full news story here..."></textarea>
-            </label>
-
-            <button class="gold-btn full" type="submit">
-              Publish News
-            </button>
-
-            <p id="newsMsg" class="message"></p>
-          </form>
-        </div>
-
         <!-- OWNER-ONLY USER ROLE MANAGEMENT -->
         <section id="ownerPanel" class="panel hidden">
           <h3>Owner dashboard</h3>
           <p class="muted">View every registered account and manage administrator access. Only the owner can change roles.</p>
           <div class="owner-summary" id="ownerSummary">Loading account totals…</div>
+          <div class="owner-stats-grid" id="ownerStats"><p class="muted">Loading platform statistics…</p></div>
           <label>Search registered users
             <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
           </label>
@@ -302,13 +254,40 @@
   <div id="newsList" class="news-grid">
     <div class="empty">Loading music news...</div>
   </div>
+
+  <section id="newsSubmission" class="community-news-submit hidden">
+    <h3>Share news with the Paya community</h3>
+    <p class="muted">Your story will appear publicly as soon as you publish it.</p>
+    <form id="newsForm" enctype="multipart/form-data">
+      <label>News headline
+        <input name="title" required maxlength="200" placeholder="Enter the news headline">
+      </label>
+      <label>News category
+        <select name="category" required>
+          <option value="breaking">Breaking News</option>
+          <option value="artist">Artist Story</option>
+          <option value="music">Music News</option>
+          <option value="release">New Release</option>
+          <option value="interview">Interview</option>
+        </select>
+      </label>
+      <label>News image from your phone
+        <input name="image" id="newsImage" type="file" accept="image/jpeg,image/png,image/webp">
+      </label>
+      <label>News content
+        <textarea name="content" required maxlength="10000" rows="6" placeholder="Write the full news story here..."></textarea>
+      </label>
+      <button class="gold-btn full" type="submit">Publish News</button>
+      <p id="newsMsg" class="message"></p>
+    </form>
+  </section>
 </section>
 
 <section class="upload-section" id="upload">
   <div>
     <p class="eyebrow">YOUR MUSIC DESERVES TO BE HEARD</p>
     <h2>Have a song?<br><span>Bring it to Paya.</span></h2>
-    <p class="muted">Create an artist account and submit your MP3. Every upload is reviewed before it goes public.</p>
+    <p class="muted">Sign in with a free artist account and upload your MP3. Your song is published immediately.</p>
   </div>
 
   <form id="uploadForm" class="panel">
@@ -339,7 +318,7 @@
     </label>
     <img id="songCoverPreview" class="song-upload-preview" alt="Song cover preview" hidden>
 
-    <button class="gold-btn full" type="submit">Submit for review</button>
+    <button class="gold-btn full" type="submit">Publish song</button>
 
     <p class="fine">MP3 only. Maximum file size is set by the platform administrator.</p>
     <p id="uploadMsg" class="message"></p>
@@ -350,7 +329,7 @@
   <div>
     <p class="eyebrow">REACH MUSIC LOVERS</p>
     <h2>Put your brand<br><span>in the spotlight.</span></h2>
-    <p class="muted">Businesses can submit campaigns for homepage banners, music-page placements and sponsored promotions. Paya Music UG reviews every campaign before publication.</p>
+    <p class="muted">Anyone can submit an advert for homepage banners, music-page placements and sponsored promotions. Adverts appear immediately after submission.</p>
   </div>
 
   <form id="adForm" class="panel">
@@ -390,9 +369,9 @@
       <label>End date<input name="ends_at" type="date"></label>
     </div>
 
-    <button class="gold-btn full" type="submit">Submit advert for approval</button>
+    <button class="gold-btn full" type="submit">Publish advertisement</button>
 
-    <p class="fine">You must sign in first. Submission does not guarantee publication. Campaign pricing and payment are arranged with Paya Music UG.</p>
+    <p class="fine">No account is required to submit an advertisement. Campaign pricing and payment are arranged with Paya Music UG.</p>
     <p id="adMsg" class="message"></p>
   </form>
 </section>
