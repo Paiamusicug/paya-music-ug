@@ -629,3 +629,23 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
   .artist-song-group-grid .song-actions button,
   .artist-song-group-grid .song-actions a{font-size:11px;padding:7px 11px;border-radius:999px}
 }
+
+/* News discussion and comment cards */
+.news-discussion{margin-top:28px;padding:22px 0 4px;border-top:1px solid var(--line)}
+.news-discussion h3{font-size:19px;color:#f28a32;margin:0 0 18px}
+.news-comment-list{display:grid;gap:14px}
+.news-comment{border:1px solid #34363a;border-radius:16px;padding:16px;background:rgba(255,255,255,.025)}
+.news-comment.is-reply{margin:12px 0 0 18px;border-left:3px solid var(--gold);border-radius:8px}
+.news-comment-author{font-weight:800;color:#45a765;margin-bottom:10px}
+.news-comment p{white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 10px;color:var(--white);font-size:15px;line-height:1.55}
+.news-comment small{display:block;color:#92959b;margin-bottom:12px}
+.news-comment-actions{display:flex;flex-wrap:wrap;gap:8px}
+.news-comment-actions button,.news-comment-form button{border:1px solid var(--line);border-radius:999px;padding:8px 13px;background:transparent;color:var(--white);font:inherit}
+.news-comment-actions button:hover,.news-comment-form button:hover{border-color:var(--gold);color:var(--gold)}
+.news-comment-form{margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:16px;background:rgba(0,0,0,.18)}
+.news-comment-form h4{margin:0 0 14px;text-transform:uppercase}
+.news-comment-form input,.news-comment-form textarea{display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:15px 16px;border:1px solid #c8c8c8;border-radius:13px;background:#fff;color:#171717;font:inherit;font-size:16px}
+.news-comment-form textarea{min-height:130px;resize:vertical}
+.news-comment-form button[type=submit]{background:var(--gold);color:#151515;border-color:var(--gold);font-weight:800}
+.news-comment-form button:disabled{opacity:.6}
+@media(max-width:600px){.news-comment{padding:14px}.news-comment.is-reply{margin-left:10px}.news-comment-form{padding:14px}}
