@@ -649,3 +649,40 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .news-comment-form button[type=submit]{background:var(--gold);color:#151515;border-color:var(--gold);font-weight:800}
 .news-comment-form button:disabled{opacity:.6}
 @media(max-width:600px){.news-comment{padding:14px}.news-comment.is-reply{margin-left:10px}.news-comment-form{padding:14px}}
+
+
+/* Keep Trending song title and artist controls in the Paya dark theme. */
+#trendingSongsList .trending-row .trend-song-name > button,
+#trendingSongsList .trending-row .trend-song-name > button:hover,
+#trendingSongsList .trending-row .trend-song-name > button:focus,
+#trendingSongsList .trending-row .trend-song-name > button:active {
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  outline-offset:3px;
+  background:transparent !important;
+  box-shadow:none !important;
+  color:var(--white) !important;
+  font:inherit !important;
+  text-align:left !important;
+  line-height:1.4 !important;
+  appearance:none !important;
+  -webkit-appearance:none !important;
+}
+#trendingSongsList .trend-title-button strong {
+  display:block;
+  color:var(--white) !important;
+  font-size:14px;
+  font-weight:700;
+}
+#trendingSongsList .trend-artist-button {
+  color:var(--muted) !important;
+  font-size:12px !important;
+}
+#trendingSongsList .trend-song-name > button:focus-visible {
+  outline:1px solid var(--gold);
+}
