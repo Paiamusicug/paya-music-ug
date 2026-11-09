@@ -576,7 +576,7 @@ app.get("/api/my-songs", auth, async (req, res) => {
 });
 
 // ARTISTS: EDIT ONLY THEIR OWN SONG DETAILS
-app.patch("/api/my-songs/:id", auth, async (req, res) => {
+app.patch("/api/my-songs/:id", auth, admin, async (req, res) => {
   try {
     const { title, artist, genre, description } = req.body || {};
     const updates = {};
@@ -590,7 +590,6 @@ app.patch("/api/my-songs/:id", auth, async (req, res) => {
     const { data, error } = await supabase.from("songs")
       .update(updates)
       .eq("id", req.params.id)
-      .eq("uploader_id", req.user.id)
       .select()
       .maybeSingle();
     if (error) throw error;
