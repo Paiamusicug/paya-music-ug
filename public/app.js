@@ -521,7 +521,7 @@ async function loadAds() {
       const image = ad.image_url
         ? `<img src="${escapeHTML(ad.image_url)}" alt="${escapeHTML(ad.title || "Advertisement")}" loading="lazy">`
         : "";
-      const href = ad.link_url || ad.url || "#";
+      const href = ad.target_url || ad.link_url || ad.url || "#";
       return `<a class="ad-card" href="${escapeHTML(href)}" target="_blank" rel="noopener">${image}<span>${escapeHTML(ad.title || "")}</span></a>`;
     }).join("") : "";
   } catch (error) {
