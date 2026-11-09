@@ -361,7 +361,7 @@ function renderSongs(items = []) {
           <button type="button" data-play="${id}">Play</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
-          ${(isOwner() || (currentUser && String(song.uploader_id) === String(currentUser.id))) ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
+          ${isAdmin() ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
           ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
       </article>`;
@@ -542,7 +542,7 @@ async function loadMine() {
             <span>▶ ${Number(song.play_count || 0)} plays</span>
             <span>↓ ${Number(song.download_count || 0)} downloads</span>
           </div>
-          <button type="button" data-edit-own-song="${escapeHTML(songId(song))}">Edit song details</button>
+          ${isAdmin() ? `<button type="button" data-edit-own-song="${escapeHTML(songId(song))}">Edit song details</button>` : ""}
         </div>`).join("")
       : "<p>You have not uploaded any songs yet.</p>";
     $$("[data-edit-own-song]", container).forEach((button) => {
