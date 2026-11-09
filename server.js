@@ -1004,6 +1004,64 @@ app.get("/api/news", async (req, res) => {
   res.json({ news: data || [] });
 });
 
+
+app.get("/api/news/:id/comments", async (req, res) => {
+  const { data, error } = await supabase.from("news_comments")
+    .select("id, news_id, parent_id, name, body, created_at")
+    .eq("news_id", String(req.params.id)).order("created_at", { ascending: true });
+  if (error) return res.status(500).json({ error: "Comments are not configured yet. Please contact the site owner." });
+  const ids = (data || []).map((item) => item.id);
+  let reactions = [];
+  if (ids.length) {
+    const result = await supabase.from("news_comment_reactions").select("comment_id, reaction").in("comment_id", ids);
+    if (result.error) return res.status(500).json({ error: "Could not load comment reactions." });
+    reactions = result.data || [];
+  }
+  const counts = new Map();
+  for (const item of reactions) {
+    const key = String(item.comment_id);
+    const count = counts.get(key) || { likes: 0, dislikes: 0 };
+    count[item.reaction === "like" ? "likes" : "dislikes"] += 1;
+    counts.set(key, count);
+  }
+  res.json({ comments: (data || []).map((item) => Object.assign({}, item, counts.get(String(item.id)) || { likes: 0, dislikes: 0 })) });
+});
+
+app.post("/api/news/:id/comments", async (req, res) => {
+  const name = String(req.body.name || "").trim().slice(0, 15);
+  const body = String(req.body.body || "").trim().slice(0, 1500);
+  const parentId = req.body.parent_id || null;
+  if (!name || !body) return res.status(400).json({ error: "Enter your name and comment." });
+  const { data: article, error: articleError } = await supabase.from("news")
+    .select("id").eq("id", req.params.id).eq("status", "published").maybeSingle();
+  if (articleError || !article) return res.status(404).json({ error: "News article not found." });
+  if (parentId) {
+    const { data: parent } = await supabase.from("news_comments").select("id, news_id").eq("id", parentId).maybeSingle();
+    if (!parent || String(parent.news_id) !== String(req.params.id)) return res.status(400).json({ error: "Reply target not found." });
+  }
+  const { data, error } = await supabase.from("news_comments")
+    .insert({ news_id: String(req.params.id), parent_id: parentId, name, body })
+    .select("id, news_id, parent_id, name, body, created_at").single();
+  if (error) return res.status(500).json({ error: "Could not post comment." });
+  res.status(201).json({ comment: data });
+});
+
+app.post("/api/news/comments/:id/reaction", async (req, res) => {
+  const reaction = req.body.reaction;
+  const visitorKey = String(req.body.visitor_key || "").slice(0, 100);
+  if (!["like", "dislike"].includes(reaction) || !visitorKey) return res.status(400).json({ error: "Invalid reaction." });
+  const { error } = await supabase.from("news_comment_reactions")
+    .upsert({ comment_id: req.params.id, visitor_key: visitorKey, reaction }, { onConflict: "comment_id,visitor_key" });
+  if (error) return res.status(500).json({ error: "Could not save reaction." });
+  res.json({ saved: true });
+});
+
+app.delete("/api/admin/news/comments/:id", auth, admin, async (req, res) => {
+  const { error } = await supabase.from("news_comments").delete().eq("id", req.params.id);
+  if (error) return res.status(500).json({ error: "Could not delete comment." });
+  res.json({ deleted: true });
+});
+
 // ADMIN: PENDING NEWS REVIEW
 app.get("/api/admin/news", auth, admin, async (req, res) => {
   const { data, error } = await supabase.from("news").select("*").eq("status", "pending").order("created_at", { ascending: true });
