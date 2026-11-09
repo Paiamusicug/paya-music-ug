@@ -733,3 +733,8 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .community-news-submit label{display:block;margin:14px 0;color:var(--muted);font-size:13px}
 .community-news-submit input,.community-news-submit select,.community-news-submit textarea{display:block;width:100%;margin-top:7px;padding:12px;background:#0e0f11;border:1px solid #383a3e;border-radius:6px;color:var(--white);font:inherit}
 .community-news-submit textarea{min-height:130px;resize:vertical}
+
+.password-field{display:flex;gap:8px;align-items:center;margin-top:7px}
+.password-field input{flex:1;min-width:0;margin-top:0!important}
+.password-field button,#forgotPasswordOpen,#backToLogin{background:transparent;border:1px solid var(--line);color:var(--gold);padding:8px 12px;border-radius:6px;cursor:pointer}
+#forgotPasswordOpen,#backToLogin{display:block;margin:10px auto}
