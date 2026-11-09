@@ -116,6 +116,7 @@ function updateAccountUI() {
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
   const loginOpen = $("#loginOpen");
+  const headerLogout = $("#headerLogout");
   const account = $("#account");
   const tabs = $(".tabs", account || document);
   const registerForm = $("#registerForm");
@@ -139,6 +140,7 @@ function updateAccountUI() {
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
   if (loginOpen) loginOpen.hidden = !!currentUser;
+  if (headerLogout) headerLogout.classList.toggle("hidden", !currentUser);
 
   const roleLabel = $("#userRole");
   if (roleLabel && currentUser) roleLabel.textContent = currentUser.role || "user";
@@ -946,6 +948,9 @@ bindForm("#loginForm", async (form) => {
     if (submit) { submit.disabled = false; if (submit.tagName === "BUTTON") submit.textContent = originalLabel; else submit.value = originalLabel; }
   }
 });
+
+const headerLogoutButton = $("#headerLogout");
+if (headerLogoutButton) headerLogoutButton.addEventListener("click", () => $("#logout")?.click());
 
 const logout = $("#logout");
 if (logout) logout.addEventListener("click", () => {
