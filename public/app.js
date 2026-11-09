@@ -140,7 +140,11 @@ function updateAccountUI() {
     : "";
   if (accountRoleLabel) accountRoleLabel.textContent = currentUser ? `Account role: ${currentUser.role || "user"}` : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
-  if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
+  if (ownerPanel) {
+    const ownerAccess = String(currentUser?.role || "").trim().toLowerCase() === "owner";
+    ownerPanel.classList.toggle("hidden", !ownerAccess);
+    ownerPanel.setAttribute("aria-hidden", ownerAccess ? "false" : "true");
+  }
   const newsSubmission = $("#newsSubmission");
   if (newsSubmission) newsSubmission.classList.toggle("hidden", !currentUser);
   if (loginOpen) loginOpen.hidden = !!currentUser;
