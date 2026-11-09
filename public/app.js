@@ -185,7 +185,7 @@ function songArtist(song) {
 // Split featured credits so a collaboration appears in every credited artist's catalogue.
 function artistNames(credit) {
   const names = String(credit || "Unknown artist")
-    .split(/\\s+(?:ft\\.?|feat\\.?|featuring)\\s+|\\s*[&,+]\\s*|\\s+x\\s+/i)
+    .split(/\s+(?:ft\.?|feat\.?|featuring)\s+|\s*[&,+]\s*|\s+x\s+/i)
     .map((name) => name.trim().replace(/^["']|["']$/g, ""))
     .filter(Boolean);
   return [...new Set(names.length ? names : ["Unknown artist"])];
