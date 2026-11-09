@@ -139,6 +139,8 @@ function updateAccountUI() {
     : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) ownerPanel.classList.toggle("hidden", !isOwner());
+  const newsSubmission = $("#newsSubmission");
+  if (newsSubmission) newsSubmission.classList.toggle("hidden", !currentUser);
   if (loginOpen) loginOpen.hidden = !!currentUser;
   if (headerLogout) headerLogout.classList.toggle("hidden", !currentUser);
 
@@ -1002,8 +1004,9 @@ bindForm("#uploadForm", async (form) => {
   const preview = $("#songCoverPreview");
   if (preview) { preview.removeAttribute("src"); preview.hidden = true; }
   const message = $("#uploadMsg");
-  if (message) message.textContent = isAdmin() ? "Song uploaded and published successfully." : "Song submitted for approval.";
-  toast(isAdmin() ? "Song uploaded and published." : "Song uploaded and submitted for approval.");
+  if (message) message.textContent = "Song uploaded and published successfully.";
+  toast("Song uploaded and published.");
+  await loadSongs($("#search")?.value || "");
   loadMine();
 });
 
@@ -1028,14 +1031,13 @@ if (songCoverInput && songCoverPreview) {
 }
 
 bindForm("#adForm", async (form) => {
-  if (!token) throw new Error("Please log in before submitting an advert.");
   const formData = new FormData(form);
   await api("/api/ads", { method: "POST", body: formData });
   form.reset();
   const message = $("#adMsg");
-  if (message) message.textContent = "Advert submitted for approval.";
-  toast("Advert submitted.");
-  loadPendingAds();
+  if (message) message.textContent = "Advert published successfully.";
+  toast("Advert published successfully.");
+  loadAds();
 });
 
 const search = $("#search");
@@ -1219,9 +1221,7 @@ bindForm("#profileForm", async (form) => {
 });
 
 bindForm("#newsForm", async (form) => {
-  if (!isAdmin()) {
-    throw new Error("Only an administrator can post news.");
-  }
+  if (!token) throw new Error("Please sign in with a free account to publish news.");
 
   const title =
     $('input[name="title"]', form)?.value?.trim() || "";
@@ -1240,14 +1240,14 @@ bindForm("#newsForm", async (form) => {
     if (!file.type.startsWith("image/")) {
       throw new Error("Please choose a JPG, PNG, or WEBP news photo.");
     }
-    const uploaded = await uploadImage("/api/admin/news/image", file);
+    const uploaded = await uploadImage("/api/news/image", file);
     image_url = uploaded.image_url || uploaded.url || uploaded.publicUrl || "";
     if (!image_url) {
       throw new Error("The news photo did not upload. Please try again.");
     }
   }
 
-  await api("/api/admin/news", {
+  await api("/api/news", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -1270,6 +1270,7 @@ bindForm("#newsForm", async (form) => {
   toast("News published successfully.");
 
   await loadNews();
+  if (isOwner()) await loadOwnerUsers();
 });
   
   
@@ -1280,12 +1281,22 @@ async function loadOwnerUsers() {
   const searchInput = $("#ownerUserSearch");
   if (!container || !isOwner()) return;
   try {
-    const [userResult, songResult] = await Promise.all([
+    const [userResult, songResult, statsResult] = await Promise.all([
       api("/api/owner/users"),
-      api("/api/owner/songs")
+      api("/api/owner/songs"),
+      api("/api/owner/stats")
     ]);
     const users = userResult.users || [];
     const songs = songResult.songs || [];
+    const stats = statsResult || {};
+    const statsContainer = $("#ownerStats");
+    if (statsContainer) statsContainer.innerHTML = [
+      ["Registered accounts", stats.registered_accounts],
+      ["Unique visitors", stats.unique_visitors],
+      ["Songs on Paya", stats.songs],
+      ["Published news", stats.published_news],
+      ["Active adverts", stats.active_adverts]
+    ].map(([label, value]) => `<div class="owner-stat"><strong>${Number(value || 0).toLocaleString()}</strong><span>${escapeHTML(label)}</span></div>`).join("");
     const admins = users.filter((user) => user.role === "admin").length;
     if (summary) summary.textContent = `${users.length} registered accounts · ${admins} administrators · ${songs.length} songs`;
 
@@ -1478,6 +1489,7 @@ function focusSharedSong() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   await restoreSession();
+  api("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_type: "visit", visitor_key: visitorKey() }) }).catch(() => {});
   await Promise.allSettled([
     loadSongs(),
     loadAds(),
