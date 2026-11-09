@@ -478,6 +478,48 @@ app.get("/api/songs", async (req, res) => {
   }
 });
 
+// NEWS SHARE LINKS: expose the article headline and image to WhatsApp/social crawlers.
+app.get("/news/:id", async (req, res) => {
+  try {
+    const { data: article, error } = await supabase.from("news")
+      .select("id, title, content, category, image_url, published_at, status")
+      .eq("id", req.params.id).eq("status", "published").maybeSingle();
+    if (error || !article) return res.status(404).send("News story not found");
+    const siteUrl = `${req.protocol}://${req.get("host")}`;
+    const pageUrl = `${siteUrl}/news/${encodeURIComponent(article.id)}`;
+    const targetUrl = `/?news=${encodeURIComponent(article.id)}`;
+    let imageUrl = `${siteUrl}/paya-default-cover.svg`;
+    try {
+      const candidate = new URL(article.image_url || "/paya-default-cover.svg", siteUrl);
+      if (candidate.protocol === "https:" || candidate.origin === siteUrl) imageUrl = candidate.href;
+    } catch {}
+    const title = String(article.title || "Paya Music UG News");
+    const plainContent = String(article.content || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+    const description = (plainContent || `Read the latest ${article.category || "news"} story on Paya Music UG.`).slice(0, 180);
+    const safeTitle = escapeHTML(title);
+    const safeDescription = escapeHTML(description);
+    const safeImage = escapeHTML(imageUrl);
+    const safePageUrl = escapeHTML(pageUrl);
+    const safeTargetUrl = escapeHTML(targetUrl);
+    res.set("Cache-Control", "public, max-age=300");
+    res.type("html").send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeTitle} | Paya Music UG</title><meta name="description" content="${safeDescription}">
+<meta property="og:type" content="article"><meta property="og:site_name" content="Paya Music UG">
+<meta property="og:title" content="${safeTitle}"><meta property="og:description" content="${safeDescription}">
+<meta property="og:url" content="${safePageUrl}"><meta property="og:image" content="${safeImage}">
+<meta property="og:image:alt" content="${safeTitle}"><meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${safeTitle}"><meta name="twitter:description" content="${safeDescription}">
+<meta name="twitter:image" content="${safeImage}"><link rel="canonical" href="${safePageUrl}">
+<style>body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;display:grid;place-items:center;padding:24px;text-align:center}main{max-width:560px}img{width:100%;max-height:340px;object-fit:cover;border-radius:12px}h1{font-size:25px;line-height:1.3}p{color:#aaa;line-height:1.6}a{display:inline-block;margin-top:14px;padding:13px 20px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold;border-radius:5px}</style>
+</head><body><main><img src="${safeImage}" alt="${safeTitle}"><h1>${safeTitle}</h1><p>${safeDescription}</p><p>Opening this story on Paya Music UG…</p><a href="${safeTargetUrl}">Read full story</a></main>
+<script>window.location.replace(${JSON.stringify(targetUrl)});</script></body></html>`);
+  } catch (error) {
+    console.error("News share page error:", error);
+    res.status(500).send("Could not open news story");
+  }
+});
+
 // SHARE LINKS KEEP THEIR SOCIAL PREVIEW, THEN OPEN THE SONG INSIDE THE MAIN WEBSITE.
 app.get("/song/:id", async (req, res) => {
   try {
