@@ -195,7 +195,20 @@ function renderSongs(items = []) {
     return;
   }
 
-  container.innerHTML = items.map((song) => {
+  const grouped = new Map();
+  for (const song of items) {
+    const artistName = String(songArtist(song) || "Unknown artist").trim() || "Unknown artist";
+    if (!grouped.has(artistName)) grouped.set(artistName, []);
+    grouped.get(artistName).push(song);
+  }
+
+  container.innerHTML = [...grouped.entries()].map(([artistName, artistSongs]) => `
+    <section class="artist-song-group" id="artist-${encodeURIComponent(artistName).replace(/%/g, "-")}">
+      <div class="artist-song-group-heading">
+        <h3>${escapeHTML(artistName)}</h3>
+        <span>${artistSongs.length} ${artistSongs.length === 1 ? "song" : "songs"}</span>
+      </div>
+      <div class="artist-song-group-grid">${artistSongs.map((song) => {
     const id = escapeHTML(songId(song));
     const title = escapeHTML(songTitle(song));
     const artist = escapeHTML(songArtist(song));
@@ -219,10 +232,38 @@ function renderSongs(items = []) {
           <button type="button" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "Liked" : "Like"}</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
+          ${(isOwner() || (currentUser && String(song.uploader_id) === String(currentUser.id))) ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
           ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
       </article>`;
-  }).join("");
+  }).join("")}</div></section>`).join("");
+
+  container.querySelectorAll("[data-edit-public-song]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const song = items.find((item) => String(songId(item)) === button.dataset.editPublicSong);
+      if (!song) return;
+      const title = window.prompt("Song title:", songTitle(song));
+      if (title === null) return;
+      const artist = window.prompt("Artist name:", songArtist(song));
+      if (artist === null) return;
+      button.disabled = true;
+      try {
+        const ownerEditing = isOwner();
+        await api(ownerEditing
+          ? `/api/owner/songs/${encodeURIComponent(songId(song))}`
+          : `/api/my-songs/${encodeURIComponent(songId(song))}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title, artist, genre: song.genre || "", description: song.description || "" })
+        });
+        toast("Song details updated.");
+        await Promise.all([loadSongs($("#search")?.value || ""), loadMine()]);
+      } catch (error) {
+        toast(error.message || "Could not update song.");
+        button.disabled = false;
+      }
+    });
+  });
 
   container.querySelectorAll("[data-play]").forEach((button) => {
     button.addEventListener("click", () => {
