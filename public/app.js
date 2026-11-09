@@ -925,6 +925,19 @@ function firstFile(form, selectors) {
 
 // Tab switching is handled by the delegated listener at the top of this file.
 
+
+document.querySelectorAll("[data-password-toggle]").forEach((button) => button.addEventListener("click", () => {
+ const input=button.parentElement.querySelector("input");
+ input.type=input.type==="password"?"text":"password";
+ button.textContent=input.type==="password"?"Show":"Hide";
+}));
+const recoveryForm=$("#forgotPasswordForm");
+$("#forgotPasswordOpen")?.addEventListener("click",()=>{$("#loginForm")?.classList.add("hidden");recoveryForm?.classList.remove("hidden");});
+$("#backToLogin")?.addEventListener("click",()=>{recoveryForm?.classList.add("hidden");$("#loginForm")?.classList.remove("hidden");});
+bindForm("#forgotPasswordForm",async(form)=>{
+ const result=await api("/api/password/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});
+ $("#forgotPasswordMsg").textContent=result.message||"If the email is registered, a recovery link will be sent.";
+});
 bindForm("#registerForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
   const result = await api("/api/register", {
