@@ -235,14 +235,29 @@ function renderMusicHome(items = []) {
       const name = button.dataset.openArtist;
       const input = $("#search");
       if (input) input.value = name;
-      loadSongs(name);
+      // Filter the complete catalogue by every credited artist, including featured artists.
+      const matches = catalogueSongs.filter(song =>
+        artistNames(songArtist(song)).some(artist => artist.toLocaleLowerCase() === name.toLocaleLowerCase())
+      );
+      if (matches.length) {
+        renderSongs(matches);
+        const heading = $("#discover h2, #discover h3");
+        if (heading) heading.textContent = `${name} — Songs`;
+      } else {
+        loadSongs(name);
+      }
       $("#discover")?.scrollIntoView({behavior:"smooth",block:"start"});
     });
   });
   document.querySelectorAll("[data-home-play]").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
       const song = items.find(item => String(songId(item)) === button.dataset.homePlay);
-      if (song) playSong(song);
+      if (song) {
+        playSong(song);
+        button.setAttribute("aria-label", `Playing ${songTitle(song)}`);
+      }
     });
   });
 }
