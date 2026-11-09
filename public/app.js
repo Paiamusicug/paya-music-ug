@@ -739,12 +739,125 @@ async function loadNews() {
         <details class="news-story-details">
           <summary>Read full story</summary>
           <div class="news-body">${formatNewsText(item.content || item.body || "")}</div>
+          <section class="news-discussion" data-news-comments="${escapeHTML(item.id)}">
+            <h3>💬 Join the Discussion</h3>
+            <div class="news-comment-list"><p>Loading comments…</p></div>
+            <form class="news-comment-form">
+              <h4>Leave a reply</h4>
+              <input name="name" maxlength="15" required placeholder="Your Name (max 15 chars)">
+              <textarea name="body" maxlength="1500" required placeholder="Write your thoughts…"></textarea>
+              <input type="hidden" name="parent_id" value="">
+              <button type="submit">Post comment</button>
+              <button type="button" class="comment-cancel-reply" hidden>Cancel reply</button>
+            </form>
+          </section>
         </details>
       </article>`).join("") : "<p>No news posted yet.</p>";
+    await Promise.all(news.map((item) => loadNewsComments(item.id)));
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
 }
+
+
+async function loadNewsComments(newsId) {
+  const section = document.querySelector('[data-news-comments="' + CSS.escape(String(newsId)) + '"]');
+  if (!section) return;
+  const list = section.querySelector(".news-comment-list");
+  try {
+    const result = await api("/api/news/" + encodeURIComponent(newsId) + "/comments");
+    const comments = result.comments || [];
+    const roots = comments.filter((item) => !item.parent_id);
+    function renderComment(item, nested) {
+      const replies = comments.filter((reply) => String(reply.parent_id) === String(item.id));
+      return '<article class="news-comment' + (nested ? ' is-reply' : '') + '">' +
+        '<div class="news-comment-author">' + escapeHTML(item.name) + '</div>' +
+        '<p>' + escapeHTML(item.body) + '</p>' +
+        '<small>' + (item.created_at ? escapeHTML(new Date(item.created_at).toLocaleString()) : '') + '</small>' +
+        '<div class="news-comment-actions">' +
+        '<button type="button" data-comment-reaction="like" data-comment-id="' + item.id + '">❤️ ' + Number(item.likes || 0) + '</button>' +
+        '<button type="button" data-comment-reaction="dislike" data-comment-id="' + item.id + '">👎 ' + Number(item.dislikes || 0) + '</button>' +
+        '<button type="button" data-comment-reply="' + item.id + '">↩ Reply</button>' +
+        (isAdmin() ? '<button type="button" data-comment-delete="' + item.id + '">Delete</button>' : '') +
+        '</div>' + replies.map((reply) => renderComment(reply, true)).join('') + '</article>';
+    }
+    list.innerHTML = roots.length ? roots.map((item) => renderComment(item, false)).join('') : '<p>No comments yet. Start the discussion.</p>';
+  } catch (error) {
+    list.innerHTML = '<p>Comments are temporarily unavailable.</p>';
+  }
+  const form = section.querySelector(".news-comment-form");
+  if (form && !form.dataset.bound) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const submit = form.querySelector('[type="submit"]');
+      submit.disabled = true;
+      try {
+        await api("/api/news/" + encodeURIComponent(newsId) + "/comments", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: data.get("name"), body: data.get("body"), parent_id: data.get("parent_id") || null })
+        });
+        const savedName = data.get("name");
+        form.reset();
+        form.elements.name.value = savedName;
+        form.elements.parent_id.value = "";
+        form.querySelector(".comment-cancel-reply").hidden = true;
+        form.querySelector("h4").textContent = "Leave a reply";
+        await loadNewsComments(newsId);
+        toast("Comment posted.");
+      } catch (error) { toast(error.message); }
+      finally { submit.disabled = false; }
+    });
+    form.querySelector(".comment-cancel-reply").addEventListener("click", () => {
+      form.elements.parent_id.value = "";
+      form.querySelector("h4").textContent = "Leave a reply";
+      form.querySelector(".comment-cancel-reply").hidden = true;
+    });
+    form.dataset.bound = "true";
+  }
+}
+
+document.addEventListener("click", async (event) => {
+  const reply = event.target.closest("[data-comment-reply]");
+  if (reply) {
+    const section = reply.closest(".news-discussion");
+    const form = section && section.querySelector(".news-comment-form");
+    if (form) {
+      form.elements.parent_id.value = reply.dataset.commentReply;
+      form.querySelector("h4").textContent = "Reply to comment";
+      form.querySelector(".comment-cancel-reply").hidden = false;
+      form.scrollIntoView({ behavior: "smooth", block: "center" });
+      form.elements.body.focus();
+    }
+    return;
+  }
+  const reaction = event.target.closest("[data-comment-reaction]");
+  if (reaction) {
+    const section = reaction.closest(".news-discussion");
+    let visitorKey = localStorage.getItem("paya_comment_visitor");
+    if (!visitorKey) {
+      visitorKey = "visitor-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+      localStorage.setItem("paya_comment_visitor", visitorKey);
+    }
+    try {
+      await api("/api/news/comments/" + encodeURIComponent(reaction.dataset.commentId) + "/reaction", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction: reaction.dataset.commentReaction, visitor_key: visitorKey })
+      });
+      await loadNewsComments(section.dataset.newsComments);
+    } catch (error) { toast(error.message); }
+    return;
+  }
+  const remove = event.target.closest("[data-comment-delete]");
+  if (remove && isAdmin() && window.confirm("Delete this comment and its replies?")) {
+    const section = remove.closest(".news-discussion");
+    try {
+      await api("/api/admin/news/comments/" + encodeURIComponent(remove.dataset.commentDelete), { method: "DELETE" });
+      await loadNewsComments(section.dataset.newsComments);
+      toast("Comment deleted.");
+    } catch (error) { toast(error.message); }
+  }
+});
 
 // Upload a selected image file to the requested protected endpoint.
 async function uploadImage(endpoint, file) {
