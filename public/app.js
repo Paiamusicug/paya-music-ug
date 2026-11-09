@@ -222,7 +222,7 @@ function renderMusicHome(items = []) {
   if (newEl) newEl.innerHTML = newest.length ? newest.slice(0,12).map(artistCard).join("") : '<p class="muted">New artists will appear here.</p>';
   const trendingEl = $("#trendingSongsList");
   if (trendingEl) {
-    const trending = [...items].sort((a,b) => Number(b.play_count||0)-Number(a.play_count||0) || new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,12);
+    const trending = [...items].sort((a,b) => Number(b.play_count||0)-Number(a.play_count||0) || Number(b.download_count||0)-Number(a.download_count||0) || Number(b.likes||0)-Number(a.likes||0) || new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,10);
     trendingEl.innerHTML = trending.length ? trending.map((song,index) => `
       <article class="trending-row">
         <span class="trend-number">${index+1}</span>
