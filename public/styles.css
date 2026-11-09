@@ -577,3 +577,31 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
  #news .news-story-image{height:clamp(105px,24vw,160px)}
  #news .news-story-details{grid-column:1/-1}
 }
+
+
+/* Expand a selected trending song in place without leaving the homepage */
+.trend-song-name{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px;text-align:left}
+.trend-title-button,.trend-artist-button{padding:0;background:none;border:0;text-align:left;min-width:0;cursor:pointer}
+.trend-title-button strong{display:block;color:var(--white);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trend-artist-button{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expanded-song-panel{position:relative;margin:0 0 18px;padding:22px;border:1px solid #4b4028;border-radius:18px;background:radial-gradient(ellipse at top right,#302719 0%,#17181b 52%,#101113 100%);box-shadow:0 14px 35px #0008;animation:payaSongExpand .22s ease-out}
+.expanded-song-main{display:grid;grid-template-columns:minmax(110px,190px) minmax(0,1fr);gap:22px;align-items:center}
+.expanded-song-cover{width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;box-shadow:0 8px 24px #0008}
+.expanded-song-kicker{color:var(--gold);font-size:10px;letter-spacing:2.5px;font-weight:800}
+.expanded-song-meta h3{font-size:clamp(20px,3vw,28px);line-height:1.2;margin:8px 0}
+.expanded-song-artist{padding:0;border:0;background:none;color:#d2c3a0;font-size:15px;cursor:pointer}
+.expanded-song-meta p{color:#b8b6b0;font-size:13px;line-height:1.6;margin:12px 0}
+.expanded-song-actions{display:flex;flex-wrap:wrap;align-items:center;gap:9px}
+.expanded-song-actions button,.expanded-song-actions a{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 15px;border-radius:999px;border:1px solid #6a542d;background:#e6b94f;color:#17120a;text-decoration:none;font-size:12px;font-weight:800;cursor:pointer}
+.expanded-song-actions a{background:#1d1b16;color:#e6c36e}
+.expanded-song-actions span{color:#c8b78f;font-size:12px}
+.expanded-song-close{position:absolute;right:12px;top:10px;width:32px;height:32px;border:1px solid #5a4b30;border-radius:50%;background:#191919;color:#f5d98d;font-size:22px;cursor:pointer}
+@keyframes payaSongExpand{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){
+ .expanded-song-panel{padding:17px 13px;border-radius:14px}
+ .expanded-song-main{grid-template-columns:112px minmax(0,1fr);gap:13px}
+ .expanded-song-meta h3{font-size:18px;padding-right:20px}
+ .expanded-song-meta p{font-size:12px;margin:8px 0}
+ .expanded-song-actions{gap:7px}
+ .expanded-song-actions button,.expanded-song-actions a{padding:9px 11px;font-size:11px}
+}
