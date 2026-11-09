@@ -731,11 +731,12 @@ async function loadNews() {
     const result = await api("/api/news");
     const news = result.news || [];
     container.innerHTML = news.length ? news.map((item) => `
-      <article class="news-story">
+      <article class="news-story" id="news-${escapeHTML(item.id)}">
         <div class="news-story-copy">
           <span class="news-category">${escapeHTML(String(item.category || "music").replace(/[-_]/g, " ").toUpperCase())}</span>
           <h3>${escapeHTML(item.title || "")}</h3>
           <small class="news-byline">Story by Paya Music UG${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
+          <button type="button" class="news-share-btn" data-news-share="${escapeHTML(item.id)}" data-news-title="${escapeHTML(item.title || "")}">↗ Share news</button>
         </div>
         ${item.image_url ? `<img class="news-story-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
         <details class="news-story-details">
@@ -756,11 +757,34 @@ async function loadNews() {
         </details>
       </article>`).join("") : "<p>No news posted yet.</p>";
     await Promise.all(news.map((item) => loadNewsComments(item.id)));
+    // Open a shared story when its hash is present.
+    const sharedNewsId = window.location.hash.match(/^#news-(.+)$/)?.[1];
+    if (sharedNewsId) document.getElementById("news-" + decodeURIComponent(sharedNewsId))?.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
 }
 
+
+document.addEventListener("click", async (event) => {
+  const shareButton = event.target.closest("[data-news-share]");
+  if (!shareButton) return;
+  const newsId = shareButton.dataset.newsShare;
+  const title = shareButton.dataset.newsTitle || "Paya Music UG News";
+  const url = window.location.origin + "/#news-" + encodeURIComponent(newsId);
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text: "Read this story on Paya Music UG", url });
+    } else if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+      toast("News link copied. Share it with your friends.");
+    } else {
+      window.prompt("Copy this news link:", url);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") toast("Could not share this news story.");
+  }
+});
 
 async function loadNewsComments(newsId) {
   const section = document.querySelector('[data-news-comments="' + CSS.escape(String(newsId)) + '"]');
