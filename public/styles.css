@@ -496,3 +496,11 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #user
 body.signed-in:not(.artist-registration-only) #account.show-profile-editor #profileEditor{
   display:block!important;
 }
+
+
+/* Group the public catalogue by artist so each artist's releases are easy to find. */
+.artist-song-group{margin:0 0 30px}
+.artist-song-group-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid var(--line)}
+.artist-song-group-heading h3{margin:0;font-size:20px}
+.artist-song-group-heading span{color:var(--muted);font-size:12px}
+.artist-song-group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px}
