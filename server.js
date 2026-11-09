@@ -1048,7 +1048,7 @@ app.get("/api/news", async (req, res) => {
 
 
 // SIGNED-IN COMMUNITY NEWS SUBMISSION — publish immediately.
-app.post("/api/news", auth, async (req, res) => {
+app.post("/api/news", async (req, res) => {
   try {
     const { title, content, category, image_url } = req.body || {};
     if (!String(title || "").trim() || !String(content || "").trim()) {
@@ -1060,7 +1060,6 @@ app.post("/api/news", auth, async (req, res) => {
       category: String(category || "music").slice(0, 40),
       image_url: image_url || null,
       status: "published",
-      author_id: req.user.id,
       published_at: new Date().toISOString()
     }).select().single();
     if (error) throw error;
@@ -1071,11 +1070,11 @@ app.post("/api/news", auth, async (req, res) => {
   }
 });
 
-app.post("/api/news/image", auth, imageUpload.single("image"), async (req, res) => {
+app.post("/api/news/image", imageUpload.single("image"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "Please choose an image." });
     const extension = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
-    const filename = `news/community-${req.user.id}-${Date.now()}.${extension}`;
+    const filename = `news/community-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`
     const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
@@ -1309,12 +1308,21 @@ app.get("/api/owner/stats", auth, owner, async (req, res) => {
       supabase.from("songs").select("id", { count: "exact", head: true }),
       supabase.from("news").select("id", { count: "exact", head: true }).eq("status", "published"),
       supabase.from("ads").select("id", { count: "exact", head: true }).eq("status", "approved"),
-      supabase.from("website_events").select("visitor_key").eq("event_type", "visit")
+      Promise.resolve({ data: [] })
     ]);
-    for (const result of [users, songs, news, ads, visits]) {
+    for (const result of [users, songs, news, ads]) {
       if (result.error) throw result.error;
     }
-    const uniqueVisitors = new Set((visits.data || []).map((row) => String(row.visitor_key || "")).filter(Boolean)).size;
+    const visitorKeys = new Set();
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase.from("website_events")
+        .select("visitor_key").eq("event_type", "visit")
+        .range(offset, offset + 999);
+      if (error) throw error;
+      for (const row of data || []) if (row.visitor_key) visitorKeys.add(String(row.visitor_key));
+      if (!data || data.length < 1000) break;
+    }
+    const uniqueVisitors = visitorKeys.size;
     res.json({
       registered_accounts: users.count || 0,
       songs: songs.count || 0,
