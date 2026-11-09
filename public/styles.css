@@ -686,3 +686,38 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 #trendingSongsList .trend-song-name > button:focus-visible {
   outline:1px solid var(--gold);
 }
+
+
+/* Give artist song groups the full available width on every screen. */
+#songs.song-grid{display:block;width:100%;min-width:0}
+#songs .artist-song-group{width:100%;min-width:0}
+#songs .artist-song-group-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+#songs .song-card{min-width:0;max-width:100%;box-sizing:border-box}
+#songs .song-info{min-width:0}
+#songs .song-info h3{overflow-wrap:anywhere;word-break:normal;line-height:1.3}
+#songs .song-info p{overflow-wrap:anywhere;word-break:normal}
+
+/* Mobile song cards use the full screen width, with readable title space. */
+@media(max-width:700px){
+  #songs.song-grid{display:block}
+  #songs .artist-song-group-grid{grid-template-columns:minmax(0,1fr)}
+  #songs .artist-song-group-grid .song-card{
+    width:100%;grid-template-columns:104px minmax(0,1fr);column-gap:14px;
+  }
+  #songs .artist-song-group-grid .song-card>.song-cover,
+  #songs .artist-song-group-grid .song-card>.song-cover-placeholder{
+    width:104px;height:104px;max-width:104px;
+  }
+  #songs .artist-song-group-grid .song-info h3{
+    font-size:16px;line-height:1.35;overflow-wrap:break-word;
+  }
+  #songs .artist-song-group-grid .song-info p{font-size:14px}
+}
+
+/* Share news action matches the site's dark and gold controls. */
+.news-share-btn{
+  display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding:8px 13px;
+  border:1px solid #6a542d;border-radius:999px;background:#211e18;color:#e8c36d;
+  font:inherit;font-size:12px;font-weight:700;cursor:pointer;
+}
+.news-share-btn:hover{border-color:var(--gold);background:#302719;color:#ffe09a}
