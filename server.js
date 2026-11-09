@@ -1303,22 +1303,23 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
 // OWNER: VIEW USERS
 app.get("/api/owner/stats", auth, owner, async (req, res) => {
   try {
-    const [users, songs, news, ads, visits] = await Promise.all([
+    const [users, songs, news, ads] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
       supabase.from("songs").select("id", { count: "exact", head: true }),
       supabase.from("news").select("id", { count: "exact", head: true }).eq("status", "published"),
-      supabase.from("ads").select("id", { count: "exact", head: true }).eq("status", "approved"),
-      Promise.resolve({ data: [] })
+      supabase.from("ads").select("id", { count: "exact", head: true }).eq("status", "approved")
     ]);
     for (const result of [users, songs, news, ads]) {
       if (result.error) throw result.error;
     }
     const visitorKeys = new Set();
+    let totalVisits = 0;
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabase.from("website_events")
         .select("visitor_key").eq("event_type", "visit")
         .range(offset, offset + 999);
       if (error) throw error;
+      totalVisits += (data || []).length;
       for (const row of data || []) if (row.visitor_key) visitorKeys.add(String(row.visitor_key));
       if (!data || data.length < 1000) break;
     }
@@ -1328,7 +1329,8 @@ app.get("/api/owner/stats", auth, owner, async (req, res) => {
       songs: songs.count || 0,
       published_news: news.count || 0,
       active_adverts: ads.count || 0,
-      unique_visitors: uniqueVisitors
+      unique_visitors: uniqueVisitors,
+      total_visits: totalVisits
     });
   } catch (error) {
     console.error("Owner stats error:", error);
