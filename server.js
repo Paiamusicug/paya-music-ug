@@ -400,7 +400,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         mime_type: "audio/mpeg",
         size: file.size,
         uploader_id: req.user.id,
-        status: ["admin", "owner"].includes(String(req.user.role || "").toLowerCase()) ? "approved" : "pending"
+        status: "approved"
       })
       .select()
       .single();
@@ -412,7 +412,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     }
 
     res.status(201).json({
-      message: ["admin", "owner"].includes(String(req.user.role || "").toLowerCase()) ? "Song uploaded and published successfully." : "Song submitted for review",
+      message: "Song uploaded and published successfully.",
       song: data
     });
   } catch (error) {
@@ -930,7 +930,7 @@ app.post("/api/ads", async (req, res) => {
         placement: placement || "homepage",
         contact_email: String(contact_email).slice(0, 200),
         contact_whatsapp: String(contact_whatsapp || "").slice(0, 40),
-        status: "pending"
+        status: "approved"
       })
       .select("id, business_name, title, status")
       .single();
@@ -938,7 +938,7 @@ app.post("/api/ads", async (req, res) => {
     if (error) throw error;
 
     res.status(201).json({
-      message: "Advert submitted for review",
+      message: "Advert published successfully.",
       advert: data
     });
   } catch (error) {
@@ -1046,6 +1046,45 @@ app.get("/api/news", async (req, res) => {
   res.json({ news: data || [] });
 });
 
+
+// SIGNED-IN COMMUNITY NEWS SUBMISSION — publish immediately.
+app.post("/api/news", auth, async (req, res) => {
+  try {
+    const { title, content, category, image_url } = req.body || {};
+    if (!String(title || "").trim() || !String(content || "").trim()) {
+      return res.status(400).json({ error: "News headline and story are required." });
+    }
+    const { data, error } = await supabase.from("news").insert({
+      title: String(title).trim().slice(0, 200),
+      content: String(content).trim().slice(0, 10000),
+      category: String(category || "music").slice(0, 40),
+      image_url: image_url || null,
+      status: "published",
+      author_id: req.user.id,
+      published_at: new Date().toISOString()
+    }).select().single();
+    if (error) throw error;
+    res.status(201).json({ message: "News published successfully.", article: data });
+  } catch (error) {
+    console.error("Community news publishing error:", error);
+    res.status(500).json({ error: "Could not publish news. Please check your details and try again." });
+  }
+});
+
+app.post("/api/news/image", auth, imageUpload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Please choose an image." });
+    const extension = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
+    const filename = `news/community-${req.user.id}-${Date.now()}.${extension}`;
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
+    res.json({ image_url: data.publicUrl });
+  } catch (error) {
+    console.error("Community news image upload error:", error);
+    res.status(500).json({ error: "Could not upload the news image." });
+  }
+});
 
 app.get("/api/news/:id/comments", async (req, res) => {
   const { data, error } = await supabase.from("news_comments")
@@ -1263,6 +1302,32 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
 });
 
 // OWNER: VIEW USERS
+app.get("/api/owner/stats", auth, owner, async (req, res) => {
+  try {
+    const [users, songs, news, ads, visits] = await Promise.all([
+      supabase.from("users").select("id", { count: "exact", head: true }),
+      supabase.from("songs").select("id", { count: "exact", head: true }),
+      supabase.from("news").select("id", { count: "exact", head: true }).eq("status", "published"),
+      supabase.from("ads").select("id", { count: "exact", head: true }).eq("status", "approved"),
+      supabase.from("website_events").select("visitor_key").eq("event_type", "visit")
+    ]);
+    for (const result of [users, songs, news, ads, visits]) {
+      if (result.error) throw result.error;
+    }
+    const uniqueVisitors = new Set((visits.data || []).map((row) => String(row.visitor_key || "")).filter(Boolean)).size;
+    res.json({
+      registered_accounts: users.count || 0,
+      songs: songs.count || 0,
+      published_news: news.count || 0,
+      active_adverts: ads.count || 0,
+      unique_visitors: uniqueVisitors
+    });
+  } catch (error) {
+    console.error("Owner stats error:", error);
+    res.status(500).json({ error: "Could not load platform statistics." });
+  }
+});
+
 app.get("/api/owner/users", auth, owner, async (req, res) => {
   const { data, error } = await supabase
     .from("users")
