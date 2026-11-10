@@ -738,3 +738,17 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .password-field input{flex:1;min-width:0;margin-top:0!important}
 .password-field button,#forgotPasswordOpen,#backToLogin{background:transparent;border:1px solid var(--line);color:var(--gold);padding:8px 12px;border-radius:6px;cursor:pointer}
 #forgotPasswordOpen,#backToLogin{display:block;margin:10px auto}
+
+
+/* Paya Music UG revenue request starter */
+.revenue-section{background:#111315}
+.revenue-offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0}
+.revenue-offers article{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.revenue-offers h3{margin:0 0 9px;color:var(--gold)}
+.revenue-offers p{margin:0;color:var(--muted);line-height:1.6;font-size:14px}
+#revenueRequestForm{max-width:720px;margin:22px auto}
+#revenueRequestForm label{display:block;margin:14px 0;color:var(--muted);font-size:13px}
+#revenueRequestForm input,#revenueRequestForm select,#revenueRequestForm textarea{display:block;width:100%;box-sizing:border-box;margin-top:7px;padding:12px;background:#0e0f11;border:1px solid #383a3e;border-radius:6px;color:var(--white);font:inherit}
+.revenue-admin-item{padding:14px;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:#191b20}
+.revenue-admin-item p{overflow-wrap:anywhere}
+.revenue-admin-item select,.revenue-admin-item input,.revenue-admin-item textarea{width:100%;box-sizing:border-box;margin:6px 0 10px;padding:9px;background:#0e0f11;color:var(--white);border:1px solid #383a3e;border-radius:6px}
