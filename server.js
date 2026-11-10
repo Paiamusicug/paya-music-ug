@@ -1289,7 +1289,17 @@ app.get("/api/admin/news", auth, admin, async (req, res) => {
 });
 
 app.patch("/api/admin/news/:id", auth, admin, async (req, res) => {
-  const status = req.body.status;
+  const { status, title, content, category } = req.body || {};
+  if (typeof title === "string" || typeof content === "string" || typeof category === "string") {
+    const updates = {};
+    if (typeof title === "string") updates.title = title.trim().slice(0, 200);
+    if (typeof content === "string") updates.content = content.trim().slice(0, 10000);
+    if (typeof category === "string") updates.category = category.trim().slice(0, 60) || "music";
+    if (("title" in updates && !updates.title) || ("content" in updates && !updates.content)) return res.status(400).json({ error: "News title and story cannot be empty." });
+    const { data, error } = await supabase.from("news").update(updates).eq("id", req.params.id).select().single();
+    if (error || !data) return res.status(404).json({ error: "News article not found or could not be updated." });
+    return res.json({ article: data, message: "News article updated." });
+  }
   if (!["published", "rejected"].includes(status)) return res.status(400).json({ error: "Invalid news review status" });
   const { data, error } = await supabase.from("news").update({ status, published_at: status === "published" ? new Date().toISOString() : null }).eq("id", req.params.id).eq("status", "pending").select().single();
   if (error || !data) return res.status(404).json({ error: "Pending news article not found" });
