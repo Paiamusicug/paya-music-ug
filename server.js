@@ -745,6 +745,42 @@ app.patch("/api/my-songs/:id", auth, admin, async (req, res) => {
   }
 });
 
+// ADMIN/OWNER: CHANGE SONG ARTWORK WITHOUT RE-UPLOADING THE AUDIO
+app.patch("/api/admin/songs/:id/artwork", auth, admin, imageUpload.single("cover_image"), async (req, res) => {
+  let uploadedPath = null;
+  try {
+    if (!req.file) return res.status(400).json({ error: "Please choose a JPG, PNG, or WEBP artwork image." });
+    const { data: song, error: songLookupError } = await supabase
+      .from("songs")
+      .select("id")
+      .eq("id", req.params.id)
+      .maybeSingle();
+    if (songLookupError) throw songLookupError;
+    if (!song) return res.status(404).json({ error: "Song not found." });
+
+    const ext = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
+    uploadedPath = "song-covers/" + req.params.id + "-" + Date.now() + "." + ext;
+    const { error: uploadError } = await supabase.storage.from(IMAGE_BUCKET).upload(uploadedPath, req.file.buffer, {
+      contentType: req.file.mimetype,
+      upsert: false
+    });
+    if (uploadError) throw uploadError;
+
+    const cover_url = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(uploadedPath).data.publicUrl;
+    const { data, error } = await supabase
+      .from("songs")
+      .update({ cover_url })
+      .eq("id", req.params.id)
+      .select("id, title, artist, cover_url")
+      .single();
+    if (error) throw error;
+    res.json({ message: "Song artwork updated successfully.", song: data });
+  } catch (error) {
+    if (uploadedPath) await supabase.storage.from(IMAGE_BUCKET).remove([uploadedPath]).catch(() => {});
+    console.error("Song artwork update failed:", error);
+    res.status(500).json({ error: "Could not update song artwork. Please try again." });
+  }
+});
 // ADMIN: PENDING SONGS
 app.get("/api/admin/songs", auth, admin, async (req, res) => {
   try {
