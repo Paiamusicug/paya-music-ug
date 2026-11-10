@@ -774,6 +774,7 @@ async function loadNews() {
           <h3>${escapeHTML(item.title || "")}</h3>
           <small class="news-byline">Story by Paya Music UG${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
           <button type="button" class="news-share-btn" data-news-share="${escapeHTML(item.id)}" data-news-title="${escapeHTML(item.title || "")}">↗ Share news</button>
+          ${isAdmin() ? `<button type="button" class="news-edit-btn" data-edit-news="${escapeHTML(item.id)}">Edit news</button>` : ""}
         </div>
         ${item.image_url ? `<img class="news-story-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
         <details class="news-story-details">
@@ -793,6 +794,33 @@ async function loadNews() {
           </section>
         </details>
       </article>`).join("") : "<p>No news posted yet.</p>";
+    container.querySelectorAll("[data-edit-news]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        if (!isAdmin()) return toast("Admin access required.");
+        const item = news.find((entry) => String(entry.id) === button.dataset.editNews);
+        if (!item) return;
+        const title = window.prompt("News title:", item.title || "");
+        if (title === null) return;
+        const content = window.prompt("News story:", item.content || item.body || "");
+        if (content === null) return;
+        const category = window.prompt("News category:", item.category || "music");
+        if (category === null) return;
+        if (!title.trim() || !content.trim()) return toast("Title and story cannot be empty.");
+        button.disabled = true;
+        try {
+          await api("/api/admin/news/" + encodeURIComponent(item.id), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: title.trim(), content: content.trim(), category: category.trim() || "music" })
+          });
+          toast("News article updated.");
+          await loadNews();
+        } catch (error) {
+          toast(error.message || "Could not update news article.");
+          button.disabled = false;
+        }
+      });
+    });
     await Promise.all(news.map((item) => loadNewsComments(item.id)));
     // Open a shared story when its hash is present.
     const sharedNewsId = new URLSearchParams(window.location.search).get("news");
