@@ -198,6 +198,14 @@
           <input id="ownerUserSearch" type="search" placeholder="Search by name, email or role">
         </label>
 
+        
+        <section class="panel" id="ownerRevenueRequests">
+          <h3>Revenue requests</h3>
+          <p class="muted">Review promotion enquiries, record agreed amounts and mark payments only after you verify them.</p>
+          <div id="ownerRevenueRequestList"><p class="muted">Revenue enquiries will appear here.</p></div>
+          <p id="ownerRevenueMsg" class="message"></p>
+        </section>
+
         <div id="ownerUsers">
           <p class="muted">Loading registered users...</p>
         </div>
@@ -356,6 +364,38 @@
   </form>
 </section>
 
+
+<section class="section revenue-section" id="revenue-services">
+  <div class="section-head">
+    <div><p class="eyebrow">GROW WITH PAYA</p><h2>Promote your music or brand</h2></div>
+    <span class="muted">Tell us what you need. We’ll contact you with the next steps.</span>
+  </div>
+  <div class="revenue-offers">
+    <article><h3>Website advertising</h3><p>Promote your business on Paya Music UG homepage and music pages.</p></article>
+    <article><h3>Featured artist</h3><p>Request a featured artist spotlight to introduce your music to more listeners.</p></article>
+    <article><h3>Music promotion</h3><p>Ask about song promotion and campaign support.</p></article>
+    <article><h3>Sponsored news</h3><p>Promote a release, event or music-related announcement through sponsored editorial content.</p></article>
+  </div>
+  <form id="revenueRequestForm" class="panel">
+    <h3>Request a Paya promotion service</h3>
+    <label>What do you want to promote?
+      <select name="service_type" required>
+        <option value="advertising">Website advertising</option>
+        <option value="featured_artist">Featured artist promotion</option>
+        <option value="music_promotion">Paid music promotion</option>
+        <option value="sponsored_news">Sponsored news article</option>
+      </select>
+    </label>
+    <label>Your name or business name<input name="customer_name" required maxlength="120" placeholder="Enter your name"></label>
+    <label>Email address<input name="contact_email" type="email" required maxlength="200" placeholder="you@example.com"></label>
+    <label>WhatsApp number<input name="contact_whatsapp" type="tel" maxlength="40" placeholder="Include country code"></label>
+    <label>What would you like us to promote?<textarea name="details" maxlength="2000" rows="4" placeholder="Artist name, song title, business, links, preferred dates or other details"></textarea></label>
+    <button class="gold-btn full" type="submit">Send promotion request</button>
+    <p class="fine">Sending a request is free and does not mean payment has been made. Paya will contact you to agree on the package, price and payment method.</p>
+    <p id="revenueRequestMsg" class="message" role="status"></p>
+  </form>
+</section>
+
 <section class="advertise-section" id="advertise">
   <div>
     <p class="eyebrow">REACH MUSIC LOVERS</p>
@@ -450,6 +490,7 @@
 
 <script src="/app.js?v=artwork-news-edit1"></script>
 <script src="/account-ui.js"></script>
+<script src="/revenue.js?v=1"></script>
 </body>
         </html>
         
