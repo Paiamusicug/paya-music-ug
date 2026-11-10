@@ -359,8 +359,8 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
 
     if (
       !file ||
-      !file.originalname.toLowerCase().endsWith(".mp3") ||
-      file.mimetype !== "audio/mpeg"
+      !String(file.originalname || "").toLowerCase().endsWith(".mp3") ||
+      !["audio/mpeg", "audio/mp3", "audio/x-mpeg", "audio/mpeg3", "audio/x-mpeg-3", "application/octet-stream", ""].includes(String(file.mimetype || "").toLowerCase())
     ) {
       return res.status(400).json({
         error: "Please upload an MP3 file"
@@ -438,7 +438,7 @@ app.get("/api/songs", async (req, res) => {
     // Fetch in small pages so every approved song is returned even when the
     // Supabase project's configured maximum response size is unusually low.
     let songs = [];
-    const pageSize = 10;
+    const pageSize = 1000;
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await request
         .order("created_at", { ascending: false })
