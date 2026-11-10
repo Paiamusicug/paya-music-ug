@@ -1019,6 +1019,51 @@ app.post("/api/songs/:id/like", async (req, res) => {
   }
 });
 
+
+// PAYA REVENUE REQUESTS: public enquiries, owner-managed manually (no online payment is claimed).
+app.post("/api/revenue-requests", async (req, res) => {
+  try {
+    const { service_type, customer_name, contact_email, contact_whatsapp, details } = req.body || {};
+    const allowed = ["advertising", "featured_artist", "music_promotion", "sponsored_news"];
+    if (!allowed.includes(service_type) || !String(customer_name || "").trim() || !String(contact_email || "").trim()) {
+      return res.status(400).json({ error: "Choose a service and enter your name and email." });
+    }
+    const { data, error } = await supabase.from("revenue_requests").insert({
+      service_type,
+      customer_name: String(customer_name).trim().slice(0, 120),
+      contact_email: String(contact_email).trim().slice(0, 200),
+      contact_whatsapp: String(contact_whatsapp || "").trim().slice(0, 40),
+      details: String(details || "").trim().slice(0, 2000),
+      status: "new"
+    }).select("id, service_type, status, created_at").single();
+    if (error) throw error;
+    res.status(201).json({ message: "Your request has been sent to Paya Music UG. We will contact you to discuss the package and price.", request: data });
+  } catch (error) {
+    console.error("Revenue request error:", error.message);
+    res.status(500).json({ error: "Could not send your request. Please try again." });
+  }
+});
+
+// OWNER: view and update revenue enquiries and manually verified payment status.
+app.get("/api/owner/revenue-requests", auth, owner, async (req, res) => {
+  const { data, error } = await supabase.from("revenue_requests").select("*").order("created_at", { ascending: false }).limit(200);
+  if (error) return res.status(500).json({ error: "Could not load revenue requests. Check the revenue_requests database setup." });
+  res.json({ requests: data || [] });
+});
+
+app.patch("/api/owner/revenue-requests/:id", auth, owner, async (req, res) => {
+  const allowed = ["new", "contacted", "paid", "completed", "rejected"];
+  const status = String(req.body.status || "");
+  if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid request status." });
+  const updates = { status, updated_at: new Date().toISOString() };
+  if (typeof req.body.owner_note === "string") updates.owner_note = req.body.owner_note.trim().slice(0, 1000);
+  if (typeof req.body.amount_agreed === "number" && Number.isFinite(req.body.amount_agreed) && req.body.amount_agreed >= 0) updates.amount_agreed = req.body.amount_agreed;
+  if (typeof req.body.payment_reference === "string") updates.payment_reference = req.body.payment_reference.trim().slice(0, 120);
+  const { data, error } = await supabase.from("revenue_requests").update(updates).eq("id", req.params.id).select().single();
+  if (error || !data) return res.status(500).json({ error: "Could not update this request." });
+  res.json({ request: data });
+});
+
 // PUBLIC ADVERT SUBMISSION
 app.post("/api/ads", async (req, res) => {
   try {
