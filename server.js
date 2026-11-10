@@ -89,6 +89,65 @@ app.use(helmet({
 }));
 
 app.use(express.json({ limit: "2mb" }));
+// DYNAMIC XML SITEMAP: include the homepage and all public songs/news.
+app.get("/sitemap.xml", async (req, res) => {
+  const siteUrl = "https://paya-music-ug.onrender.com";
+  const entries = [
+    { url: siteUrl + "/", lastmod: new Date().toISOString().slice(0, 10), priority: "1.0" }
+  ];
+
+  try {
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase
+        .from("songs")
+        .select("id, created_at")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + 999);
+      if (error) throw error;
+      for (const song of data || []) {
+        entries.push({
+          url: siteUrl + "/song/" + encodeURIComponent(song.id),
+          lastmod: song.created_at ? new Date(song.created_at).toISOString().slice(0, 10) : "",
+          priority: "0.8"
+        });
+      }
+      if (!data || data.length < 1000) break;
+    }
+
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabase
+        .from("news")
+        .select("id, published_at")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .range(offset, offset + 999);
+      if (error) throw error;
+      for (const article of data || []) {
+        entries.push({
+          url: siteUrl + "/news/" + encodeURIComponent(article.id),
+          lastmod: article.published_at ? new Date(article.published_at).toISOString().slice(0, 10) : "",
+          priority: "0.7"
+        });
+      }
+      if (!data || data.length < 1000) break;
+    }
+
+    const xmlEscape = (value) => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const urls = entries.map((entry) =>
+      "<url><loc>" + xmlEscape(entry.url) + "</loc>" +
+      (entry.lastmod ? "<lastmod>" + xmlEscape(entry.lastmod) + "</lastmod>" : "") +
+      "<priority>" + entry.priority + "</priority></url>"
+    ).join("");
+    res.set("Cache-Control", "public, max-age=900");
+    res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?>' +
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + "</urlset>");
+  } catch (error) {
+    console.error("Sitemap generation failed:", error);
+    res.status(503).type("text/plain").send("Sitemap temporarily unavailable");
+  }
+});
+
 app.use(express.static("public"));
 
 app.use(rateLimit({
