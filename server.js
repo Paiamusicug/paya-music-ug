@@ -9,6 +9,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { createClient } = require("@supabase/supabase-js");
 const { Readable } = require("stream");
+const { spawn } = require("child_process");
+const ffmpegPath = require("ffmpeg-static");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -30,6 +32,29 @@ const supabase = createClient(
 
 const MUSIC_BUCKET = "music";
 const IMAGE_BUCKET = "media";
+
+function convertM4aToMp3(inputBuffer) {
+  return new Promise((resolve, reject) => {
+    if (!ffmpegPath) return reject(new Error("Audio converter is unavailable"));
+    const ffmpeg = spawn(ffmpegPath, [
+      "-hide_banner", "-loglevel", "error",
+      "-i", "pipe:0",
+      "-vn", "-codec:a", "libmp3lame", "-b:a", "192k",
+      "-f", "mp3", "pipe:1"
+    ]);
+    const output = [];
+    const errors = [];
+    ffmpeg.stdout.on("data", chunk => output.push(chunk));
+    ffmpeg.stderr.on("data", chunk => errors.push(chunk));
+    ffmpeg.on("error", reject);
+    ffmpeg.on("close", code => {
+      if (code === 0 && output.length) return resolve(Buffer.concat(output));
+      reject(new Error(Buffer.concat(errors).toString("utf8").slice(0, 1000) || "M4A conversion failed"));
+    });
+    ffmpeg.stdin.on("error", () => {});
+    ffmpeg.stdin.end(inputBuffer);
+  });
+}
 
 async function getSongEventCounts(table, songIds) {
   const { data, error } = await supabase
@@ -357,14 +382,32 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     const coverFile = req.files?.cover_image?.[0] || null;
     const { title, artist, genre, description } = req.body;
 
-    if (
-      !file ||
-      !String(file.originalname || "").toLowerCase().endsWith(".mp3") ||
-      !["audio/mpeg", "audio/mp3", "audio/x-mpeg", "audio/mpeg3", "audio/x-mpeg-3", "application/octet-stream", ""].includes(String(file.mimetype || "").toLowerCase())
-    ) {
+    const originalName = String(file?.originalname || "");
+    const extension = originalName.toLowerCase().split(".").pop();
+    const isM4a = extension === "m4a";
+    const isMp3 = extension === "mp3";
+    const acceptedAudioTypes = [
+      "audio/mpeg", "audio/mp3", "audio/x-mpeg", "audio/mpeg3",
+      "audio/x-mpeg-3", "audio/mp4", "audio/x-m4a", "audio/m4a",
+      "application/octet-stream", "video/mp4", ""
+    ];
+
+    if (!file || (!isMp3 && !isM4a) || !acceptedAudioTypes.includes(String(file.mimetype || "").toLowerCase())) {
       return res.status(400).json({
-        error: "Please upload an MP3 file"
+        error: "Please upload an MP3 or M4A audio file"
       });
+    }
+
+    let audioBuffer = file.buffer;
+    if (isM4a) {
+      try {
+        audioBuffer = await convertM4aToMp3(file.buffer);
+      } catch (conversionError) {
+        console.error("M4A conversion error:", conversionError.message);
+        return res.status(400).json({
+          error: "This M4A file could not be converted. Please try another audio file."
+        });
+      }
     }
 
     if (!title || !artist) {
@@ -376,7 +419,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     const filename = `${Date.now()}-${req.user.id}.mp3`;
     let cover_url = null;
     let coverFilename = null;
-    const { error: storageError } = await supabase.storage.from(MUSIC_BUCKET).upload(filename, file.buffer, { contentType: "audio/mpeg", upsert: false });
+    const { error: storageError } = await supabase.storage.from(MUSIC_BUCKET).upload(filename, audioBuffer, { contentType: "audio/mpeg", upsert: false });
     if (storageError) throw storageError;
     if (coverFile) {
       if (!["image/jpeg", "image/png", "image/webp"].includes(coverFile.mimetype) || coverFile.size > 5 * 1024 * 1024) {
@@ -398,7 +441,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         filename,
         original_name: file.originalname,
         mime_type: "audio/mpeg",
-        size: file.size,
+        size: audioBuffer.length,
         uploader_id: req.user.id,
         status: "approved"
       })
