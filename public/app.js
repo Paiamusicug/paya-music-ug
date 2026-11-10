@@ -372,6 +372,7 @@ function renderSongs(items = []) {
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
           ${isAdmin() ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
+          ${isAdmin() ? `<button type="button" data-change-artwork="${id}">Change artwork</button>` : ""}
           ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
       </article>`;
@@ -404,6 +405,34 @@ function renderSongs(items = []) {
     });
   });
 
+  container.querySelectorAll("[data-change-artwork]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!isAdmin()) return toast("Admin access required.");
+      const songIdToUpdate = button.dataset.changeArtwork;
+      const picker = document.createElement("input");
+      picker.type = "file";
+      picker.accept = "image/jpeg,image/png,image/webp";
+      picker.addEventListener("change", async () => {
+        const file = picker.files?.[0];
+        if (!file) return;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) return toast("Choose a JPG, PNG, or WEBP image.");
+        if (file.size > 5 * 1024 * 1024) return toast("Artwork must be no larger than 5 MB.");
+        const formData = new FormData();
+        formData.append("cover_image", file);
+        button.disabled = true;
+        try {
+          await api("/api/admin/songs/" + encodeURIComponent(songIdToUpdate) + "/artwork", { method: "PATCH", body: formData });
+          toast("Song artwork updated successfully.");
+          await loadSongs($("#search")?.value || "");
+          await loadMine();
+        } catch (error) {
+          toast(error.message || "Could not update song artwork.");
+          button.disabled = false;
+        }
+      });
+      picker.click();
+    });
+  });
   container.querySelectorAll("[data-play]").forEach((button) => {
     button.addEventListener("click", () => {
       const song = items.find((item) => String(songId(item)) === button.dataset.play);
