@@ -752,3 +752,18 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .revenue-admin-item{padding:14px;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:#191b20}
 .revenue-admin-item p{overflow-wrap:anywhere}
 .revenue-admin-item select,.revenue-admin-item input,.revenue-admin-item textarea{width:100%;box-sizing:border-box;margin:6px 0 10px;padding:9px;background:#0e0f11;color:var(--white);border:1px solid #383a3e;border-radius:6px}
+
+
+/* Owner-managed public payment methods */
+#ownerPaymentSettings label{display:block;margin:12px 0;color:var(--muted);font-size:13px}
+#ownerPaymentSettings input:not([type=checkbox]),#ownerPaymentSettings select,#ownerPaymentSettings textarea{display:block;width:100%;box-sizing:border-box;margin-top:7px;padding:12px;background:#0e0f11;border:1px solid #383a3e;border-radius:6px;color:var(--white);font:inherit}
+#ownerPaymentSettings .payment-toggle{display:flex;align-items:center;gap:9px}
+#ownerPaymentSettings .payment-toggle input{width:auto}
+#ownerPaymentSettings button{margin:5px 6px 8px 0;padding:9px 13px;border:1px solid var(--line);border-radius:7px;background:#24262a;color:var(--white);cursor:pointer}
+.public-payment-methods{max-width:720px;margin:20px auto;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.public-payment-methods h3{margin-top:0;color:var(--gold)}
+.public-payment-methods .muted{color:var(--muted)}
+.public-payment-card{padding:14px;margin:10px 0;border:1px solid var(--line);border-radius:9px;background:#191b20;overflow-wrap:anywhere}
+.public-payment-card strong{display:block;color:var(--gold);margin-bottom:6px}
+.public-payment-card small{color:var(--muted)}
+.public-payment-card p{margin:6px 0;line-height:1.5}
