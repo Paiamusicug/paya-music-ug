@@ -495,6 +495,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         title: title.slice(0, 120),
         cover_url: cover_url || "/paya-default-cover.svg",
         artist: artist.slice(0, 120),
+        country: String(req.body.country || "").trim().slice(0, 80),
         genre: (genre || "").slice(0, 60),
         description: (description || "").slice(0, 500),
         filename,
@@ -531,12 +532,14 @@ app.get("/api/songs", async (req, res) => {
     const query = String(req.query.q || "").trim().slice(0, 100);
     let request = supabase
       .from("songs")
-      .select("id, title, artist, genre, description, cover_url, created_at, uploader_id")
+      .select("id, title, artist, country, genre, description, cover_url, created_at, uploader_id")
       .eq("status", "approved");
     if (query) {
       const safeQuery = query.replace(/[,%()]/g, " ").trim();
       if (safeQuery) request = request.or(`title.ilike.%${safeQuery}%,artist.ilike.%${safeQuery}%,genre.ilike.%${safeQuery}%`);
     }
+    const country = String(req.query.country || "").trim().slice(0, 80);
+    if (country) request = request.ilike("country", country);
     // Fetch in small pages so every approved song is returned even when the
     // Supabase project's configured maximum response size is unusually low.
     let songs = [];
@@ -722,11 +725,12 @@ app.get("/api/my-songs", auth, async (req, res) => {
 // ARTISTS: EDIT ONLY THEIR OWN SONG DETAILS
 app.patch("/api/my-songs/:id", auth, admin, async (req, res) => {
   try {
-    const { title, artist, genre, description } = req.body || {};
+    const { title, artist, genre, description, country } = req.body || {};
     const updates = {};
     if (typeof title === "string") updates.title = title.trim().slice(0, 120);
     if (typeof artist === "string") updates.artist = artist.trim().slice(0, 120);
     if (typeof genre === "string") updates.genre = genre.trim().slice(0, 60);
+    if (typeof country === "string") updates.country = country.trim().slice(0, 80);
     if (typeof description === "string") updates.description = description.trim().slice(0, 500);
     if (!updates.title || !updates.artist) {
       return res.status(400).json({ error: "Song title and artist are required" });
@@ -1645,12 +1649,12 @@ app.get("/api/owner/songs", auth, owner, async (req, res) => {
 
 app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
   try {
-    const { title, artist } = req.body || {};
+    const { title, artist, country } = req.body || {};
     if (typeof title !== "string" || !title.trim() || typeof artist !== "string" || !artist.trim()) {
       return res.status(400).json({ error: "Song title and artist are required" });
     }
     const { data, error } = await supabase.from("songs")
-      .update({ title: title.trim().slice(0, 120), artist: artist.trim().slice(0, 120) })
+      .update({ title: title.trim().slice(0, 120), artist: artist.trim().slice(0, 120), ...(typeof country === "string" ? { country: country.trim().slice(0, 80) } : {}) })
       .eq("id", req.params.id)
       .select()
       .maybeSingle();
