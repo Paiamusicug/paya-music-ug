@@ -1122,6 +1122,7 @@ app.patch("/api/owner/payment-methods/:id", auth, owner, async (req, res) => {
   try {
     const body = req.body || {};
     const updates = { updated_at: new Date().toISOString() };
+    if (typeof body.method_code === "string" && /^[a-z0-9_]+$/.test(body.method_code.trim())) updates.method_code = body.method_code.trim().slice(0, 60);
     if (typeof body.is_enabled === "boolean") updates.is_enabled = body.is_enabled;
     if (typeof body.is_published === "boolean") updates.is_published = body.is_published && body.is_enabled !== false;
     if (typeof body.display_name === "string") updates.display_name = body.display_name.trim().slice(0, 100);
