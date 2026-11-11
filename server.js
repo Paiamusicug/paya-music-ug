@@ -1064,6 +1064,81 @@ app.patch("/api/owner/revenue-requests/:id", auth, owner, async (req, res) => {
   res.json({ request: data });
 });
 
+
+/* PAYMENT METHODS: owner-managed manual payment instructions. */
+app.get("/api/payment-methods", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("payment_methods")
+      .select("id, method_code, display_name, country, account_name, account_number, instructions, sort_order")
+      .eq("is_enabled", true).eq("is_published", true)
+      .order("sort_order", { ascending: true }).order("display_name", { ascending: true });
+    if (error) throw error;
+    res.set("Cache-Control", "public, max-age=60");
+    res.json({ methods: data || [] });
+  } catch (error) {
+    console.error("Public payment methods error:", error.message);
+    res.status(500).json({ error: "Could not load payment methods." });
+  }
+});
+
+app.get("/api/owner/payment-methods", auth, owner, async (req, res) => {
+  const { data, error } = await supabase.from("payment_methods").select("*")
+    .order("sort_order", { ascending: true }).order("display_name", { ascending: true });
+  if (error) return res.status(500).json({ error: "Could not load payment settings. Check the payment_methods table." });
+  res.json({ methods: data || [] });
+});
+
+app.post("/api/owner/payment-methods", auth, owner, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const method_code = String(body.method_code || "").trim().toLowerCase().slice(0, 60);
+    const display_name = String(body.display_name || "").trim().slice(0, 100);
+    if (!/^[a-z0-9_]+$/.test(method_code) || !display_name) {
+      return res.status(400).json({ error: "Choose a payment method and enter its public name." });
+    }
+    const record = {
+      method_code,
+      display_name,
+      country: String(body.country || "").trim().slice(0, 80),
+      account_name: String(body.account_name || "").trim().slice(0, 120),
+      account_number: String(body.account_number || "").trim().slice(0, 120),
+      instructions: String(body.instructions || "").trim().slice(0, 1000),
+      is_enabled: body.is_enabled === true,
+      is_published: body.is_enabled === true && body.is_published === true,
+      sort_order: Number.isFinite(Number(body.sort_order)) ? Math.max(0, Math.min(9999, Number(body.sort_order))) : 0,
+      updated_at: new Date().toISOString()
+    };
+    const { data, error } = await supabase.from("payment_methods")
+      .upsert(record, { onConflict: "method_code" }).select().single();
+    if (error) throw error;
+    res.json({ message: "Payment method saved.", method: data });
+  } catch (error) {
+    console.error("Payment method save error:", error.message);
+    res.status(500).json({ error: "Could not save this payment method." });
+  }
+});
+
+app.patch("/api/owner/payment-methods/:id", auth, owner, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const updates = { updated_at: new Date().toISOString() };
+    if (typeof body.is_enabled === "boolean") updates.is_enabled = body.is_enabled;
+    if (typeof body.is_published === "boolean") updates.is_published = body.is_published && body.is_enabled !== false;
+    if (typeof body.display_name === "string") updates.display_name = body.display_name.trim().slice(0, 100);
+    if (typeof body.country === "string") updates.country = body.country.trim().slice(0, 80);
+    if (typeof body.account_name === "string") updates.account_name = body.account_name.trim().slice(0, 120);
+    if (typeof body.account_number === "string") updates.account_number = body.account_number.trim().slice(0, 120);
+    if (typeof body.instructions === "string") updates.instructions = body.instructions.trim().slice(0, 1000);
+    const { data, error } = await supabase.from("payment_methods").update(updates)
+      .eq("id", req.params.id).select().single();
+    if (error || !data) return res.status(404).json({ error: "Payment method not found or could not be updated." });
+    res.json({ message: "Payment settings updated.", method: data });
+  } catch (error) {
+    console.error("Payment method update error:", error.message);
+    res.status(500).json({ error: "Could not update this payment method." });
+  }
+});
+
 // PUBLIC ADVERT SUBMISSION
 app.post("/api/ads", async (req, res) => {
   try {
