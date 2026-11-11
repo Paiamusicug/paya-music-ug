@@ -399,6 +399,8 @@ function renderSongs(items = []) {
       if (title === null) return;
       const artist = window.prompt("Artist name:", songArtist(song));
       if (artist === null) return;
+      const country = window.prompt("Artist's country:", song.country || "");
+      if (country === null) return;
       button.disabled = true;
       try {
         const ownerEditing = isOwner();
@@ -407,7 +409,7 @@ function renderSongs(items = []) {
           : `/api/my-songs/${encodeURIComponent(songId(song))}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, artist, genre: song.genre || "", description: song.description || "" })
+          body: JSON.stringify({ title, artist, country, genre: song.genre || "", description: song.description || "" })
         });
         toast("Song details updated.");
         await Promise.all([loadSongs($("#search")?.value || ""), loadMine()]);
@@ -552,7 +554,8 @@ async function loadSongs(query = "") {
   const sort = $("#songSort")?.value || "newest";
   if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
   try {
-    const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}`);
+    const country = $("#countryFilter")?.value || "";
+    const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`);
     catalogueSongs = result.songs || [];
     renderMusicHome(catalogueSongs);
     renderSongs(catalogueSongs);
@@ -1136,6 +1139,8 @@ bindForm("#adForm", async (form) => {
 const search = $("#search");
 const searchBtn = $("#searchBtn");
 if (searchBtn) searchBtn.addEventListener("click", () => loadSongs(search?.value || ""));
+const countryFilter = $("#countryFilter");
+if (countryFilter) countryFilter.addEventListener("change", () => loadSongs(search?.value || ""));
 if (search) {
   let searchTimer;
   search.addEventListener("input", () => {
