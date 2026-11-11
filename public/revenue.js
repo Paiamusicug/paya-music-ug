@@ -65,9 +65,10 @@
   }
 
   const paymentForm = $("#ownerPaymentMethodForm");
+  let editingPaymentId = null;
   const paymentList = $("#ownerPaymentMethodList");
   const paymentMsg = $("#ownerPaymentMsg");
-  function resetPaymentForm() { paymentForm?.reset(); if (paymentForm) paymentForm.elements.sort_order.value = "0"; }
+  function resetPaymentForm() { editingPaymentId = null; paymentForm?.reset(); if (paymentForm) paymentForm.elements.sort_order.value = "0"; }
   function renderOwnerPaymentMethods(methods) {
     if (!paymentList) return;
     if (!methods.length) { paymentList.innerHTML = '<p class="muted">No payment methods added yet.</p>'; return; }
@@ -82,6 +83,7 @@
     paymentList.querySelectorAll("[data-edit-payment]").forEach(button => button.addEventListener("click", () => {
       const method = methods.find(item => String(item.id) === button.closest("[data-payment-id]").dataset.paymentId);
       if (!method || !paymentForm) return;
+      editingPaymentId = method.id;
       for (const field of ["method_code","display_name","country","account_name","account_number","instructions","sort_order"]) {
         if (paymentForm.elements[field]) paymentForm.elements[field].value = method[field] ?? "";
       }
@@ -124,9 +126,13 @@
       payload.is_enabled = paymentForm.elements.is_enabled.checked;
       payload.is_published = paymentForm.elements.is_published.checked;
       payload.sort_order = Number(payload.sort_order || 0);
-      const result = await api("/api/owner/payment-methods", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
-      });
+      const result = editingPaymentId
+        ? await api("/api/owner/payment-methods/" + encodeURIComponent(editingPaymentId), {
+            method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+          })
+        : await api("/api/owner/payment-methods", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+          });
       if (paymentMsg) paymentMsg.textContent = result.message || "Payment method saved.";
       resetPaymentForm();
       await loadOwnerPaymentMethods();
