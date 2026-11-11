@@ -767,3 +767,11 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .public-payment-card strong{display:block;color:var(--gold);margin-bottom:6px}
 .public-payment-card small{color:var(--muted)}
 .public-payment-card p{margin:6px 0;line-height:1.5}
+
+
+/* Make an existing session obvious when someone opens the shared artist-registration link. */
+.registration-session-notice{
+  margin:12px 0 16px;padding:13px 15px;border:1px solid var(--gold);
+  border-radius:9px;background:#292316;color:#f5dfad;font-size:13px;line-height:1.55;
+}
+.registration-session-notice[hidden]{display:none!important}
