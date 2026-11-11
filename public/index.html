@@ -206,6 +206,37 @@
           <p id="ownerRevenueMsg" class="message"></p>
         </section>
 
+
+        <section class="panel" id="ownerPaymentSettings">
+          <h3>Payment settings</h3>
+          <p class="muted">Add your payment numbers and instructions. Enable a method and publish it when you want customers to see it.</p>
+          <form id="ownerPaymentMethodForm">
+            <label>Payment method
+              <select name="method_code" required>
+                <option value="mtn_uganda">MTN Mobile Money — Uganda</option>
+                <option value="airtel_uganda">Airtel Money — Uganda</option>
+                <option value="mpesa_kenya">Safaricom M-Pesa — Kenya</option>
+                <option value="airtel_kenya">Airtel Money — Kenya</option>
+                <option value="bank_transfer">Bank transfer</option>
+                <option value="visa_mastercard">Visa / Mastercard instructions</option>
+                <option value="other">Other payment method</option>
+              </select>
+            </label>
+            <label>Public display name<input name="display_name" required maxlength="100" placeholder="e.g. Paya MTN Mobile Money"></label>
+            <label>Country<input name="country" maxlength="80" placeholder="e.g. Uganda"></label>
+            <label>Account / recipient name<input name="account_name" maxlength="120" placeholder="Name registered to the account"></label>
+            <label>Phone number or account details<input name="account_number" maxlength="120" placeholder="Enter the number or account details"></label>
+            <label>Payment instructions<textarea name="instructions" rows="3" maxlength="1000" placeholder="Explain what the customer should enter as payment reference"></textarea></label>
+            <label>Display order<input name="sort_order" type="number" min="0" max="9999" value="0"></label>
+            <label class="payment-toggle"><input name="is_enabled" type="checkbox"> Enable this payment method</label>
+            <label class="payment-toggle"><input name="is_published" type="checkbox"> Publish it publicly on the website</label>
+            <button class="gold-btn" type="submit">Save payment method</button>
+            <button id="ownerPaymentReset" type="button">Clear form</button>
+            <p id="ownerPaymentMsg" class="message" role="status"></p>
+          </form>
+          <div id="ownerPaymentMethodList"><p class="muted">Loading payment methods…</p></div>
+        </section>
+
         <div id="ownerUsers">
           <p class="muted">Loading registered users...</p>
         </div>
@@ -376,6 +407,12 @@
     <article><h3>Music promotion</h3><p>Ask about song promotion and campaign support.</p></article>
     <article><h3>Sponsored news</h3><p>Promote a release, event or music-related announcement through sponsored editorial content.</p></article>
   </div>
+
+  <section class="public-payment-methods" id="publicPaymentMethods">
+    <h3>Payment options</h3>
+    <p class="muted">Available payment methods will appear here when Paya Music UG publishes them.</p>
+    <div id="publicPaymentMethodList"><p class="muted">Loading payment options…</p></div>
+  </section>
   <form id="revenueRequestForm" class="panel">
     <h3>Request a Paya promotion service</h3>
     <label>What do you want to promote?
@@ -490,7 +527,7 @@
 
 <script src="/app.js?v=artwork-news-edit1"></script>
 <script src="/account-ui.js"></script>
-<script src="/revenue.js?v=1"></script>
+<script src="/revenue.js?v=2"></script>
 </body>
         </html>
         
