@@ -123,6 +123,19 @@ function updateAccountUI() {
   const registerForm = $("#registerForm");
   const loginForm = $("#loginForm");
   const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
+  const registrationSessionNotice = $("#registrationSessionNotice");
+  if (registrationSessionNotice) {
+    if (registrationOnly && currentUser) {
+      const signedInName = currentUser.name || currentUser.username || currentUser.email || "your account";
+      const signedInRole = String(currentUser.role || "user").toLowerCase();
+      const roleName = signedInRole === "owner" ? "Owner" : signedInRole === "admin" ? "Admin" : "Artist account";
+      registrationSessionNotice.textContent = `You are already signed in as ${signedInName} (${roleName}). This is the shared artist-registration page; your account is still signed in. Sign out before testing a new artist registration.`;
+      registrationSessionNotice.hidden = false;
+    } else {
+      registrationSessionNotice.textContent = "";
+      registrationSessionNotice.hidden = true;
+    }
+  }
 
   // A shareable artist-registration view that never exposes the signed-in
   // owner's profile/dashboard and does not replace the owner's local session.
