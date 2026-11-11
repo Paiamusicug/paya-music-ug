@@ -39,6 +39,103 @@
     }
   });
 
+
+  // Public payment options and owner payment settings.
+  const publicPaymentList = $("#publicPaymentMethodList");
+  async function loadPublicPaymentMethods() {
+    if (!publicPaymentList) return;
+    try {
+      const result = await api("/api/payment-methods");
+      const methods = result.methods || [];
+      if (!methods.length) {
+        publicPaymentList.innerHTML = '<p class="muted">Paya Music UG has not published payment details yet.</p>';
+        return;
+      }
+      publicPaymentList.innerHTML = methods.map(method => `
+        <article class="public-payment-card">
+          <strong>${esc(method.display_name)}</strong>
+          ${method.country ? '<small>' + esc(method.country) + '</small>' : ''}
+          ${method.account_name ? '<p>Account name: <b>' + esc(method.account_name) + '</b></p>' : ''}
+          ${method.account_number ? '<p>Number / account: <b>' + esc(method.account_number) + '</b></p>' : ''}
+          ${method.instructions ? '<p>${esc(method.instructions)}</p>' : ''}
+        </article>`).join("");
+    } catch (error) {
+      publicPaymentList.innerHTML = '<p class="muted">Payment options are temporarily unavailable.</p>';
+    }
+  }
+
+  const paymentForm = $("#ownerPaymentMethodForm");
+  const paymentList = $("#ownerPaymentMethodList");
+  const paymentMsg = $("#ownerPaymentMsg");
+  function resetPaymentForm() { paymentForm?.reset(); if (paymentForm) paymentForm.elements.sort_order.value = "0"; }
+  function renderOwnerPaymentMethods(methods) {
+    if (!paymentList) return;
+    if (!methods.length) { paymentList.innerHTML = '<p class="muted">No payment methods added yet.</p>'; return; }
+    paymentList.innerHTML = methods.map(method => `
+      <article class="revenue-admin-item payment-admin-item" data-payment-id="${esc(method.id)}">
+        <strong>${esc(method.display_name)}</strong>
+        <p>${esc(method.country || "")} · ${esc(method.account_number || "No number entered")}</p>
+        <p>Enabled: <b>${method.is_enabled ? "Yes" : "No"}</b> · Public: <b>${method.is_published ? "Yes" : "No"}</b></p>
+        <button type="button" data-edit-payment>Edit details</button>
+        <button type="button" data-toggle-payment>${method.is_published ? "Unpublish" : "Publish"}</button>
+      </article>`).join("");
+    paymentList.querySelectorAll("[data-edit-payment]").forEach(button => button.addEventListener("click", () => {
+      const method = methods.find(item => String(item.id) === button.closest("[data-payment-id]").dataset.paymentId);
+      if (!method || !paymentForm) return;
+      for (const field of ["method_code","display_name","country","account_name","account_number","instructions","sort_order"]) {
+        if (paymentForm.elements[field]) paymentForm.elements[field].value = method[field] ?? "";
+      }
+      paymentForm.elements.is_enabled.checked = !!method.is_enabled;
+      paymentForm.elements.is_published.checked = !!method.is_published;
+      paymentForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+    paymentList.querySelectorAll("[data-toggle-payment]").forEach(button => button.addEventListener("click", async () => {
+      const method = methods.find(item => String(item.id) === button.closest("[data-payment-id]").dataset.paymentId);
+      if (!method) return;
+      button.disabled = true;
+      try {
+        await api("/api/owner/payment-methods/" + encodeURIComponent(method.id), {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_enabled: true, is_published: !method.is_published })
+        });
+        await loadOwnerPaymentMethods();
+        await loadPublicPaymentMethods();
+        if (paymentMsg) paymentMsg.textContent = method.is_published ? "Payment method unpublished." : "Payment method published.";
+      } catch (error) { if (paymentMsg) paymentMsg.textContent = error.message; }
+      finally { button.disabled = false; }
+    }));
+  }
+  async function loadOwnerPaymentMethods() {
+    if (!paymentList || user()?.role !== "owner" || !token()) return;
+    paymentList.innerHTML = '<p class="muted">Loading payment methods…</p>';
+    try {
+      const result = await api("/api/owner/payment-methods");
+      renderOwnerPaymentMethods(result.methods || []);
+    } catch (error) { paymentList.innerHTML = '<p class="error">' + esc(error.message) + '</p>'; }
+  }
+  if (paymentForm) paymentForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = paymentForm.querySelector('button[type="submit"]');
+    if (button) { button.disabled = true; button.textContent = "Saving…"; }
+    if (paymentMsg) paymentMsg.textContent = "";
+    try {
+      const formData = new FormData(paymentForm);
+      const payload = Object.fromEntries(formData.entries());
+      payload.is_enabled = paymentForm.elements.is_enabled.checked;
+      payload.is_published = paymentForm.elements.is_published.checked;
+      payload.sort_order = Number(payload.sort_order || 0);
+      const result = await api("/api/owner/payment-methods", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      });
+      if (paymentMsg) paymentMsg.textContent = result.message || "Payment method saved.";
+      resetPaymentForm();
+      await loadOwnerPaymentMethods();
+      await loadPublicPaymentMethods();
+    } catch (error) { if (paymentMsg) paymentMsg.textContent = error.message; }
+    finally { if (button) { button.disabled = false; button.textContent = "Save payment method"; } }
+  });
+  $("#ownerPaymentReset")?.addEventListener("click", resetPaymentForm);
+
   const list = $("#ownerRevenueRequestList");
   async function loadOwnerRequests() {
     if (!list || user()?.role !== "owner" || !token()) return;
@@ -100,14 +197,16 @@
       list.innerHTML = '<p class="error">' + esc(error.message) + '</p>';
     }
   }
-  window.addEventListener("focus", loadOwnerRequests);
-  window.addEventListener("storage", loadOwnerRequests);
+  window.addEventListener("focus", () => { loadOwnerRequests(); loadOwnerPaymentMethods(); loadPublicPaymentMethods(); });
+  window.addEventListener("storage", () => { loadOwnerRequests(); loadOwnerPaymentMethods(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadOwnerRequests(); });
   document.addEventListener("DOMContentLoaded", () => {
     loadOwnerRequests();
+    loadOwnerPaymentMethods();
+    loadPublicPaymentMethods();
     let attempts = 0;
     const waitForOwnerSession = () => {
-      if (user()?.role === "owner" && token()) { loadOwnerRequests(); return; }
+      if (user()?.role === "owner" && token()) { loadOwnerRequests(); loadOwnerPaymentMethods(); return; }
       if (++attempts < 20) setTimeout(waitForOwnerSession, 500);
     };
     waitForOwnerSession();
