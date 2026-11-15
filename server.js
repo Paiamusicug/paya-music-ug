@@ -96,12 +96,13 @@ app.get("/sitemap.xml", async (req, res) => {
   const entries = [
     { url: siteUrl + "/", lastmod: new Date().toISOString().slice(0, 10), priority: "1.0" }
   ];
+  const artistIds = new Set();
 
   try {
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabase
         .from("songs")
-        .select("id, created_at")
+        .select("id, created_at, uploader_id")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
         .range(offset, offset + 999);
@@ -112,8 +113,16 @@ app.get("/sitemap.xml", async (req, res) => {
           lastmod: song.created_at ? new Date(song.created_at).toISOString().slice(0, 10) : "",
           priority: "0.8"
         });
+        if (song.uploader_id) artistIds.add(song.uploader_id);
       }
       if (!data || data.length < 1000) break;
+    }
+
+    for (const artistId of artistIds) {
+      entries.push({
+        url: siteUrl + "/artist/" + encodeURIComponent(artistId),
+        priority: "0.7"
+      });
     }
 
     for (let offset = 0; ; offset += 1000) {
@@ -689,6 +698,125 @@ app.get("/news/:id", async (req, res) => {
   } catch (error) {
     console.error("News share page error:", error);
     res.status(500).send("Could not open news story");
+  }
+});
+
+// PUBLIC ARTIST PROFILE PAGES: shareable profile, biography and published catalogue.
+app.get("/artist/:id", async (req, res) => {
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("id, name, bio, avatar_url")
+      .eq("id", req.params.id)
+      .maybeSingle();
+    if (profileError || !profile) return res.status(404).send("Artist not found");
+
+    let songs = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await supabase
+        .from("songs")
+        .select("id, title, artist, description, cover_url, genre, country, created_at")
+        .eq("uploader_id", profile.id)
+        .eq("status", "approved")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + 499);
+      if (error) throw error;
+      songs.push(...(data || []));
+      if (!data || data.length < 500) break;
+    }
+
+    const siteUrl = "https://paya-music-ug.onrender.com";
+    const pageUrl = siteUrl + "/artist/" + encodeURIComponent(profile.id);
+    const artistName = String(profile.name || "Paya Artist");
+    const bio = String(profile.bio || ("Discover music and releases by " + artistName + " on Paya Music UG."));
+    const imageUrl = (() => {
+      try {
+        const candidate = new URL(profile.avatar_url || "/paya-default-cover.svg", siteUrl);
+        return candidate.protocol === "https:" || candidate.origin === siteUrl
+          ? candidate.href : siteUrl + "/paya-default-cover.svg";
+      } catch {
+        return siteUrl + "/paya-default-cover.svg";
+      }
+    })();
+    const safeName = escapeHTML(artistName);
+    const safeBio = escapeHTML(bio);
+    const safeImage = escapeHTML(imageUrl);
+    const safePageUrl = escapeHTML(pageUrl);
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "MusicGroup",
+      "name": artistName,
+      "description": bio,
+      "image": imageUrl,
+      "url": pageUrl,
+      "genre": [...new Set(songs.map(song => song.genre).filter(Boolean))],
+      "track": songs.slice(0, 50).map(song => ({
+        "@type": "MusicRecording",
+        "name": song.title,
+        "url": siteUrl + "/song/" + encodeURIComponent(song.id)
+      }))
+    };
+    const safeStructuredData = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+    const songCards = songs.length ? songs.map(song => {
+      const songTitle = escapeHTML(song.title || "Untitled song");
+      const creditedArtist = escapeHTML(song.artist || artistName);
+      let cover = siteUrl + "/paya-default-cover.svg";
+      try {
+        const candidate = new URL(song.cover_url || "/paya-default-cover.svg", siteUrl);
+        if (candidate.protocol === "https:" || candidate.origin === siteUrl) cover = candidate.href;
+      } catch {}
+      const safeCover = escapeHTML(cover);
+      const streamUrl = "/api/songs/" + encodeURIComponent(song.id) + "/stream";
+      const downloadUrl = "/api/songs/" + encodeURIComponent(song.id) + "/download";
+      const songPageUrl = "/song/" + encodeURIComponent(song.id);
+      return `<article class="track">
+        <img src="${safeCover}" alt="${songTitle} cover" loading="lazy">
+        <div class="track-info"><h2><a href="${songPageUrl}">${songTitle}</a></h2>
+        <p>${creditedArtist}${song.genre ? " · " + escapeHTML(song.genre) : ""}${song.country ? " · " + escapeHTML(song.country) : ""}</p>
+        <audio controls preload="none" src="${streamUrl}">Audio playback is not supported by this browser.</audio>
+        </div><a class="download" href="${downloadUrl}" rel="nofollow">Download</a>
+      </article>`;
+    }).join("") : '<p class="empty">No published songs yet. Check back for new releases.</p>';
+
+    res.set("Cache-Control", "public, max-age=300");
+    res.type("html").send(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeName} | Artist Profile | Paya Music UG</title>
+<meta name="description" content="${safeBio.slice(0, 180)}"><meta name="robots" content="index,follow">
+<link rel="canonical" href="${safePageUrl}">
+<meta property="og:type" content="profile"><meta property="og:site_name" content="Paya Music UG">
+<meta property="og:title" content="${safeName} | Paya Music UG"><meta property="og:description" content="${safeBio.slice(0, 180)}">
+<meta property="og:url" content="${safePageUrl}"><meta property="og:image" content="${safeImage}">
+<meta property="og:image:alt" content="${safeName} profile picture">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${safeName} | Paya Music UG">
+<meta name="twitter:description" content="${safeBio.slice(0, 180)}"><meta name="twitter:image" content="${safeImage}">
+<script type="application/ld+json">${safeStructuredData}</script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;padding:24px 16px}
+main{max-width:980px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
+.top a,.download,.back{color:#e8c36d;text-decoration:none}.brand{font-weight:800;letter-spacing:.08em}
+.profile{display:flex;align-items:center;gap:24px;padding:26px;border:1px solid #34363a;border-radius:18px;background:#17191d}
+.avatar{width:150px;height:150px;flex:0 0 150px;object-fit:cover;border-radius:50%;border:3px solid #d5aa4e;background:#25272b}
+h1{font-size:clamp(26px,5vw,42px);margin:0 0 10px}.bio{color:#c3c3c3;line-height:1.7;margin:0;white-space:pre-wrap}
+.catalogue{margin-top:34px}.catalogue-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.catalogue h2{font-size:24px}.count{color:#d8b96e;font-size:13px}
+.track{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 0;border-bottom:1px solid #303238}
+.track img{width:86px;height:86px;object-fit:cover;border-radius:9px}.track-info{min-width:0}
+.track-info h2{font-size:17px;margin:0 0 6px}.track-info h2 a{color:#f5f2eb;text-decoration:none}
+.track-info p{color:#aaa;font-size:13px;margin:0 0 10px}.track audio{width:100%;max-width:480px;height:38px}
+.download{padding:10px 13px;border:1px solid #66532e;border-radius:999px;font-size:12px;font-weight:700}
+.empty{color:#aaa;padding:22px 0}footer{margin-top:36px;padding-top:18px;border-top:1px solid #303238;color:#999;font-size:13px}
+@media(max-width:600px){body{padding:16px 12px}.profile{padding:17px;gap:14px;align-items:flex-start}.avatar{width:88px;height:88px;flex-basis:88px}.bio{font-size:13px}.track{grid-template-columns:68px minmax(0,1fr);gap:11px}.track img{width:68px;height:68px}.track-info h2{font-size:15px}.track audio{width:100%}.download{grid-column:2;justify-self:start;padding:8px 11px}}
+</style></head><body><main>
+<nav class="top"><a class="brand" href="/">PAYA MUSIC UG</a><a href="/">Discover music</a></nav>
+<header class="profile"><img class="avatar" src="${safeImage}" alt="${safeName} profile picture" width="300" height="300">
+<div><p class="count">PUBLIC ARTIST PROFILE</p><h1>${safeName}</h1><p class="bio">${safeBio}</p></div></header>
+<section class="catalogue"><div class="catalogue-head"><h2>Music by ${safeName}</h2><span class="count">${songs.length} published ${songs.length === 1 ? "song" : "songs"}</span></div>${songCards}</section>
+<footer><a class="back" href="/">Discover more music on Paya Music UG</a></footer>
+</main></body></html>`);
+  } catch (error) {
+    console.error("Artist profile page error:", error);
+    res.status(500).send("Could not load artist profile");
   }
 });
 
