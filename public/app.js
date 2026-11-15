@@ -391,10 +391,11 @@ function renderSearchArtistProfiles(items = [], query = "") {
       <img class="search-artist-avatar" src="${escapeHTML(avatar)}" alt="${escapeHTML(name)} profile picture">
       <div class="search-artist-info">
         <p class="eyebrow">ARTIST PROFILE</p>
-        <h3>${escapeHTML(name)}</h3>
+        <h3><a class="artist-profile-link" href="${profile.id ? "/artist/" + encodeURIComponent(profile.id) : "#"}">${escapeHTML(name)}</a></h3>
         ${details ? `<p class="search-artist-details">${details}</p>` : ""}
         <p class="search-artist-bio">${escapeHTML(bio)}</p>
         <small>${artist.songs.length} matching ${artist.songs.length === 1 ? "song" : "songs"}</small>
+        ${profile.id ? `<a class="artist-profile-open" href="/artist/${encodeURIComponent(profile.id)}">Open artist profile →</a>` : ""}
       </div>
     </article>`;
   });
