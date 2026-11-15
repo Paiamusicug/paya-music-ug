@@ -628,7 +628,21 @@ app.get("/api/songs", async (req, res) => {
       songs = songs.map((song) => ({ ...song, likes: likeCounts.get(song.id) || 0 }));
       if (sort === "liked") songs.sort((a, b) => b.likes - a.likes || new Date(b.created_at) - new Date(a.created_at));
     }
-    res.json({ songs });
+    // Attach only public artist-profile fields to songs uploaded by registered artists.
+    const uploaderIds = [...new Set(songs.map((song) => song.uploader_id).filter(Boolean))];
+    let profilesById = new Map();
+    if (uploaderIds.length) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("users")
+        .select("id, name, bio, avatar_url")
+        .in("id", uploaderIds);
+      if (!profilesError) profilesById = new Map((profiles || []).map((profile) => [profile.id, profile]));
+    }
+    const songsWithProfiles = songs.map((song) => ({
+      ...song,
+      artist_profile: song.uploader_id ? (profilesById.get(song.uploader_id) || null) : null
+    }));
+    res.json({ songs: songsWithProfiles });
   } catch (error) {
     res.status(500).json({
       error: "Could not load songs"
