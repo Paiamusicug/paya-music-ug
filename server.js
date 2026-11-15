@@ -2,6 +2,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const crypto = require("crypto");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const multer = require("multer");
@@ -475,6 +476,57 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
       });
     }
 
+    const isRemix = ["true", "1", "yes", "on", "remix"].includes(
+      String(req.body.is_remix || req.body.version_type || "").trim().toLowerCase()
+    );
+    const cleanTitle = String(title).trim().slice(0, 120);
+    const cleanArtist = String(artist).trim().slice(0, 120);
+    const audioSha256 = crypto.createHash("sha256").update(audioBuffer).digest("hex");
+
+    // Block identical audio even if the uploader renames the file.
+    const { data: identicalAudio, error: hashCheckError } = await supabase
+      .from("songs")
+      .select("id, title, artist")
+      .eq("audio_sha256", audioSha256)
+      .eq("status", "approved")
+      .limit(1)
+      .maybeSingle();
+
+    if (hashCheckError) throw hashCheckError;
+    if (identicalAudio) {
+      return res.status(409).json({
+        error: "This exact audio file is already published. Upload a genuinely different recording or remix."
+      });
+    }
+
+    // Block the same title by the same artist, unless it is explicitly marked as a remix.
+    if (!isRemix) {
+      const { data: matchingSongs, error: titleCheckError } = await supabase
+        .from("songs")
+        .select("id, title, artist")
+        .eq("status", "approved")
+        .ilike("title", cleanTitle)
+        .ilike("artist", cleanArtist)
+        .limit(20);
+
+      if (titleCheckError) throw titleCheckError;
+      const normalizeSongText = (value) => String(value || "").normalize("NFKC").trim().replace(/\\s+/g, " ").toLowerCase();
+      const duplicate = (matchingSongs || []).find(song =>
+        normalizeSongText(song.title) === normalizeSongText(cleanTitle) &&
+        normalizeSongText(song.artist) === normalizeSongText(cleanArtist)
+      );
+
+      if (duplicate) {
+        return res.status(409).json({
+          error: "This song title by this artist is already published. If this is a genuine remix, select the Remix option and upload a different audio recording."
+        });
+      }
+    }
+
+    const publishedTitle = isRemix && !/\\bremix\\b/i.test(cleanTitle)
+      ? `${cleanTitle} (Remix)`
+      : cleanTitle;
+
     const filename = `${Date.now()}-${req.user.id}.mp3`;
     let cover_url = null;
     let coverFilename = null;
@@ -492,9 +544,9 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
       cover_url = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(coverFilename).data.publicUrl;
     }
     const { data, error } = await supabase.from("songs").insert({
-        title: title.slice(0, 120),
+        title: publishedTitle,
         cover_url: cover_url || "/paya-default-cover.svg",
-        artist: artist.slice(0, 120),
+        artist: cleanArtist,
         country: String(req.body.country || "").trim().slice(0, 80),
         genre: (genre || "").slice(0, 60),
         description: (description || "").slice(0, 500),
@@ -502,6 +554,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         original_name: file.originalname,
         mime_type: "audio/mpeg",
         size: audioBuffer.length,
+        audio_sha256: audioSha256,
         uploader_id: req.user.id,
         status: "approved"
       })
