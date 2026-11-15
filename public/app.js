@@ -94,12 +94,29 @@ function saveSession(user, newToken) {
 }
 
 function clearSession() {
+  // Remove the signed-in credentials and cached account profile immediately.
   token = "";
   currentUser = null;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+
+  // Clear account-only form fields and visible personal account details.
+  $("#profileEditor input, #profileEditor textarea, #profileEditor select, #userPanel input, #userPanel textarea").forEach((field) => {
+    if (field.type === "file") field.value = "";
+    else if (field.type !== "checkbox" && field.type !== "radio") field.value = "";
+  });
   updateAccountUI();
 }
+
+// Keep other open tabs on this device signed out too.
+window.addEventListener("storage", (event) => {
+  if (event.key === TOKEN_KEY && !event.newValue) {
+    token = "";
+    currentUser = null;
+    localStorage.removeItem(USER_KEY);
+    window.location.reload();
+  }
+});
 
 function isAdmin() {
   return ["admin", "owner"].includes(String(currentUser?.role || "").toLowerCase());
@@ -1083,9 +1100,8 @@ if (headerLogoutButton) headerLogoutButton.addEventListener("click", () => $("#l
 const logout = $("#logout");
 if (logout) logout.addEventListener("click", () => {
   clearSession();
-  toast("You have logged out.");
-  loadPendingSongs();
-  loadPendingAds();
+  // Reload immediately so private account panels and cached page content disappear.
+  window.location.replace("/");
 });
 
 bindForm("#uploadForm", async (form) => {
