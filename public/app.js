@@ -101,7 +101,7 @@ function clearSession() {
   localStorage.removeItem(USER_KEY);
 
   // Clear account-only form fields and visible personal account details.
-  $("#profileEditor input, #profileEditor textarea, #profileEditor select, #userPanel input, #userPanel textarea").forEach((field) => {
+  $$("#profileEditor input, #profileEditor textarea, #profileEditor select, #userPanel input, #userPanel textarea").forEach((field) => {
     if (field.type === "file") field.value = "";
     else if (field.type !== "checkbox" && field.type !== "radio") field.value = "";
   });
