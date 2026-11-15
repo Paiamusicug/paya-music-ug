@@ -442,7 +442,7 @@ function renderSongs(items = []) {
         ${coverHTML}
         <div class="song-info">
           <h3>${title}</h3>
-          <p>${artist}</p>
+          <p>${song.artist_profile?.id ? `<a class="artist-profile-link" href="/artist/${encodeURIComponent(song.artist_profile.id)}">${artist}</a>` : artist}</p>
           <small class="song-stat-line"><button type="button" class="song-like-inline" data-like="${id}" aria-pressed="${savedLikes().includes(String(songId(song)))}">${savedLikes().includes(String(songId(song))) ? "♥ Liked" : "♡ Like"}</button><span data-like-count>${likes} likes</span><span>${plays} plays</span><span>${downloads} downloads</span></small>
         </div>
         <div class="song-actions">
