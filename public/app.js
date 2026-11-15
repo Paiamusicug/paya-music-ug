@@ -355,6 +355,53 @@ function songAudioUrl(song) {
   return song.audio_url || song.file_url || song.url || "";
 }
 
+function renderSearchArtistProfiles(items = [], query = "") {
+  const discover = $("#discover");
+  const songsContainer = $("#songs");
+  if (!discover || !songsContainer) return;
+  let section = $("#artistSearchProfiles");
+  if (!section) {
+    section = document.createElement("section");
+    section.id = "artistSearchProfiles";
+    section.className = "artist-search-profiles";
+    discover.insertBefore(section, songsContainer);
+  }
+  const cleanQuery = String(query || "").trim();
+  if (!cleanQuery || !items.length) {
+    section.innerHTML = "";
+    section.hidden = true;
+    return;
+  }
+  const groups = new Map();
+  items.forEach((song) => artistNames(songArtist(song)).forEach((name) => {
+    const key = name.toLocaleLowerCase();
+    if (!groups.has(key)) groups.set(key, { name, songs: [], profile: song.artist_profile || null, sample: song });
+    const group = groups.get(key);
+    group.songs.push(song);
+    if (!group.profile && song.artist_profile) group.profile = song.artist_profile;
+  }));
+  const cards = [...groups.values()].map((artist) => {
+    const profile = artist.profile || {};
+    const sample = artist.sample || {};
+    const avatar = profile.avatar_url || sample.cover_url || DEFAULT_SONG_COVER;
+    const name = profile.name || artist.name;
+    const bio = profile.bio || sample.description || "Discover songs and releases by this artist on Paya Music UG.";
+    const details = [sample.country, sample.genre].filter(Boolean).map(escapeHTML).join(" · ");
+    return `<article class="search-artist-card">
+      <img class="search-artist-avatar" src="${escapeHTML(avatar)}" alt="${escapeHTML(name)} profile picture">
+      <div class="search-artist-info">
+        <p class="eyebrow">ARTIST PROFILE</p>
+        <h3>${escapeHTML(name)}</h3>
+        ${details ? `<p class="search-artist-details">${details}</p>` : ""}
+        <p class="search-artist-bio">${escapeHTML(bio)}</p>
+        <small>${artist.songs.length} matching ${artist.songs.length === 1 ? "song" : "songs"}</small>
+      </div>
+    </article>`;
+  });
+  section.innerHTML = `<div class="search-results-heading"><span class="eyebrow">YOUR SEARCH RESULTS</span><strong>${escapeHTML(cleanQuery)}</strong></div>${cards.join("")}`;
+  section.hidden = false;
+}
+
 function renderSongs(items = []) {
   const container = $("#songs");
   if (!container) return;
@@ -575,7 +622,16 @@ async function loadSongs(query = "") {
     const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`);
     catalogueSongs = result.songs || [];
     renderMusicHome(catalogueSongs);
+    renderSearchArtistProfiles(catalogueSongs, query);
     renderSongs(catalogueSongs);
+    if (String(query || "").trim()) {
+      requestAnimationFrame(() => {
+        const target = $("#artistSearchProfiles") && !$("#artistSearchProfiles").hidden
+          ? $("#artistSearchProfiles")
+          : $("#songs");
+        target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   } catch (error) {
     if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
   }
