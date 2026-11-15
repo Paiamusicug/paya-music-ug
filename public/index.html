@@ -49,6 +49,52 @@
   <button class="outline small hidden" id="headerLogout" type="button">Sign out</button>
 </header>
 
+<section class="quick-search" aria-label="Search Paya Music UG">
+  <div class="quick-search-inner">
+    <div class="quick-search-copy">
+      <p class="eyebrow">DISCOVER MUSIC WORLDWIDE</p>
+      <strong>Find songs and artists</strong>
+    </div>
+  <div class="search-row">
+    <input id="search" placeholder="Search songs, artists or genres…" aria-label="Search music">
+    <button class="gold-btn" id="searchBtn">Search</button>
+    <select id="songSort" aria-label="Sort songs">
+      <option value="newest">Newest Songs</option>
+      <option value="liked">Most Liked</option>
+      <option value="played">Most Played</option>
+    </select>
+    <select id="countryFilter" aria-label="Filter music by country">
+      <option value="">All Countries</option>
+          <option value="Uganda">Uganda</option>
+          <option value="Nigeria">Nigeria</option>
+          <option value="Ghana">Ghana</option>
+          <option value="Kenya">Kenya</option>
+          <option value="South Africa">South Africa</option>
+          <option value="Tanzania">Tanzania</option>
+          <option value="Rwanda">Rwanda</option>
+          <option value="Democratic Republic of the Congo">Democratic Republic of the Congo</option>
+          <option value="Ethiopia">Ethiopia</option>
+          <option value="Zambia">Zambia</option>
+          <option value="Zimbabwe">Zimbabwe</option>
+          <option value="Malawi">Malawi</option>
+          <option value="Burundi">Burundi</option>
+          <option value="South Sudan">South Sudan</option>
+          <option value="Senegal">Senegal</option>
+          <option value="Cameroon">Cameroon</option>
+          <option value="Ivory Coast">Ivory Coast</option>
+          <option value="United Kingdom">United Kingdom</option>
+          <option value="United States">United States</option>
+          <option value="Canada">Canada</option>
+          <option value="France">France</option>
+          <option value="Germany">Germany</option>
+          <option value="Australia">Australia</option>
+          <option value="Jamaica">Jamaica</option>
+          <option value="Other">Other</option>
+    </select>
+  </div>
+  </div>
+</section>
+
 <main>
 
 <section class="hero">
@@ -298,43 +344,7 @@
     <span class="muted">Discover artists from everywhere</span>
   </div>
 
-  <div class="search-row">
-    <input id="search" placeholder="Search songs, artists or genres…" aria-label="Search music">
-    <button class="gold-btn" id="searchBtn">Search</button>
-    <select id="songSort" aria-label="Sort songs">
-      <option value="newest">Newest Songs</option>
-      <option value="liked">Most Liked</option>
-      <option value="played">Most Played</option>
-    </select>
-    <select id="countryFilter" aria-label="Filter music by country">
-      <option value="">All Countries</option>
-          <option value="Uganda">Uganda</option>
-          <option value="Nigeria">Nigeria</option>
-          <option value="Ghana">Ghana</option>
-          <option value="Kenya">Kenya</option>
-          <option value="South Africa">South Africa</option>
-          <option value="Tanzania">Tanzania</option>
-          <option value="Rwanda">Rwanda</option>
-          <option value="Democratic Republic of the Congo">Democratic Republic of the Congo</option>
-          <option value="Ethiopia">Ethiopia</option>
-          <option value="Zambia">Zambia</option>
-          <option value="Zimbabwe">Zimbabwe</option>
-          <option value="Malawi">Malawi</option>
-          <option value="Burundi">Burundi</option>
-          <option value="South Sudan">South Sudan</option>
-          <option value="Senegal">Senegal</option>
-          <option value="Cameroon">Cameroon</option>
-          <option value="Ivory Coast">Ivory Coast</option>
-          <option value="United Kingdom">United Kingdom</option>
-          <option value="United States">United States</option>
-          <option value="Canada">Canada</option>
-          <option value="France">France</option>
-          <option value="Germany">Germany</option>
-          <option value="Australia">Australia</option>
-          <option value="Jamaica">Jamaica</option>
-          <option value="Other">Other</option>
-    </select>
-  </div>
+
 
   <div id="songs" class="song-grid">
     <div class="empty">Loading music…</div>
