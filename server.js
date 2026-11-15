@@ -295,7 +295,7 @@ app.post("/api/register", async (req, res) => {
     // Automatically move songs uploaded by Paya admins/owner into the
     // newly registered artist's account when the artist name matches.
     let claimedSongs = 0;
-    const normalizedArtistName = String(user.name || "").trim().replace(/\\s+/g, " ").toLowerCase();
+    const normalizedArtistName = String(user.name || "").trim().replace(/\s+/g, " ").toLowerCase();
     if (normalizedArtistName) {
       const { data: staff, error: staffError } = await supabase
         .from("users")
@@ -312,7 +312,7 @@ app.post("/api/register", async (req, res) => {
         if (songsError) throw songsError;
 
         const matchingSongIds = (uploadedSongs || [])
-          .filter((song) => String(song.artist || "").trim().replace(/\\s+/g, " ").toLowerCase() === normalizedArtistName)
+          .filter((song) => String(song.artist || "").trim().replace(/\s+/g, " ").toLowerCase() === normalizedArtistName)
           .map((song) => song.id);
 
         if (matchingSongIds.length) {
@@ -510,7 +510,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         .limit(20);
 
       if (titleCheckError) throw titleCheckError;
-      const normalizeSongText = (value) => String(value || "").normalize("NFKC").trim().replace(/\\s+/g, " ").toLowerCase();
+      const normalizeSongText = (value) => String(value || "").normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
       const duplicate = (matchingSongs || []).find(song =>
         normalizeSongText(song.title) === normalizeSongText(cleanTitle) &&
         normalizeSongText(song.artist) === normalizeSongText(cleanArtist)
@@ -523,7 +523,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
       }
     }
 
-    const publishedTitle = isRemix && !/\\bremix\\b/i.test(cleanTitle)
+    const publishedTitle = isRemix && !/\bremix\b/i.test(cleanTitle)
       ? `${cleanTitle} (Remix)`
       : cleanTitle;
 
@@ -652,7 +652,7 @@ app.get("/news/:id", async (req, res) => {
       if (candidate.protocol === "https:" || candidate.origin === siteUrl) imageUrl = candidate.href;
     } catch {}
     const title = String(article.title || "Paya Music UG News");
-    const plainContent = String(article.content || "").replace(/<[^>]*>/g, " ").replace(/\\s+/g, " ").trim();
+    const plainContent = String(article.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     const description = (plainContent || `Read the latest ${article.category || "news"} story on Paya Music UG.`).slice(0, 180);
     const safeTitle = escapeHTML(title);
     const safeDescription = escapeHTML(description);
