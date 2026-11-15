@@ -794,3 +794,24 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
  .quick-search .search-row input{grid-column:1/-1}
  .quick-search .search-row select{grid-column:1/-1;width:100%;max-width:none}
 }
+
+
+/* Search results open directly on artist profiles and matching music. */
+.artist-search-profiles{margin:18px 0 22px;scroll-margin-top:18px}
+.artist-search-profiles[hidden]{display:none!important}
+.search-results-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.search-results-heading .eyebrow{margin:0;color:var(--gold)}
+.search-results-heading strong{font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.search-artist-card{display:flex;align-items:center;gap:16px;padding:16px;margin:10px 0;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.search-artist-avatar{width:104px;height:104px;flex:0 0 104px;object-fit:cover;border-radius:50%;border:2px solid var(--gold);background:#202126}
+.search-artist-info{min-width:0}
+.search-artist-info .eyebrow{margin:0 0 4px;color:var(--gold);font-size:10px;letter-spacing:.12em}
+.search-artist-info h3{margin:0 0 5px;color:var(--white);font-size:19px}
+.search-artist-details,.search-artist-bio{margin:4px 0;color:var(--muted);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.search-artist-info small{display:block;margin-top:7px;color:var(--gold)}
+#songs{scroll-margin-top:18px}
+@media(max-width:520px){
+ .search-artist-card{align-items:flex-start;gap:12px;padding:12px}
+ .search-artist-avatar{width:78px;height:78px;flex-basis:78px}
+ .search-artist-info h3{font-size:17px}
+}
