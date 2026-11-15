@@ -815,3 +815,10 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
  .search-artist-avatar{width:78px;height:78px;flex-basis:78px}
  .search-artist-info h3{font-size:17px}
 }
+
+
+/* Public artist profile links shown in search results. */
+.artist-profile-link{color:var(--white);text-decoration:none}
+.artist-profile-link:hover,.artist-profile-link:focus-visible{color:var(--gold);text-decoration:underline}
+.artist-profile-open{display:inline-block;margin-top:9px;color:var(--gold);font-size:12px;font-weight:700;text-decoration:none}
+.artist-profile-open:hover{text-decoration:underline}
