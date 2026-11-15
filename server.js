@@ -625,68 +625,79 @@ app.get("/news/:id", async (req, res) => {
   }
 });
 
-// SHARE LINKS KEEP THEIR SOCIAL PREVIEW, THEN OPEN THE SONG INSIDE THE MAIN WEBSITE.
+// SEO SONG PAGES: render the complete approved song page for visitors and search crawlers.
 app.get("/song/:id", async (req, res) => {
   try {
-    const { data: song, error } = await supabase
-      .from("songs")
-      .select("id, title, artist, description, cover_url, status")
-      .eq("id", req.params.id)
-      .eq("status", "approved")
-      .maybeSingle();
-
+    const { data: song, error } = await supabase.from("songs")
+      .select("id, title, artist, description, cover_url, genre, country, created_at, status")
+      .eq("id", req.params.id).eq("status", "approved").maybeSingle();
     if (error || !song) return res.status(404).send("Song not found");
 
-    const siteUrl = `${req.protocol}://${req.get("host")}`;
-    const pageUrl = `${siteUrl}/song/${encodeURIComponent(song.id)}`;
-    const targetUrl = `/?song=${encodeURIComponent(song.id)}`;
-    let imageUrl = `${siteUrl}/paya-default-cover.svg`;
+    const siteUrl = "https://paya-music-ug.onrender.com";
+    const pageUrl = siteUrl + "/song/" + encodeURIComponent(song.id);
+    const audioUrl = siteUrl + "/api/songs/" + encodeURIComponent(song.id) + "/stream";
+    const downloadUrl = siteUrl + "/api/songs/" + encodeURIComponent(song.id) + "/download";
+    let imageUrl = siteUrl + "/paya-default-cover.svg";
     try {
       const candidate = new URL(song.cover_url || "/paya-default-cover.svg", siteUrl);
       if (candidate.protocol === "https:" || candidate.origin === siteUrl) imageUrl = candidate.href;
     } catch {}
-    const title = `${song.title || "Song"} — ${song.artist || "Artist"}`;
-    const description = String(song.description || `Listen to ${song.title || "this song"} by ${song.artist || "the artist"} on Paya Music UG.`).slice(0, 180);
+
+    const songTitle = String(song.title || "Song");
+    const artistName = String(song.artist || "Artist");
+    const title = songTitle + " — " + artistName;
+    const description = String(song.description || ("Listen to and download " + songTitle + " by " + artistName + " on Paya Music UG.")).slice(0, 180);
     const safeTitle = escapeHTML(title);
     const safeDescription = escapeHTML(description);
     const safeImage = escapeHTML(imageUrl);
     const safePageUrl = escapeHTML(pageUrl);
-    const safeTargetUrl = escapeHTML(targetUrl);
+    const safeAudioUrl = escapeHTML(audioUrl);
+    const safeDownloadUrl = escapeHTML(downloadUrl);
+    const safeGenre = escapeHTML(song.genre || "");
+    const safeCountry = escapeHTML(song.country || "");
+    const structuredData = {
+      "@context": "https://schema.org", "@type": "MusicRecording",
+      "name": songTitle, "byArtist": { "@type": "Person", "name": artistName },
+      "description": description, "image": imageUrl, "url": pageUrl, "audio": audioUrl,
+      "genre": song.genre || undefined, "datePublished": song.created_at || undefined,
+      "publisher": { "@type": "Organization", "name": "Paya Music UG", "url": siteUrl }
+    };
+    const safeStructuredData = JSON.stringify(structuredData).replace(/</g, "\\u003c");
 
     res.set("Cache-Control", "public, max-age=300");
     res.type("html").send(`<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${safeTitle} | Paya Music UG</title>
-<meta name="description" content="${safeDescription}">
-<meta property="og:type" content="music.song">
-<meta property="og:title" content="${safeTitle}">
-<meta property="og:description" content="${safeDescription}">
-<meta property="og:url" content="${safePageUrl}">
-<meta property="og:image" content="${safeImage}">
-<meta property="og:image:alt" content="${safeTitle} cover artwork">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="${safeDescription}"><meta name="robots" content="index,follow">
 <link rel="canonical" href="${safePageUrl}">
+<meta property="og:type" content="music.song"><meta property="og:site_name" content="Paya Music UG">
+<meta property="og:title" content="${safeTitle}"><meta property="og:description" content="${safeDescription}">
+<meta property="og:url" content="${safePageUrl}"><meta property="og:image" content="${safeImage}">
+<meta property="og:image:alt" content="${safeTitle} cover artwork">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${safeTitle}">
+<meta name="twitter:description" content="${safeDescription}"><meta name="twitter:image" content="${safeImage}">
+<script type="application/ld+json">${safeStructuredData}</script>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;display:grid;place-items:center;padding:24px;text-align:center}
-main{max-width:420px}img{width:min(75vw,260px);aspect-ratio:1;object-fit:cover;border-radius:14px}h1{font-size:24px}p{color:#a6a6a2;line-height:1.6}a{display:inline-block;margin-top:14px;padding:13px 20px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold;border-radius:4px}
-</style>
-</head>
-<body>
-<main>
-<img src="${safeImage}" alt="${safeTitle} cover artwork">
-<h1>${safeTitle}</h1>
-<p>Opening this song in the Paya Music UG website…</p>
-<a href="${safeTargetUrl}">Open song on Paya Music UG</a>
-</main>
-<script>window.location.replace(${JSON.stringify(targetUrl)});</script>
-</body>
-</html>`);
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;padding:28px 18px}
+main{max-width:720px;margin:0 auto;text-align:center}.cover{width:min(78vw,340px);aspect-ratio:1;object-fit:cover;border-radius:16px}
+h1{font-size:clamp(25px,5vw,36px);margin:22px 0 8px}.artist{font-size:20px;color:#d4d0c8;margin:0 0 16px}
+p{color:#aaa;line-height:1.65}.meta{color:#c8b27d;font-size:14px;margin:12px 0 22px}
+audio{width:100%;margin:18px 0 10px}a.button{display:inline-block;margin:12px 6px;padding:14px 22px;border-radius:7px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold}
+a.secondary{background:#252525;color:#f5f2eb;border:1px solid #51452c}.description{max-width:620px;margin:18px auto}
+</style></head><body><main>
+<img class="cover" src="${safeImage}" alt="${safeTitle} cover artwork" width="600" height="600">
+<h1>${safeTitle}</h1><p class="artist">${escapeHTML(artistName)}</p>
+${song.genre ? '<p class="meta">Genre: ' + safeGenre + '</p>' : ''}
+${song.country ? '<p class="meta">Country: ' + safeCountry + '</p>' : ''}
+${song.description ? '<p class="description">' + safeDescription + '</p>' : '<p class="description">Listen to ' + escapeHTML(songTitle) + ' by ' + escapeHTML(artistName) + ' on Paya Music UG, an international music discovery platform.</p>'}
+<audio controls preload="none" src="${safeAudioUrl}">Your browser does not support audio playback.</audio>
+<div><a class="button" href="${safeDownloadUrl}" rel="nofollow">Download MP3</a><a class="button secondary" href="/">Explore more music</a></div>
+</main></body></html>`);
   } catch (error) {
-    console.error("Song share page error:", error);
-    res.status(500).send("Could not open song");
+    console.error("Song SEO page error:", error);
+    res.status(500).send("Could not load song page");
   }
 });
 
