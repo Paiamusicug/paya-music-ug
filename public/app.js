@@ -119,11 +119,15 @@ window.addEventListener("storage", (event) => {
 });
 
 function isAdmin() {
-  return ["admin", "owner"].includes(String(currentUser?.role || "").toLowerCase());
+  return ["admin", "superadmin", "owner"].includes(String(currentUser?.role || "").toLowerCase());
 }
 
 function isOwner() {
   return String(currentUser?.role || "").toLowerCase() === "owner";
+}
+
+function hasManagementAccess() {
+  return ["owner", "superadmin"].includes(String(currentUser?.role || "").toLowerCase());
 }
 
 function updateAccountUI() {
@@ -171,7 +175,7 @@ function updateAccountUI() {
   if (accountRoleLabel) accountRoleLabel.textContent = currentUser ? `Account role: ${currentUser.role || "user"}` : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) {
-    const ownerAccess = String(currentUser?.role || "").trim().toLowerCase() === "owner";
+    const ownerAccess = hasManagementAccess();
     ownerPanel.classList.toggle("hidden", !ownerAccess);
     ownerPanel.setAttribute("aria-hidden", ownerAccess ? "false" : "true");
   }
@@ -489,7 +493,7 @@ function renderSongs(items = []) {
       if (country === null) return;
       button.disabled = true;
       try {
-        const ownerEditing = isOwner();
+        const ownerEditing = hasManagementAccess();
         await api(ownerEditing
           ? `/api/owner/songs/${encodeURIComponent(songId(song))}`
           : `/api/my-songs/${encodeURIComponent(songId(song))}`, {
@@ -1470,7 +1474,7 @@ bindForm("#newsForm", async (form) => {
   toast("News submitted for approval.");
 
   await loadNews();
-  if (isOwner()) await loadOwnerUsers();
+  if (hasManagementAccess()) await loadOwnerUsers();
 });
   
   
@@ -1479,7 +1483,7 @@ async function loadOwnerUsers() {
   const container = $("#ownerUsers");
   const summary = $("#ownerSummary");
   const searchInput = $("#ownerUserSearch");
-  if (!container || !isOwner()) return;
+  if (!container || !hasManagementAccess()) return;
   try {
     // Load account totals independently so a failure in the song or user
     // management panels cannot hide the registered-account count.
@@ -1519,6 +1523,7 @@ async function loadOwnerUsers() {
       const userHTML = filtered.length ? filtered.map((user) => {
         const role = String(user.role || "artist").toLowerCase();
         const isProtectedOwner = role === "owner";
+        const canManageRoles = isOwner();
         return `
           <div class="admin-item">
             <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
@@ -1529,11 +1534,12 @@ async function loadOwnerUsers() {
                 <input type="text" maxlength="100" value="${escapeHTML(user.name || "")}" data-user-name="${escapeHTML(user.id)}">
               </label>
               <button type="button" data-save-user-name="${escapeHTML(user.id)}">Save artist name</button>
-              <select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
+              ${canManageRoles ? `<select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
                 <option value="artist" ${role === "artist" ? "selected" : ""}>Artist / standard account</option>
                 <option value="admin" ${role === "admin" ? "selected" : ""}>Admin</option>
+                <option value="superadmin" ${role === "superadmin" ? "selected" : ""}>Super Admin</option>
               </select>
-              <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>`}
+              <button type="button" data-save-role="${escapeHTML(user.id)}">Save role</button>` : ""}`}
           </div>`;
       }).join("") : "<p>No matching users found.</p>";
 
