@@ -822,3 +822,39 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .artist-profile-link:hover,.artist-profile-link:focus-visible{color:var(--gold);text-decoration:underline}
 .artist-profile-open{display:inline-block;margin-top:9px;color:var(--gold);font-size:12px;font-weight:700;text-decoration:none}
 .artist-profile-open:hover{text-decoration:underline}
+
+
+/* Saved artist profile: clean social-profile presentation */
+.artist-profile-display{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:12px;
+  padding:10px 0 24px;
+  text-align:center;
+}
+.artist-profile-display[hidden]{display:none!important}
+.artist-profile-display-avatar{
+  width:168px;
+  height:168px;
+  border-radius:50%;
+  object-fit:cover;
+  border:4px solid var(--gold);
+  box-shadow:0 0 0 7px rgba(232,184,76,.10),0 12px 32px rgba(0,0,0,.35);
+}
+.artist-profile-display-avatar[hidden]{display:none!important}
+.artist-profile-display h2{
+  margin:4px 0 0;
+  color:var(--white);
+  font-size:clamp(24px,5vw,32px);
+  overflow-wrap:anywhere;
+}
+.artist-profile-display p{
+  max-width:520px;
+  margin:0;
+  color:#d0cec8;
+  line-height:1.7;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+.artist-profile-display button{margin-top:8px}
