@@ -246,8 +246,16 @@ function admin(req, res, next) {
 }
 
 function operationalAdmin(req, res, next) {
-  if (!["owner", "superadmin"].includes(req.user.role)) {
-    return res.status(403).json({ error: "Management access required" });
+  if (req.user.role !== "owner") {
+    return res.status(403).json({ error: "Owner access required" });
+  }
+  next();
+}
+
+function paymentManager(req, res, next) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
+    return res.status(403).json({ error: "Payment management access required" });
   }
   next();
 }
@@ -1262,13 +1270,13 @@ app.post("/api/revenue-requests", async (req, res) => {
 });
 
 // OWNER: view and update revenue enquiries and manually verified payment status.
-app.get("/api/owner/revenue-requests", auth, operationalAdmin, async (req, res) => {
+app.get("/api/owner/revenue-requests", auth, paymentManager, async (req, res) => {
   const { data, error } = await supabase.from("revenue_requests").select("*").order("created_at", { ascending: false }).limit(200);
   if (error) return res.status(500).json({ error: "Could not load revenue requests. Check the revenue_requests database setup." });
   res.json({ requests: data || [] });
 });
 
-app.patch("/api/owner/revenue-requests/:id", auth, operationalAdmin, async (req, res) => {
+app.patch("/api/owner/revenue-requests/:id", auth, paymentManager, async (req, res) => {
   const allowed = ["new", "contacted", "paid", "completed", "rejected"];
   const status = String(req.body.status || "");
   if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid request status." });
@@ -1298,14 +1306,14 @@ app.get("/api/payment-methods", async (req, res) => {
   }
 });
 
-app.get("/api/owner/payment-methods", auth, operationalAdmin, async (req, res) => {
+app.get("/api/owner/payment-methods", auth, paymentManager, async (req, res) => {
   const { data, error } = await supabase.from("payment_methods").select("*")
     .order("sort_order", { ascending: true }).order("display_name", { ascending: true });
   if (error) return res.status(500).json({ error: "Could not load payment settings. Check the payment_methods table." });
   res.json({ methods: data || [] });
 });
 
-app.post("/api/owner/payment-methods", auth, operationalAdmin, async (req, res) => {
+app.post("/api/owner/payment-methods", auth, paymentManager, async (req, res) => {
   try {
     const body = req.body || {};
     const method_code = String(body.method_code || "").trim().toLowerCase().slice(0, 60);
@@ -1335,7 +1343,7 @@ app.post("/api/owner/payment-methods", auth, operationalAdmin, async (req, res) 
   }
 });
 
-app.patch("/api/owner/payment-methods/:id", auth, operationalAdmin, async (req, res) => {
+app.patch("/api/owner/payment-methods/:id", auth, paymentManager, async (req, res) => {
   try {
     const body = req.body || {};
     const updates = { updated_at: new Date().toISOString() };
