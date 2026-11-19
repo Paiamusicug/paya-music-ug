@@ -131,7 +131,12 @@
     <p id="accountRoleLabel" class="muted account-role-status">Checking account permissions…</p>
     <section id="profileEditor" class="panel hidden">
             <h3>Artist profile</h3>
-    
+            <div id="profileDisplay" class="artist-profile-display" hidden>
+              <img id="profileDisplayAvatar" class="artist-profile-display-avatar" alt="Artist profile picture" hidden>
+              <h2 id="profileDisplayName"></h2>
+              <p id="profileDisplayBio"></p>
+              <button id="editArtistProfile" class="outline" type="button">Edit Profile</button>
+            </div>
             <button id="profilePreview" type="button" class="profile-picture-picker" aria-label="Choose your profile picture">
   <img id="profileAvatar" src="" alt="Your profile picture preview" width="220" height="220" hidden>
   <span id="profilePlaceholder" class="profile-placeholder"><span class="profile-plus">+</span><strong>Choose profile picture</strong><small>Tap here to open your gallery</small></span>
