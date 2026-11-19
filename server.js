@@ -1823,6 +1823,27 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
   }
 });
 
+// MANAGEMENT: CLASSIFY MEMBER ACCOUNT TYPES WITHOUT CHANGING ADMIN ROLES
+app.patch("/api/owner/users/:id/account-type", auth, managementViewer, async (req, res) => {
+  try {
+    const accountType = String(req.body.account_type || "").trim().toLowerCase();
+    if (!["artist", "listener", "dj", "artist_dj", "unclassified"].includes(accountType)) {
+      return res.status(400).json({ error: "Choose a valid account type." });
+    }
+    const { data, error } = await supabase.from("users")
+      .update({ account_type: accountType })
+      .eq("id", req.params.id)
+      .neq("role", "owner")
+      .select("id, name, email, role, account_type")
+      .single();
+    if (error || !data) return res.status(404).json({ error: "User not found or cannot be changed." });
+    res.json({ user: data });
+  } catch (error) {
+    console.error("Account type update error:", error);
+    res.status(500).json({ error: "Could not update account type." });
+  }
+});
+
 // OWNER: VIEW USERS
 app.get("/api/owner/stats", auth, managementViewer, async (req, res) => {
   try {
