@@ -254,6 +254,14 @@ function operationalAdmin(req, res, next) {
   next();
 }
 
+function managementViewer(req, res, next) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
+    return res.status(403).json({ error: "Management access required" });
+  }
+  next();
+}
+
 function paymentManager(req, res, next) {
   const email = String(req.user.email || "").trim().toLowerCase();
   if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
@@ -313,7 +321,7 @@ app.post("/api/register", async (req, res) => {
         role: "artist",
         bio: ""
       })
-      .select("id, name, email, role, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url")
       .single();
 
     if (error) throw error;
@@ -1798,15 +1806,20 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
 });
 
 // OWNER: VIEW USERS
-app.get("/api/owner/stats", auth, operationalAdmin, async (req, res) => {
+app.get("/api/owner/stats", auth, managementViewer, async (req, res) => {
   try {
-    const [users, songs, news, ads] = await Promise.all([
+    const [users, artists, listeners, djs, artistDjs, unclassified, songs, news, ads] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("account_type", "artist"),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("account_type", "listener"),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("account_type", "dj"),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("account_type", "artist_dj"),
+      supabase.from("users").select("id", { count: "exact", head: true }).eq("account_type", "unclassified"),
       supabase.from("songs").select("id", { count: "exact", head: true }),
       supabase.from("news").select("id", { count: "exact", head: true }).eq("status", "published"),
       supabase.from("ads").select("id", { count: "exact", head: true }).eq("status", "approved")
     ]);
-    for (const result of [users, songs, news, ads]) {
+    for (const result of [users, artists, listeners, djs, artistDjs, unclassified, songs, news, ads]) {
       if (result.error) throw result.error;
     }
     const visitorKeys = new Set();
@@ -1823,6 +1836,11 @@ app.get("/api/owner/stats", auth, operationalAdmin, async (req, res) => {
     const uniqueVisitors = visitorKeys.size;
     res.json({
       registered_accounts: users.count || 0,
+      artists: artists.count || 0,
+      listeners: listeners.count || 0,
+      djs: djs.count || 0,
+      artist_djs: artistDjs.count || 0,
+      unclassified: unclassified.count || 0,
       songs: songs.count || 0,
       published_news: news.count || 0,
       active_adverts: ads.count || 0,
@@ -1835,7 +1853,7 @@ app.get("/api/owner/stats", auth, operationalAdmin, async (req, res) => {
   }
 });
 
-app.get("/api/owner/users", auth, operationalAdmin, async (req, res) => {
+app.get("/api/owner/users", auth, managementViewer, async (req, res) => {
   const { data, error } = await supabase
     .from("users")
     .select("id, name, email, role, created_at")
@@ -1849,7 +1867,7 @@ app.get("/api/owner/users", auth, operationalAdmin, async (req, res) => {
 });
 
 // OWNER: EDIT ANY SONG IN THE CATALOGUE
-app.get("/api/owner/songs", auth, operationalAdmin, async (req, res) => {
+app.get("/api/owner/songs", auth, managementViewer, async (req, res) => {
   try {
     let songs = [];
     const pageSize = 10;
