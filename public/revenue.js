@@ -4,6 +4,8 @@
   const esc = (value = "") => String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const token = () => localStorage.getItem("paya_token") || "";
   const user = () => { try { return JSON.parse(localStorage.getItem("paya_user") || "null"); } catch { return null; } };
+  const canManagePayments = () => user()?.role === "owner" ||
+    String(user()?.email || "").trim().toLowerCase() === "payamusic361@gmail.com";
   const api = async (url, options = {}) => {
     const headers = { ...(options.headers || {}), ...(token() ? { Authorization: "Bearer " + token() } : {}) };
     const response = await fetch(url, { ...options, headers });
@@ -108,7 +110,7 @@
     }));
   }
   async function loadOwnerPaymentMethods() {
-    if (!paymentList || user()?.role !== "owner" || !token()) return;
+    if (!paymentList || !canManagePayments() || !token()) return;
     paymentList.innerHTML = '<p class="muted">Loading payment methods…</p>';
     try {
       const result = await api("/api/owner/payment-methods");
@@ -144,7 +146,7 @@
 
   const list = $("#ownerRevenueRequestList");
   async function loadOwnerRequests() {
-    if (!list || user()?.role !== "owner" || !token()) return;
+    if (!list || !canManagePayments() || !token()) return;
     list.innerHTML = '<p class="muted">Loading revenue enquiries…</p>';
     try {
       const result = await api("/api/owner/revenue-requests");
@@ -212,7 +214,7 @@
     loadPublicPaymentMethods();
     let attempts = 0;
     const waitForOwnerSession = () => {
-      if (user()?.role === "owner" && token()) { loadOwnerRequests(); loadOwnerPaymentMethods(); return; }
+      if (canManagePayments() && token()) { loadOwnerRequests(); loadOwnerPaymentMethods(); return; }
       if (++attempts < 20) setTimeout(waitForOwnerSession, 500);
     };
     waitForOwnerSession();
