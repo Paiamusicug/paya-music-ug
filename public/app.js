@@ -127,7 +127,7 @@ function isOwner() {
 }
 
 function hasManagementAccess() {
-  return ["owner", "superadmin"].includes(String(currentUser?.role || "").toLowerCase());
+  return String(currentUser?.role || "").toLowerCase() === "owner";
 }
 
 function updateAccountUI() {
@@ -176,8 +176,21 @@ function updateAccountUI() {
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) {
     const ownerAccess = hasManagementAccess();
-    ownerPanel.classList.toggle("hidden", !ownerAccess);
-    ownerPanel.setAttribute("aria-hidden", ownerAccess ? "false" : "true");
+    const paymentAccess = String(currentUser?.email || "").trim().toLowerCase() === "payamusic361@gmail.com";
+    const panelAccess = ownerAccess || paymentAccess;
+    ownerPanel.classList.toggle("hidden", !panelAccess);
+    ownerPanel.setAttribute("aria-hidden", panelAccess ? "false" : "true");
+    ["ownerSummary", "ownerStats", "ownerUserSearch", "ownerUsers"].forEach((id) => {
+      const element = document.getElementById(id);
+      if (element) element.classList.toggle("hidden", !ownerAccess);
+    });
+    if (ownerPanel.querySelector("h3")) {
+      ownerPanel.querySelector("h3").textContent = ownerAccess ? "Management dashboard" : "Payment management";
+    }
+    const intro = ownerPanel.querySelector(":scope > .muted");
+    if (intro) intro.textContent = ownerAccess
+      ? "Manage platform operations, payment settings, revenue requests, artists and songs. Only the Owner can change account roles or ownership permissions."
+      : "Manage Paya Music UG payment methods and revenue requests. Ownership, users, roles and platform security remain under the Owner's control.";
   }
   const newsSubmission = $("#newsSubmission");
   if (newsSubmission) newsSubmission.classList.toggle("hidden", !currentUser);
