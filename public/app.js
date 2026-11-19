@@ -205,7 +205,7 @@ function updateAccountUI() {
   const uploadForm = $("#uploadForm");
   const uploadNotice = $("#uploadAccessNotice");
   const accountType = String(currentUser?.account_type || "unclassified");
-  const canUpload = ["artist", "dj", "artist_dj"].includes(accountType);
+  const canUpload = ["artist", "dj", "artist_dj"].includes(accountType) || isAdmin();
   if (uploadForm) uploadForm.classList.toggle("hidden", !!currentUser && !canUpload);
   if (uploadNotice) {
     uploadNotice.hidden = !(currentUser && !canUpload);
