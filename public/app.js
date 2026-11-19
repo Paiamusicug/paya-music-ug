@@ -119,6 +119,8 @@ window.addEventListener("storage", (event) => {
 });
 
 function isAdmin() {
+  const email = String(currentUser?.email || "").trim().toLowerCase();
+  if (email === "payamusic361@gmail.com" && !isOwner()) return false;
   return ["admin", "superadmin", "owner"].includes(String(currentUser?.role || "").toLowerCase());
 }
 
