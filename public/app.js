@@ -184,7 +184,7 @@ function updateAccountUI() {
     ownerPanel.setAttribute("aria-hidden", panelAccess ? "false" : "true");
     ["ownerSummary", "ownerStats", "ownerUserSearch", "ownerUsers"].forEach((id) => {
       const element = document.getElementById(id);
-      if (element) element.classList.toggle("hidden", !ownerAccess);
+      if (element) element.classList.toggle("hidden", !panelAccess);
     });
     if (ownerPanel.querySelector("h3")) {
       ownerPanel.querySelector("h3").textContent = "Paya Music UG Management";
@@ -1511,7 +1511,7 @@ async function loadOwnerUsers() {
   const container = $("#ownerUsers");
   const summary = $("#ownerSummary");
   const searchInput = $("#ownerUserSearch");
-  if (!container || !hasManagementAccess()) return;
+  if (!container || (!hasManagementAccess() && String(currentUser?.email || "").trim().toLowerCase() !== "payamusic361@gmail.com")) return;
   try {
     // Load account totals independently so a failure in the song or user
     // management panels cannot hide the registered-account count.
@@ -1563,6 +1563,16 @@ async function loadOwnerUsers() {
             <span>${escapeHTML(user.email || "")}</span>
             <span>Admin role: ${escapeHTML(role)}</span>
             <span>Account type: ${escapeHTML(String(user.account_type || "unclassified").replace("_", " + "))}</span>
+            ${!isProtectedOwner ? `<label>Member account type
+              <select data-user-account-type="${escapeHTML(user.id)}">
+                <option value="artist" ${user.account_type === "artist" ? "selected" : ""}>Artist</option>
+                <option value="listener" ${user.account_type === "listener" ? "selected" : ""}>Listener</option>
+                <option value="dj" ${user.account_type === "dj" ? "selected" : ""}>DJ</option>
+                <option value="artist_dj" ${user.account_type === "artist_dj" ? "selected" : ""}>Artist + DJ</option>
+                <option value="unclassified" ${!user.account_type || user.account_type === "unclassified" ? "selected" : ""}>Unclassified</option>
+              </select>
+            </label>
+            <button type="button" data-save-account-type="${escapeHTML(user.id)}">Save account type</button>` : ""}
             ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
               <label>Registered artist name
                 <input type="text" maxlength="100" value="${escapeHTML(user.name || "")}" data-user-name="${escapeHTML(user.id)}">
@@ -1597,7 +1607,27 @@ async function loadOwnerUsers() {
         <h4>Full song catalogue — edit any song</h4>
         ${songHTML}`;
 
-      $$("[data-save-role]", container).forEach((button) => {
+      $("[data-save-account-type]", container).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const id = button.dataset.saveAccountType;
+          const select = container.querySelector(`[data-user-account-type="${CSS.escape(id)}"]`);
+          if (!select) return;
+          button.disabled = true;
+          try {
+            await api(`/api/owner/users/${encodeURIComponent(id)}/account-type`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ account_type: select.value })
+            });
+            toast("Member account type updated.");
+            await loadOwnerUsers();
+          } catch (error) {
+            toast(error.message);
+            button.disabled = false;
+          }
+        });
+      });
+      $("[data-save-role]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveRole;
           const select = container.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
