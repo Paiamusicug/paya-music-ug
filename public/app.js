@@ -187,7 +187,7 @@ function updateAccountUI() {
       if (element) element.classList.toggle("hidden", !ownerAccess);
     });
     if (ownerPanel.querySelector("h3")) {
-      ownerPanel.querySelector("h3").textContent = ownerAccess ? "Management dashboard" : "Payment management";
+      ownerPanel.querySelector("h3").textContent = "Paya Music UG Management";
     }
     const intro = ownerPanel.querySelector(":scope > .muted");
     if (intro) intro.textContent = ownerAccess
