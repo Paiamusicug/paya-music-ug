@@ -444,7 +444,7 @@ app.patch("/api/profile", auth, async (req, res) => {
       .from("users")
       .update(updates)
       .eq("id", req.user.id)
-      .select("id, name, email, role, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url")
       .single();
     if (error) throw error;
     res.json({
