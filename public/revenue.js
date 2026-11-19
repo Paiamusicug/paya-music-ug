@@ -50,7 +50,7 @@
       const result = await api("/api/payment-methods");
       const methods = result.methods || [];
       if (!methods.length) {
-        publicPaymentList.innerHTML = '<p class="muted">Paya Music UG has not published payment details yet.</p>';
+        publicPaymentList.innerHTML = '<p class="muted">Paya Music UG Management has not published payment details yet.</p>';
         return;
       }
       publicPaymentList.innerHTML = methods.map(method => `
