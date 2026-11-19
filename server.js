@@ -236,12 +236,19 @@ async function auth(req, res, next) {
 }
 
 function admin(req, res, next) {
-  if (!["admin", "owner"].includes(req.user.role)) {
+  if (!["admin", "superadmin", "owner"].includes(req.user.role)) {
     return res.status(403).json({
       error: "Admin access required"
     });
   }
 
+  next();
+}
+
+function operationalAdmin(req, res, next) {
+  if (!["owner", "superadmin"].includes(req.user.role)) {
+    return res.status(403).json({ error: "Management access required" });
+  }
   next();
 }
 
@@ -1255,13 +1262,13 @@ app.post("/api/revenue-requests", async (req, res) => {
 });
 
 // OWNER: view and update revenue enquiries and manually verified payment status.
-app.get("/api/owner/revenue-requests", auth, owner, async (req, res) => {
+app.get("/api/owner/revenue-requests", auth, operationalAdmin, async (req, res) => {
   const { data, error } = await supabase.from("revenue_requests").select("*").order("created_at", { ascending: false }).limit(200);
   if (error) return res.status(500).json({ error: "Could not load revenue requests. Check the revenue_requests database setup." });
   res.json({ requests: data || [] });
 });
 
-app.patch("/api/owner/revenue-requests/:id", auth, owner, async (req, res) => {
+app.patch("/api/owner/revenue-requests/:id", auth, operationalAdmin, async (req, res) => {
   const allowed = ["new", "contacted", "paid", "completed", "rejected"];
   const status = String(req.body.status || "");
   if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid request status." });
@@ -1291,14 +1298,14 @@ app.get("/api/payment-methods", async (req, res) => {
   }
 });
 
-app.get("/api/owner/payment-methods", auth, owner, async (req, res) => {
+app.get("/api/owner/payment-methods", auth, operationalAdmin, async (req, res) => {
   const { data, error } = await supabase.from("payment_methods").select("*")
     .order("sort_order", { ascending: true }).order("display_name", { ascending: true });
   if (error) return res.status(500).json({ error: "Could not load payment settings. Check the payment_methods table." });
   res.json({ methods: data || [] });
 });
 
-app.post("/api/owner/payment-methods", auth, owner, async (req, res) => {
+app.post("/api/owner/payment-methods", auth, operationalAdmin, async (req, res) => {
   try {
     const body = req.body || {};
     const method_code = String(body.method_code || "").trim().toLowerCase().slice(0, 60);
@@ -1328,7 +1335,7 @@ app.post("/api/owner/payment-methods", auth, owner, async (req, res) => {
   }
 });
 
-app.patch("/api/owner/payment-methods/:id", auth, owner, async (req, res) => {
+app.patch("/api/owner/payment-methods/:id", auth, operationalAdmin, async (req, res) => {
   try {
     const body = req.body || {};
     const updates = { updated_at: new Date().toISOString() };
@@ -1750,8 +1757,8 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
   try {
     const { role } = req.body;
 
-    if (!["artist", "admin"].includes(role)) {
-      return res.status(400).json({ error: "Choose artist or admin" });
+    if (!["artist", "admin", "superadmin"].includes(role)) {
+      return res.status(400).json({ error: "Choose artist, admin or superadmin" });
     }
 
     if (Number(req.params.id) === req.user.id) {
@@ -1781,7 +1788,7 @@ app.patch("/api/owner/users/:id/role", auth, owner, async (req, res) => {
 });
 
 // OWNER: VIEW USERS
-app.get("/api/owner/stats", auth, owner, async (req, res) => {
+app.get("/api/owner/stats", auth, operationalAdmin, async (req, res) => {
   try {
     const [users, songs, news, ads] = await Promise.all([
       supabase.from("users").select("id", { count: "exact", head: true }),
@@ -1818,7 +1825,7 @@ app.get("/api/owner/stats", auth, owner, async (req, res) => {
   }
 });
 
-app.get("/api/owner/users", auth, owner, async (req, res) => {
+app.get("/api/owner/users", auth, operationalAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from("users")
     .select("id, name, email, role, created_at")
@@ -1832,7 +1839,7 @@ app.get("/api/owner/users", auth, owner, async (req, res) => {
 });
 
 // OWNER: EDIT ANY SONG IN THE CATALOGUE
-app.get("/api/owner/songs", auth, owner, async (req, res) => {
+app.get("/api/owner/songs", auth, operationalAdmin, async (req, res) => {
   try {
     let songs = [];
     const pageSize = 10;
@@ -1853,7 +1860,7 @@ app.get("/api/owner/songs", auth, owner, async (req, res) => {
   }
 });
 
-app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
+app.patch("/api/owner/songs/:id", auth, operationalAdmin, async (req, res) => {
   try {
     const { title, artist, country } = req.body || {};
     if (typeof title !== "string" || !title.trim() || typeof artist !== "string" || !artist.trim()) {
@@ -1874,7 +1881,7 @@ app.patch("/api/owner/songs/:id", auth, owner, async (req, res) => {
 });
 
 // OWNER: CHANGE A REGISTERED ARTIST'S PROFILE NAME
-app.patch("/api/owner/users/:id/name", auth, owner, async (req, res) => {
+app.patch("/api/owner/users/:id/name", auth, operationalAdmin, async (req, res) => {
   try {
     const name = String(req.body?.name || "").trim().slice(0, 100);
     if (!name) return res.status(400).json({ error: "Artist name is required" });
