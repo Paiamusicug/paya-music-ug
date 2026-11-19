@@ -218,7 +218,7 @@ async function auth(req, res, next) {
 
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, name, email, role, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url")
       .eq("id", decoded.id)
       .maybeSingle();
 
@@ -284,6 +284,11 @@ function owner(req, res, next) {
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const requestedAccountType = String(req.body.account_type || "artist").trim().toLowerCase();
+    const allowedAccountTypes = ["artist", "listener", "dj", "artist_dj"];
+    if (!allowedAccountTypes.includes(requestedAccountType)) {
+      return res.status(400).json({ error: "Choose Artist, Listener, DJ or Artist + DJ." });
+    }
 
     if (
       !name ||
@@ -319,6 +324,7 @@ app.post("/api/register", async (req, res) => {
         email: normalizedEmail,
         password_hash,
         role: "artist",
+        account_type: requestedAccountType,
         bio: ""
       })
       .select("id, name, email, role, account_type, bio, avatar_url")
@@ -330,7 +336,7 @@ app.post("/api/register", async (req, res) => {
     // newly registered artist's account when the artist name matches.
     let claimedSongs = 0;
     const normalizedArtistName = String(user.name || "").trim().replace(/\s+/g, " ").toLowerCase();
-    if (normalizedArtistName) {
+    if (["artist", "artist_dj"].includes(user.account_type) && normalizedArtistName) {
       const { data: staff, error: staffError } = await supabase
         .from("users")
         .select("id")
@@ -475,6 +481,17 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     const file = req.files?.audio?.[0] || null;
     const coverFile = req.files?.cover_image?.[0] || null;
     const { title, artist, genre, description } = req.body;
+    const accountType = String(req.user.account_type || "unclassified");
+    const uploadType = String(req.body.upload_type || (req.body.is_remix ? "remix" : "song")).trim().toLowerCase();
+    if (!["artist", "dj", "artist_dj"].includes(accountType)) {
+      return res.status(403).json({ error: "Only Artist, DJ or Artist + DJ accounts can upload music. Contact Paya Music UG Management if your account type needs correction." });
+    }
+    if (!["song", "dj_mix", "remix"].includes(uploadType)) {
+      return res.status(400).json({ error: "Choose an original song, DJ nonstop/mix or remix." });
+    }
+    if (uploadType === "dj_mix" && !["dj", "artist_dj"].includes(accountType)) {
+      return res.status(403).json({ error: "DJ nonstop/mix uploads are available to DJ and Artist + DJ accounts." });
+    }
 
     const originalName = String(file?.originalname || "");
     const extension = originalName.toLowerCase().split(".").pop();
@@ -510,7 +527,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
       });
     }
 
-    const isRemix = ["true", "1", "yes", "on", "remix"].includes(
+    const isRemix = uploadType === "remix" || ["true", "1", "yes", "on", "remix"].includes(
       String(req.body.is_remix || req.body.version_type || "").trim().toLowerCase()
     );
     const cleanTitle = String(title).trim().slice(0, 120);
@@ -589,6 +606,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
         mime_type: "audio/mpeg",
         size: audioBuffer.length,
         audio_sha256: audioSha256,
+        upload_type: uploadType,
         uploader_id: req.user.id,
         status: "approved"
       })
@@ -1856,7 +1874,7 @@ app.get("/api/owner/stats", auth, managementViewer, async (req, res) => {
 app.get("/api/owner/users", auth, managementViewer, async (req, res) => {
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, email, role, created_at")
+    .select("id, name, email, role, account_type, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
