@@ -1133,12 +1133,13 @@ bindForm("#forgotPasswordForm",async(form)=>{
 });
 bindForm("#registerForm", async (form) => {
   const data = Object.fromEntries(new FormData(form).entries());
+  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
+  if (registrationOnly) data.account_type = "artist";
   const result = await api("/api/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
-  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
   form.reset();
   if (registrationOnly) {
     const claimed = Number(result.claimed_songs || 0);
@@ -1514,6 +1515,11 @@ async function loadOwnerUsers() {
     if (statsContainer) {
       statsContainer.innerHTML = statsResult.status === "fulfilled" ? [
         ["Registered accounts", stats.registered_accounts],
+        ["Artists", stats.artists],
+        ["Listeners", stats.listeners],
+        ["DJs", stats.djs],
+        ["Artists + DJs", stats.artist_djs],
+        ["Unclassified accounts", stats.unclassified],
         ["Unique visitors", stats.unique_visitors],
         ["Total visits", stats.total_visits],
         ["Songs on Paya", stats.songs],
@@ -1531,7 +1537,7 @@ async function loadOwnerUsers() {
     const render = () => {
       const query = (searchInput?.value || "").trim().toLowerCase();
       const filtered = users.filter((user) =>
-        [user.name, user.username, user.email, user.role].some((value) =>
+        [user.name, user.username, user.email, user.role, user.account_type].some((value) =>
           String(value || "").toLowerCase().includes(query)
         )
       );
@@ -1543,7 +1549,8 @@ async function loadOwnerUsers() {
           <div class="admin-item">
             <strong>${escapeHTML(user.name || user.username || user.email || "User")}</strong>
             <span>${escapeHTML(user.email || "")}</span>
-            <span>Role: ${escapeHTML(role)}</span>
+            <span>Admin role: ${escapeHTML(role)}</span>
+            <span>Account type: ${escapeHTML(String(user.account_type || "unclassified").replace("_", " + "))}</span>
             ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
               <label>Registered artist name
                 <input type="text" maxlength="100" value="${escapeHTML(user.name || "")}" data-user-name="${escapeHTML(user.id)}">
