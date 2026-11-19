@@ -482,14 +482,15 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     const coverFile = req.files?.cover_image?.[0] || null;
     const { title, artist, genre, description } = req.body;
     const accountType = String(req.user.account_type || "unclassified");
+    const isStaffUploader = ["owner", "admin", "superadmin"].includes(String(req.user.role || "").toLowerCase());
     const uploadType = String(req.body.upload_type || (req.body.is_remix ? "remix" : "song")).trim().toLowerCase();
-    if (!["artist", "dj", "artist_dj"].includes(accountType)) {
+    if (!isStaffUploader && !["artist", "dj", "artist_dj"].includes(accountType)) {
       return res.status(403).json({ error: "Only Artist, DJ or Artist + DJ accounts can upload music. Contact Paya Music UG Management if your account type needs correction." });
     }
     if (!["song", "dj_mix", "remix"].includes(uploadType)) {
       return res.status(400).json({ error: "Choose an original song, DJ nonstop/mix or remix." });
     }
-    if (uploadType === "dj_mix" && !["dj", "artist_dj"].includes(accountType)) {
+    if (!isStaffUploader && uploadType === "dj_mix" && !["dj", "artist_dj"].includes(accountType)) {
       return res.status(403).json({ error: "DJ nonstop/mix uploads are available to DJ and Artist + DJ accounts." });
     }
 
