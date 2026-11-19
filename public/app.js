@@ -174,7 +174,7 @@ function updateAccountUI() {
   if (welcome) welcome.textContent = currentUser
     ? `Welcome, ${currentUser.name || currentUser.username || currentUser.email || "User"}`
     : "";
-  if (accountRoleLabel) accountRoleLabel.textContent = currentUser ? `Account role: ${currentUser.role || "user"}` : "";
+  if (accountRoleLabel) accountRoleLabel.textContent = currentUser ? `Account type: ${String(currentUser.account_type || "unclassified").replace("_", " + ")} · Access role: ${currentUser.role || "user"}` : "";
   if (adminPanel) adminPanel.classList.toggle("hidden", !isAdmin());
   if (ownerPanel) {
     const ownerAccess = hasManagementAccess();
@@ -201,6 +201,18 @@ function updateAccountUI() {
 
   const roleLabel = $("#userRole");
   if (roleLabel && currentUser) roleLabel.textContent = currentUser.role || "user";
+
+  const uploadForm = $("#uploadForm");
+  const uploadNotice = $("#uploadAccessNotice");
+  const accountType = String(currentUser?.account_type || "unclassified");
+  const canUpload = ["artist", "dj", "artist_dj"].includes(accountType);
+  if (uploadForm) uploadForm.classList.toggle("hidden", !!currentUser && !canUpload);
+  if (uploadNotice) {
+    uploadNotice.hidden = !(currentUser && !canUpload);
+    uploadNotice.textContent = currentUser && !canUpload
+      ? "Your Listener account is for discovering and listening to music. To upload music, ask Paya Music UG Management to update your account type."
+      : "";
+  }
 
   const profileName = $("#profileName");
   const profileBio = $("#profileBio");
