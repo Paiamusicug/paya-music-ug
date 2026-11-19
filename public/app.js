@@ -208,6 +208,27 @@ function updateAccountUI() {
   if (profileBio && currentUser && !profileBio.value) {
     profileBio.value = currentUser.bio || "";
   }
+
+  // Once an artist has saved profile details, show a clean public-style
+  // profile card. Keep the editor hidden until the artist chooses to edit.
+  const profileDisplay = $("#profileDisplay");
+  const profileForm = $("#profileForm");
+  const profilePicker = $("#profilePreview");
+  const displayAvatar = $("#profileDisplayAvatar");
+  const displayName = $("#profileDisplayName");
+  const displayBio = $("#profileDisplayBio");
+  const hasSavedProfile = !!(currentUser && (
+    String(currentUser.bio || "").trim() || currentUser.avatar_url
+  ));
+  if (profileDisplay) profileDisplay.hidden = !hasSavedProfile;
+  if (profileForm) profileForm.classList.toggle("hidden", hasSavedProfile);
+  if (profilePicker) profilePicker.classList.toggle("hidden", hasSavedProfile);
+  if (displayName) displayName.textContent = currentUser?.name || currentUser?.username || "Artist";
+  if (displayBio) displayBio.textContent = currentUser?.bio || "";
+  if (displayAvatar) {
+    displayAvatar.src = currentUser?.avatar_url || "";
+    displayAvatar.hidden = !currentUser?.avatar_url;
+  }
 }
 
 function songId(song) {
@@ -1329,6 +1350,15 @@ if (profilePicturePicker && profileImageInput) {
     showSelectedProfilePhoto(file);
   });
 }
+// Let an artist reopen the editor without losing their saved profile.
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("#editArtistProfile")) return;
+  $("#profileDisplay")?.setAttribute("hidden", "");
+  $("#profileForm")?.classList.remove("hidden");
+  $("#profilePreview")?.classList.remove("hidden");
+  $("#profileForm")?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 bindForm("#profileForm", async (form) => {
   if (!token) throw new Error("Please log in first.");
   const name = $("#profileName", form)?.value?.trim() || "";
