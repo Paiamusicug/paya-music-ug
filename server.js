@@ -1123,7 +1123,7 @@ app.get("/api/songs/:id/:action", async (req, res) => {
 
     const { data: song, error } = await supabase
       .from("songs")
-      .select("filename, original_name, mime_type, title, artist")
+      .select("filename, original_name, mime_type, title, artist, cover_url")
       .eq("id", id)
       .eq("status", "approved")
       .single();
@@ -1136,27 +1136,72 @@ app.get("/api/songs/:id/:action", async (req, res) => {
 
     const { data, error: storageError } = await supabase.storage
       .from(MUSIC_BUCKET)
-      .createSignedUrl(song.filename, 300, {
-        download: action === "download"
-          ? (String(song.title || "Song") + " - " + String(song.artist || "Artist") + " - Paya Music UG.mp3").replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim()
-          : false
-      });
+      .createSignedUrl(song.filename, 300, { download: false });
 
     if (storageError || !data?.signedUrl) {
-      return res.status(500).json({
-        error: "Could not access audio file"
-      });
+      return res.status(500).json({ error: "Could not access audio file" });
     }
 
     if (action === "download") {
-      const { error: countError } = await supabase
-        .from("song_downloads")
-        .insert({ song_id: Number(id) });
-      if (countError) {
-        // A download should still work if the tracking migration is not installed yet.
-        console.error("Song download count error:", countError.message);
+      const audioResponse = await fetch(data.signedUrl);
+      if (!audioResponse.ok) return res.status(502).json({ error: "Could not retrieve audio file" });
+      const audioBuffer = Buffer.from(await audioResponse.arrayBuffer());
+      let downloadBuffer = audioBuffer;
+
+      // Embed uploaded artwork as the MP3 ID3 front-cover image.
+      if (song.cover_url && ffmpegPath) {
+        try {
+          const coverResponse = await fetch(song.cover_url);
+          if (coverResponse.ok) {
+            const coverBuffer = Buffer.from(await coverResponse.arrayBuffer());
+            if (coverBuffer.length) {
+              downloadBuffer = await new Promise((resolve, reject) => {
+                const ffmpeg = spawn(ffmpegPath, [
+                  "-hide_banner", "-loglevel", "error",
+                  "-i", "pipe:0", "-i", "pipe:3",
+                  "-map", "0:a:0", "-map", "1:v:0",
+                  "-c:a", "copy", "-c:v", "mjpeg",
+                  "-disposition:v:0", "attached_pic",
+                  "-metadata", "title=" + String(song.title || "Song"),
+                  "-metadata", "artist=" + String(song.artist || "Artist"),
+                  "-metadata:s:v", "title=Album cover",
+                  "-metadata:s:v", "comment=Cover (front)",
+                  "-id3v2_version", "3", "-f", "mp3", "pipe:1"
+                ], { stdio: ["pipe", "pipe", "pipe", "pipe"] });
+                const output = [];
+                const errors = [];
+                ffmpeg.stdout.on("data", chunk => output.push(chunk));
+                ffmpeg.stderr.on("data", chunk => errors.push(chunk));
+                ffmpeg.on("error", reject);
+                ffmpeg.on("close", code => {
+                  if (code === 0 && output.length) resolve(Buffer.concat(output));
+                  else reject(new Error(Buffer.concat(errors).toString("utf8").slice(0, 500) || "Could not embed cover artwork"));
+                });
+                ffmpeg.stdin.on("error", () => {});
+                ffmpeg.stdio[3].on("error", () => {});
+                ffmpeg.stdin.end(audioBuffer);
+                ffmpeg.stdio[3].end(coverBuffer);
+              });
+            }
+          }
+        } catch (coverError) {
+          console.warn("Could not embed song cover; sending original audio:", coverError.message);
+          downloadBuffer = audioBuffer;
+        }
       }
-      return res.redirect(data.signedUrl);
+
+      const safeBaseName = (String(song.title || "Song") + " - " + String(song.artist || "Artist") + " - Paya Music UG")
+        .replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, " ").trim();
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Length": String(downloadBuffer.length),
+        "Content-Disposition": 'attachment; filename="' + safeBaseName + '.mp3"',
+        "Cache-Control": "private, no-store"
+      });
+
+      const { error: countError } = await supabase.from("song_downloads").insert({ song_id: Number(id) });
+      if (countError) console.error("Song download count error:", countError.message);
+      return res.status(200).send(downloadBuffer);
     }
 
     const headers = {};
