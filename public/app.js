@@ -1574,10 +1574,10 @@ async function loadOwnerUsers() {
             </label>
             <button type="button" data-save-account-type="${escapeHTML(user.id)}">Save account type</button>` : ""}
             ${isProtectedOwner ? '<span>Owner account — protected</span>' : `
-              <label>Registered artist name
+              ${isOwner() ? `<label>Registered artist name
                 <input type="text" maxlength="100" value="${escapeHTML(user.name || "")}" data-user-name="${escapeHTML(user.id)}">
               </label>
-              <button type="button" data-save-user-name="${escapeHTML(user.id)}">Save artist name</button>
+              <button type="button" data-save-user-name="${escapeHTML(user.id)}">Save artist name</button>` : ""}
               ${canManageRoles ? `<select aria-label="Role for ${escapeHTML(user.email || user.id)}" data-user-role="${escapeHTML(user.id)}">
                 <option value="artist" ${role === "artist" ? "selected" : ""}>Artist / standard account</option>
                 <option value="admin" ${role === "admin" ? "selected" : ""}>Admin</option>
@@ -1604,8 +1604,8 @@ async function loadOwnerUsers() {
       container.innerHTML = `
         <h4>Registered accounts — edit artist names and roles</h4>
         ${userHTML}
-        <h4>Full song catalogue — edit any song</h4>
-        ${songHTML}`;
+        ${isOwner() ? "<h4>Full song catalogue — edit any song</h4>" : "<h4>Song catalogue</h4>"}
+        ${isOwner() ? songHTML : ""}`;
 
       $("[data-save-account-type]", container).forEach((button) => {
         button.addEventListener("click", async () => {
