@@ -182,6 +182,15 @@
         <input name="email" type="email" required placeholder="you@example.com">
       </label>
 
+      <label>Account type
+        <select name="account_type" required>
+          <option value="artist" selected>Artist — upload and manage your music</option>
+          <option value="listener">Listener — discover and listen to music</option>
+          <option value="dj">DJ — upload nonstops, mixes and remixes</option>
+          <option value="artist_dj">Artist + DJ — upload music and DJ mixes</option>
+        </select>
+      </label>
+
       <label>Password
         <div class="password-field"><input name="password" type="password" required minlength="10" placeholder="At least 10 characters"><button type="button" data-password-toggle>Show</button></div>
       </label>
@@ -450,14 +459,18 @@
       </select>
     </label>
 
-    <label>About this song
-      <textarea name="description" maxlength="500" placeholder="Optional short description"></textarea>
+    <label>Upload type
+      <select name="upload_type" required>
+        <option value="song">Original song</option>
+        <option value="dj_mix">DJ nonstop / mix</option>
+        <option value="remix">Remix / alternate version</option>
+      </select>
     </label>
 
-    <label class="checkbox-label">
-      <input name="is_remix" type="checkbox" value="yes">
-      This is a remix / alternate version
+    <label>About this upload
+      <textarea name="description" maxlength="500" placeholder="Optional short description"></textarea>
     </label>
+    <p class="fine">DJ mixes and remixes must use music you own or are authorized to use.</p>
 
     <label class="file-label">MP3 or M4A audio file
       <input name="audio" type="file" accept=".mp3,.m4a,audio/mpeg,audio/mp4,audio/x-m4a" required>
