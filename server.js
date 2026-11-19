@@ -236,7 +236,9 @@ async function auth(req, res, next) {
 }
 
 function admin(req, res, next) {
-  if (!["admin", "superadmin", "owner"].includes(req.user.role)) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const isPaymentManagerOnly = email === "payamusic361@gmail.com" && req.user.role !== "owner";
+  if (isPaymentManagerOnly || !["admin", "superadmin", "owner"].includes(req.user.role)) {
     return res.status(403).json({
       error: "Admin access required"
     });
