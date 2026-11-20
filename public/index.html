@@ -174,17 +174,28 @@
     </div>
 
     <form id="registerForm">
+      <section class="register-profile-design" aria-label="Set up your profile appearance">
+        <div class="register-cover" id="registerCoverPreview">
+          <span class="register-cover-hint">YOUR COVER PHOTO</span>
+          <label class="register-cover-camera" for="registerCover" aria-label="Choose cover photo">📷</label>
+          <input id="registerCover" class="register-file-hidden" type="file" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <div class="register-avatar-wrap">
+          <div class="register-avatar-preview" id="registerAvatarPreview">
+            <span class="register-avatar-placeholder">♫</span>
+          </div>
+          <label class="register-avatar-camera" for="registerAvatar" aria-label="Choose profile picture">📷</label>
+          <input id="registerAvatar" class="register-file-hidden" type="file" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <p class="register-photo-caption">Add your profile picture and cover photo</p>
+      </section>
+
       <label>Your name
         <input name="name" required minlength="2" placeholder="Artist or listener name">
       </label>
 
       <label>Email address
         <input name="email" type="email" required placeholder="you@example.com">
-      </label>
-
-      <label>Profile picture (optional)
-        <input id="registerAvatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp">
-        <small class="muted">Choose a JPG, PNG or WEBP image up to 5 MB. You can add one later from your profile.</small>
       </label>
 
       <label>Account type
