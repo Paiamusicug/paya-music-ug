@@ -1143,8 +1143,47 @@ bindForm("#forgotPasswordForm",async(form)=>{
  const result=await api("/api/password/forgot",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});
  $("#forgotPasswordMsg").textContent=result.message||"If the email is registered, a recovery link will be sent.";
 });
+// Live previews for profile and cover images during account registration.
+function previewRegistrationImage(inputId, targetId, mode) {
+  const input = document.getElementById(inputId);
+  const target = document.getElementById(targetId);
+  if (!input || !target) return;
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      input.value = "";
+      toast("Choose a JPG, PNG or WEBP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      input.value = "";
+      toast("Images must be 5 MB or smaller.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (mode === "cover") {
+        target.style.backgroundImage = `url("${reader.result}")`;
+        const hint = target.querySelector(".register-cover-hint");
+        if (hint) hint.style.display = "none";
+      } else {
+        target.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = reader.result;
+        img.alt = "Selected profile picture preview";
+        target.appendChild(img);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+previewRegistrationImage("registerAvatar", "registerAvatarPreview", "avatar");
+previewRegistrationImage("registerCover", "registerCoverPreview", "cover");
+
 bindForm("#registerForm", async (form) => {
   const profilePhoto = $("#registerAvatar")?.files?.[0] || null;
+  const coverPhoto = $("#registerCover")?.files?.[0] || null;
   const data = Object.fromEntries(new FormData(form).entries());
   const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
   if (registrationOnly) data.account_type = "artist";
@@ -1158,34 +1197,43 @@ bindForm("#registerForm", async (form) => {
   // optional profile photo and save its public URL to the new account.
   let registeredUser = result.user || result;
   let profilePhotoWarning = "";
-  if (profilePhoto) {
+  if (profilePhoto || coverPhoto) {
     try {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(profilePhoto.type)) {
-        throw new Error("Choose a JPG, PNG or WEBP profile picture.");
+      const profileUpdates = {
+        name: registeredUser.name || data.name,
+        bio: registeredUser.bio || ""
+      };
+      for (const [file, endpoint, field] of [
+        [profilePhoto, "/api/profile/avatar", "avatar_url"],
+        [coverPhoto, "/api/profile/cover", "cover_url"]
+      ]) {
+        if (!file) continue;
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+          throw new Error("Choose JPG, PNG or WEBP images.");
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Profile and cover images must be 5 MB or smaller.");
+        }
+        const fd = new FormData();
+        fd.append("image", file);
+        const uploaded = await api(endpoint, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${result.token}` },
+          body: fd
+        });
+        profileUpdates[field] = uploaded[field];
       }
-      if (profilePhoto.size > 5 * 1024 * 1024) {
-        throw new Error("Profile pictures must be 5 MB or smaller.");
-      }
-      const uploaded = await api("/api/profile/avatar", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${result.token}` },
-        body: (() => { const fd = new FormData(); fd.append("image", profilePhoto); return fd; })()
-      });
       const saved = await api("/api/profile", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${result.token}`
         },
-        body: JSON.stringify({
-          name: registeredUser.name || data.name,
-          bio: registeredUser.bio || "",
-          avatar_url: uploaded.avatar_url
-        })
+        body: JSON.stringify(profileUpdates)
       });
-      registeredUser = saved.user || { ...registeredUser, avatar_url: uploaded.avatar_url };
+      registeredUser = saved.user || { ...registeredUser, ...profileUpdates };
     } catch (photoError) {
-      profilePhotoWarning = ` Your account was created, but the profile picture could not be saved: ${photoError.message}`;
+      profilePhotoWarning = ` Your account was created, but an image could not be saved: ${photoError.message}`;
     }
   }
 
