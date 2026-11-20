@@ -205,7 +205,8 @@ function updateAccountUI() {
   const uploadForm = $("#uploadForm");
   const uploadNotice = $("#uploadAccessNotice");
   const accountType = String(currentUser?.account_type || "unclassified");
-  const canUpload = ["artist", "dj", "artist_dj"].includes(accountType) || isAdmin();
+  const isDesignatedManagementUploader = String(currentUser?.email || "").trim().toLowerCase() === "payamusic361@gmail.com";
+  const canUpload = ["artist", "dj", "artist_dj"].includes(accountType) || isAdmin() || isDesignatedManagementUploader;
   if (uploadForm) uploadForm.classList.toggle("hidden", !!currentUser && !canUpload);
   if (uploadNotice) {
     uploadNotice.hidden = !(currentUser && !canUpload);
@@ -249,7 +250,7 @@ function updateAccountUI() {
   const displayName = $("#profileDisplayName");
   const displayBio = $("#profileDisplayBio");
   const hasSavedProfile = !!(currentUser && (
-    String(currentUser.bio || "").trim() || currentUser.avatar_url
+    String(currentUser.bio || "").trim() || currentUser.avatar_url || currentUser.cover_url
   ));
   if (profileDisplay) profileDisplay.hidden = !hasSavedProfile;
   if (profileForm) profileForm.classList.toggle("hidden", hasSavedProfile);
@@ -259,6 +260,15 @@ function updateAccountUI() {
   if (displayAvatar) {
     displayAvatar.src = currentUser?.avatar_url || "";
     displayAvatar.hidden = !currentUser?.avatar_url;
+  }
+  const profileCoverDisplay = $("#profileCoverDisplay");
+  if (profileCoverDisplay) {
+    profileCoverDisplay.style.backgroundImage = currentUser?.cover_url ? `url("${currentUser.cover_url}")` : "";
+    profileCoverDisplay.hidden = !currentUser?.cover_url;
+  }
+  const profileCoverEditorPreview = $("#profileCoverEditorPreview");
+  if (profileCoverEditorPreview) {
+    profileCoverEditorPreview.style.backgroundImage = currentUser?.cover_url ? `url("${currentUser.cover_url}")` : "";
   }
 }
 
@@ -1493,6 +1503,24 @@ function showSelectedProfilePhoto(file) {
   reader.readAsDataURL(file);
 }
 
+const profileCoverInput = $("#profileCoverImage");
+const profileCoverEditorPreview = $("#profileCoverEditorPreview");
+const profileCoverPicker = $("#profileCoverPicker");
+if (profileCoverPicker && profileCoverInput) {
+  profileCoverPicker.addEventListener("click", () => profileCoverInput.click());
+  profileCoverInput.addEventListener("change", () => {
+    const file = profileCoverInput.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      profileCoverInput.value = "";
+      toast("Choose a JPG, PNG or WEBP cover photo up to 5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => { if (profileCoverEditorPreview) profileCoverEditorPreview.style.backgroundImage = `url("${reader.result}")`; };
+    reader.readAsDataURL(file);
+  });
+}
 if (profilePicturePicker && profileImageInput) {
   profilePicturePicker.addEventListener("click", () => profileImageInput.click());
   profileImageInput.addEventListener("change", () => {
@@ -1516,7 +1544,9 @@ bindForm("#profileForm", async (form) => {
   // Read the profile picker by its unique ID so the selected phone photo
   // cannot be missed by a broad form selector.
   const file = $("#profileImage", form)?.files?.[0] || null;
+  const coverFile = $("#profileCoverImage", form)?.files?.[0] || null;
   let avatar_url = currentUser?.avatar_url || null;
+  let cover_url = currentUser?.cover_url || null;
   if (file) {
     if (!file.type.startsWith("image/")) {
       throw new Error("Please choose a JPG, PNG, or WEBP image.");
@@ -1527,10 +1557,16 @@ bindForm("#profileForm", async (form) => {
       throw new Error("The profile photo did not upload. Please try again.");
     }
   }
+  if (coverFile) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(coverFile.type) || coverFile.size > 5 * 1024 * 1024) throw new Error("Choose a JPG, PNG or WEBP cover photo up to 5 MB.");
+    const uploadedCover = await uploadImage("/api/profile/cover", coverFile);
+    cover_url = uploadedCover.cover_url || "";
+    if (!cover_url) throw new Error("The cover photo did not upload. Please try again.");
+  }
   const result = await api("/api/profile", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, bio, avatar_url })
+    body: JSON.stringify({ name, bio, avatar_url, cover_url })
   });
   // Keep the uploaded URL even if the profile response omits that field.
   // Apply the same saved URL to both profile and header images.
@@ -1542,7 +1578,8 @@ bindForm("#profileForm", async (form) => {
   currentUser = {
     ...(currentUser || {}),
     ...(result.user || {}),
-    ...(savedAvatarUrl ? { avatar_url: savedAvatarUrl } : {})
+    ...(savedAvatarUrl ? { avatar_url: savedAvatarUrl } : {}),
+    ...(cover_url ? { cover_url } : {})
   };
   localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
   updateAccountUI();
