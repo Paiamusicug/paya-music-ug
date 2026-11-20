@@ -829,6 +829,17 @@ app.get("/artist/:id", async (req, res) => {
       }))
     };
     const safeStructuredData = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+    const { data: moreSongsData } = await supabase.from("songs")
+      .select("id, title, artist, cover_url, genre")
+      .eq("status", "approved").neq("id", song.id)
+      .order("created_at", { ascending: false }).limit(8);
+    const moreSongsHTML = (moreSongsData || []).map((item) => {
+      const itemTitle = escapeHTML(item.title || "Untitled song");
+      const itemArtist = escapeHTML(item.artist || "Unknown artist");
+      const itemCover = escapeHTML(item.cover_url || "/paya-default-cover.svg");
+      const itemGenre = escapeHTML(item.genre || "Music");
+      return `<a class="discovery-card" href="/song/${encodeURIComponent(item.id)}"><img src="${itemCover}" alt="${itemTitle} artwork" loading="lazy"><span><strong>${itemTitle}</strong><small>${itemArtist}</small><small>${itemGenre}</small></span></a>`;
+    }).join("");
     const songCards = songs.length ? songs.map(song => {
       const songTitle = escapeHTML(song.title || "Untitled song");
       const creditedArtist = escapeHTML(song.artist || artistName);
@@ -886,6 +897,8 @@ h1{font-size:clamp(26px,5vw,42px);margin:0 0 10px}.bio{color:#c3c3c3;line-height
 <section class="catalogue"><div class="catalogue-head"><h2>Music by ${safeName}</h2><span class="count">${songs.length} published ${songs.length === 1 ? "song" : "songs"}</span></div>${songCards}</section>
 <footer><a class="back" href="/">Discover more music on Paya Music UG</a></footer>
 <iframe name="payaSongDownloadFrame" title="Song download" hidden></iframe>
+</section>
+<section class="discovery" aria-label="More music"><h2>Discover more music on Paya Music UG</h2><div class="discovery-grid">${moreSongsHTML || '<p>Explore the full music catalogue on Paya Music UG.</p>'}</div><p style="text-align:center;margin-top:24px"><a class="button secondary" href="/#music">Explore all music</a> <a class="button secondary" href="/artists">Discover artists</a></p></section>
 </main></body></html>`);
   } catch (error) {
     console.error("Artist profile page error:", error);
@@ -949,13 +962,20 @@ app.get("/song/:id", async (req, res) => {
 <meta name="twitter:description" content="${safeDescription}"><meta name="twitter:image" content="${safeImage}">
 <script type="application/ld+json">${safeStructuredData}</script>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;padding:28px 18px}
-main{max-width:720px;margin:0 auto;text-align:center}.cover{display:block;width:min(46vw,190px);height:auto;max-height:250px;aspect-ratio:auto;object-fit:contain;border-radius:14px;margin:0 auto 14px}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;padding:0 0 36px}
+.site-header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px max(18px,calc((100% - 1100px)/2));background:#101114;border-bottom:1px solid #343434}
+.brand{color:#f5f2eb;text-decoration:none;font-weight:900;letter-spacing:1px;white-space:nowrap}.brand span{color:#e8b84c}
+.site-nav{display:flex;gap:18px;flex-wrap:wrap}.site-nav a{color:#ddd;text-decoration:none;font-size:14px}.site-nav a:hover{color:#e8b84c}
+main{max-width:1050px;margin:0 auto;text-align:center;padding:26px 18px}.song-content{max-width:720px;margin:0 auto}.cover{display:block;width:min(46vw,190px);height:auto;max-height:250px;aspect-ratio:auto;object-fit:contain;border-radius:14px;margin:0 auto 14px}
 h1{font-size:clamp(25px,5vw,36px);margin:16px 0 8px}.artist{font-size:20px;color:#d4d0c8;margin:0 0 16px}
 p{color:#aaa;line-height:1.65}.meta{color:#c8b27d;font-size:14px;margin:12px 0 22px}
 audio{width:100%;margin:18px 0 10px}a.button{display:inline-block;margin:12px 6px;padding:14px 22px;border-radius:7px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold}
 a.secondary{background:#252525;color:#f5f2eb;border:1px solid #51452c}.description{max-width:620px;margin:18px auto}
-</style></head><body><main>
+.discovery{margin:46px auto 0;padding:28px 0;border-top:1px solid #343434;text-align:left}.discovery h2{font-size:24px;margin:0 0 18px}.discovery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:14px}.discovery-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid #343434;border-radius:12px;background:#17181b;color:#f5f2eb;text-decoration:none}.discovery-card img{width:100%;aspect-ratio:1;object-fit:cover}.discovery-card span{display:flex;flex-direction:column;gap:5px;padding:10px}.discovery-card strong{font-size:14px}.discovery-card small{font-size:12px;color:#aaa}
+@media(max-width:520px){.site-header{align-items:flex-start;flex-direction:column;gap:10px}.site-nav{gap:14px}main{padding:20px 14px}}
+</style></head><body>
+<header class="site-header"><a class="brand" href="/">PAYA <span>MUSIC UG</span></a><nav class="site-nav" aria-label="Main navigation"><a href="/">Home</a><a href="/#music">Music</a><a href="/#artists">Artists</a><a href="/advertise">Advertise</a></nav></header>
+<main><section class="song-content">
 <img class="cover" src="${safeImage}" alt="${safeTitle} cover artwork" width="600" height="600">
 <h1>${safeTitle}</h1><p class="artist">${escapeHTML(artistName)}</p>
 ${song.genre ? '<p class="meta">Genre: ' + safeGenre + '</p>' : ''}
