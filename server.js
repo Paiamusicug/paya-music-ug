@@ -327,7 +327,7 @@ app.post("/api/register", async (req, res) => {
         account_type: requestedAccountType,
         bio: ""
       })
-      .select("id, name, email, role, account_type, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url, cover_url")
       .single();
 
     if (error) throw error;
@@ -429,7 +429,7 @@ app.get("/api/me", auth, (req, res) => {
 // UPDATE ARTIST PROFILE DIRECTLY; profile pictures do not require approval.
 app.patch("/api/profile", auth, async (req, res) => {
   try {
-    const { name, bio, avatar_url } = req.body;
+    const { name, bio, avatar_url, cover_url } = req.body;
     if (typeof name !== "string" || name.trim().length < 2 || typeof bio !== "string") {
       return res.status(400).json({ error: "Enter an artist name and biography." });
     }
@@ -439,6 +439,9 @@ app.patch("/api/profile", auth, async (req, res) => {
     };
     if (typeof avatar_url === "string" && avatar_url.startsWith("https://")) {
       updates.avatar_url = avatar_url;
+    }
+    if (typeof cover_url === "string" && cover_url.startsWith("https://")) {
+      updates.cover_url = cover_url;
     }
     const { data, error } = await supabase
       .from("users")
@@ -472,6 +475,22 @@ app.post("/api/profile/avatar", auth, imageUpload.single("image"), async (req, r
   } catch (error) {
     console.error("Profile picture upload error:", error.message, error.code || "");
     res.status(500).json({ error: "Profile picture upload failed." });
+  }
+});
+
+// COVER PHOTO UPLOAD
+app.post("/api/profile/cover", auth, imageUpload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "Please choose a cover image" });
+    const ext = req.file.mimetype === "image/png" ? "png" : req.file.mimetype === "image/webp" ? "webp" : "jpg";
+    const filename = `profile-covers/${req.user.id}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(filename, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(filename);
+    res.json({ cover_url: data.publicUrl });
+  } catch (error) {
+    console.error("Profile cover upload error:", error.message, error.code || "");
+    res.status(500).json({ error: "Cover photo upload failed." });
   }
 });
 
