@@ -218,7 +218,7 @@ async function auth(req, res, next) {
 
     const { data: user, error } = await supabase
       .from("users")
-      .select("id, name, email, role, account_type, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url, cover_url")
       .eq("id", decoded.id)
       .maybeSingle();
 
@@ -447,7 +447,7 @@ app.patch("/api/profile", auth, async (req, res) => {
       .from("users")
       .update(updates)
       .eq("id", req.user.id)
-      .select("id, name, email, role, account_type, bio, avatar_url")
+      .select("id, name, email, role, account_type, bio, avatar_url, cover_url")
       .single();
     if (error) throw error;
     res.json({
@@ -501,7 +501,8 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     const coverFile = req.files?.cover_image?.[0] || null;
     const { title, artist, genre, description } = req.body;
     const accountType = String(req.user.account_type || "unclassified");
-    const isStaffUploader = ["owner", "admin", "superadmin"].includes(String(req.user.role || "").toLowerCase());
+    const isDesignatedManagementUploader = String(req.user.email || "").trim().toLowerCase() === "payamusic361@gmail.com";
+    const isStaffUploader = ["owner", "admin", "superadmin"].includes(String(req.user.role || "").toLowerCase()) || isDesignatedManagementUploader;
     const uploadType = String(req.body.upload_type || (req.body.is_remix ? "remix" : "song")).trim().toLowerCase();
     if (!isStaffUploader && !["artist", "dj", "artist_dj"].includes(accountType)) {
       return res.status(403).json({ error: "Only Artist, DJ or Artist + DJ accounts can upload music. Contact Paya Music UG Management if your account type needs correction." });
