@@ -1144,6 +1144,7 @@ bindForm("#forgotPasswordForm",async(form)=>{
  $("#forgotPasswordMsg").textContent=result.message||"If the email is registered, a recovery link will be sent.";
 });
 bindForm("#registerForm", async (form) => {
+  const profilePhoto = $("#registerAvatar")?.files?.[0] || null;
   const data = Object.fromEntries(new FormData(form).entries());
   const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
   if (registrationOnly) data.account_type = "artist";
@@ -1152,6 +1153,42 @@ bindForm("#registerForm", async (form) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
+
+  // Registration returns a short-lived session token. Use it to upload an
+  // optional profile photo and save its public URL to the new account.
+  let registeredUser = result.user || result;
+  let profilePhotoWarning = "";
+  if (profilePhoto) {
+    try {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(profilePhoto.type)) {
+        throw new Error("Choose a JPG, PNG or WEBP profile picture.");
+      }
+      if (profilePhoto.size > 5 * 1024 * 1024) {
+        throw new Error("Profile pictures must be 5 MB or smaller.");
+      }
+      const uploaded = await api("/api/profile/avatar", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${result.token}` },
+        body: (() => { const fd = new FormData(); fd.append("image", profilePhoto); return fd; })()
+      });
+      const saved = await api("/api/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${result.token}`
+        },
+        body: JSON.stringify({
+          name: registeredUser.name || data.name,
+          bio: registeredUser.bio || "",
+          avatar_url: uploaded.avatar_url
+        })
+      });
+      registeredUser = saved.user || { ...registeredUser, avatar_url: uploaded.avatar_url };
+    } catch (photoError) {
+      profilePhotoWarning = ` Your account was created, but the profile picture could not be saved: ${photoError.message}`;
+    }
+  }
+
   form.reset();
   if (registrationOnly) {
     const claimed = Number(result.claimed_songs || 0);
@@ -1159,15 +1196,15 @@ bindForm("#registerForm", async (form) => {
       ? `Artist account created. ${claimed} matching song(s) have been added to the artist account. The artist can now sign in.`
       : "Artist account created successfully. The artist can now sign in.";
     const accountMsg = $("#accountMsg");
-    if (accountMsg) accountMsg.textContent = message;
+    if (accountMsg) accountMsg.textContent = message + profilePhotoWarning;
     // Keep the artist on the registration page, but switch to sign-in after registration.
     const loginTab = $('.tab[data-tab="login"]');
     if (loginTab) loginTab.click();
     toast("Artist account created successfully. Please sign in.");
     return;
   }
-  saveSession(result.user || result, result.token);
-  toast("Account created successfully.");
+  saveSession(registeredUser, result.token);
+  toast(profilePhotoWarning ? "Account created. " + profilePhotoWarning : "Account created successfully.");
   await refreshDashboard();
 });
 
