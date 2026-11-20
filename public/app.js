@@ -714,6 +714,27 @@ async function loadMine() {
   try {
     const result = await api("/api/my-songs");
     const songs = result.songs || [];
+    const dashboard = $("#artistDashboard");
+    const accountType = String(currentUser?.account_type || "unclassified").toLowerCase();
+    const canViewArtistDashboard = ["artist", "dj", "artist_dj"].includes(accountType);
+    if (dashboard) {
+      dashboard.classList.toggle("hidden", !canViewArtistDashboard);
+      if (canViewArtistDashboard) {
+        const totalPlays = songs.reduce((sum, song) => sum + Number(song.play_count || 0), 0);
+        const totalDownloads = songs.reduce((sum, song) => sum + Number(song.download_count || 0), 0);
+        const published = songs.filter(song => String(song.status || "").toLowerCase() === "approved").length;
+        const pending = songs.filter(song => !["approved", "rejected"].includes(String(song.status || "").toLowerCase())).length;
+        const topSong = [...songs].sort((x, y) => Number(y.play_count || 0) - Number(x.play_count || 0))[0];
+        const number = value => Number(value).toLocaleString();
+        $("#artistTotalPlays").textContent = number(totalPlays);
+        $("#artistTotalDownloads").textContent = number(totalDownloads);
+        $("#artistPublishedSongs").textContent = number(published);
+        $("#artistPendingSongs").textContent = number(pending);
+        $("#artistTopSong").innerHTML = topSong && (Number(topSong.play_count || 0) > 0 || Number(topSong.download_count || 0) > 0)
+          ? `<span>Top-performing release</span><strong>${escapeHTML(songTitle(topSong))} · ${number(topSong.play_count || 0)} plays · ${number(topSong.download_count || 0)} downloads</strong>`
+          : '<span>Top-performing release</span><strong>No plays recorded yet</strong>';
+      }
+    }
     container.innerHTML = songs.length
       ? songs.map((song) => `
         <div class="my-song-stat">
@@ -752,6 +773,18 @@ async function loadMine() {
   } catch (error) {
     container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
   }
+}
+
+const refreshArtistStatsButton = $("#refreshArtistStats");
+if (refreshArtistStatsButton) {
+  refreshArtistStatsButton.addEventListener("click", async () => {
+    refreshArtistStatsButton.disabled = true;
+    refreshArtistStatsButton.textContent = "Refreshing…";
+    await loadMine();
+    refreshArtistStatsButton.disabled = false;
+    refreshArtistStatsButton.textContent = "Refresh stats";
+    toast("Your artist statistics have been refreshed.");
+  });
 }
 
 async function loadPendingSongs() {
