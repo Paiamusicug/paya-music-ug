@@ -244,6 +244,25 @@
       <!-- ARTIST PROFILE EDITOR -->
       
 
+      <!-- ARTIST PERFORMANCE DASHBOARD -->
+      <section id="artistDashboard" class="artist-dashboard hidden" aria-label="Artist performance dashboard">
+        <div class="artist-dashboard-heading">
+          <div>
+            <p class="artist-dashboard-kicker">YOUR CREATOR SPACE</p>
+            <h2>Artist Dashboard</h2>
+            <p class="muted">Track how your music is performing on Paya Music UG.</p>
+          </div>
+          <button type="button" class="outline" id="refreshArtistStats">Refresh stats</button>
+        </div>
+        <div class="artist-metric-grid">
+          <article class="artist-metric"><span>Total plays</span><strong id="artistTotalPlays">0</strong><small>Across your releases</small></article>
+          <article class="artist-metric"><span>Total downloads</span><strong id="artistTotalDownloads">0</strong><small>Across your releases</small></article>
+          <article class="artist-metric"><span>Published songs</span><strong id="artistPublishedSongs">0</strong><small>Approved releases</small></article>
+          <article class="artist-metric"><span>Pending releases</span><strong id="artistPendingSongs">0</strong><small>Awaiting approval</small></article>
+        </div>
+        <div class="artist-top-song" id="artistTopSong"><span>Top-performing release</span><strong>No plays recorded yet</strong></div>
+      </section>
+
       <h3>My music submissions</h3>
       <div id="mySongs"></div>
 
