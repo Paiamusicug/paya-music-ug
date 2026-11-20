@@ -900,3 +900,43 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .artist-profile-cover-display{height:190px;min-height:190px;width:min(100%,760px);margin:0 auto 12px;}
 .artist-profile-cover-display[hidden]{display:none!important}
 @media(max-width:600px){.artist-cover-editor-preview{height:125px;min-height:125px}.artist-profile-cover-display{height:145px;min-height:145px}}
+
+
+/* Facebook-inspired artist profile header: full-width cover with overlapping avatar. */
+#profileDisplay.artist-profile-display{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  width:100%;padding:0 0 26px;text-align:center;overflow:hidden;
+  border:1px solid rgba(232,184,76,.22);border-radius:22px;
+  background:linear-gradient(180deg,#171719 0%,#101012 100%);
+}
+#profileDisplay .artist-profile-cover-display{
+  position:relative;display:block!important;visibility:visible;width:100%;
+  height:clamp(170px,38vw,285px);min-height:170px;margin:0;padding:0;
+  border:0;border-radius:20px 20px 0 0;background:
+    linear-gradient(125deg,#28231a,#55452a 48%,#171719) center/cover no-repeat;
+}
+#profileDisplay .artist-profile-cover-display[hidden]{display:block!important}
+.artist-cover-label{position:absolute;left:16px;top:14px;padding:6px 10px;
+  border-radius:20px;background:#0009;color:#f4cc69;font-size:10px;
+  font-weight:800;letter-spacing:1.5px}
+.artist-cover-camera,.artist-avatar-camera{
+  display:grid;place-items:center;width:42px;height:42px;border-radius:50%;
+  border:2px solid #111;background:var(--gold);color:#17120a;
+  box-shadow:0 3px 12px #0009;cursor:pointer;font-size:18px
+}
+.artist-cover-camera{position:absolute;right:14px;bottom:14px}
+.artist-avatar-overlap{position:relative;z-index:2;width:clamp(126px,30vw,190px);
+  height:clamp(126px,30vw,190px);margin-top:calc(clamp(126px,30vw,190px) / -2 - 2px)}
+.artist-profile-display-avatar{display:block!important;width:100%;height:100%;
+  border:6px solid #111;outline:4px solid var(--gold);border-radius:50%;
+  object-fit:cover;background:#242424;box-shadow:0 8px 25px #0009}
+.artist-profile-display-avatar[hidden]{display:block!important;visibility:hidden}
+.artist-avatar-camera{position:absolute;right:0;bottom:5px;border:3px solid #111}
+#profileDisplay h2{margin:5px 14px 0;font-size:clamp(25px,6vw,34px)}
+#profileDisplay p{margin:0 18px;max-width:600px}
+#profileDisplay #editArtistProfile{margin-top:12px;min-width:150px}
+.artist-cover-editor-preview{position:relative;background-size:cover;background-position:center}
+@media(max-width:480px){
+  #profileDisplay .artist-profile-cover-display{height:190px}
+  .artist-cover-camera,.artist-avatar-camera{width:38px;height:38px}
+}
