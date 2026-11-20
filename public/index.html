@@ -132,8 +132,14 @@
     <section id="profileEditor" class="panel hidden">
             <h3>Artist profile</h3>
             <div id="profileDisplay" class="artist-profile-display" hidden>
-              <div id="profileCoverDisplay" class="artist-profile-cover-display" hidden></div>
-              <img id="profileDisplayAvatar" class="artist-profile-display-avatar" alt="Artist profile picture" hidden>
+              <div id="profileCoverDisplay" class="artist-profile-cover-display">
+                <span class="artist-cover-label">ARTIST COVER</span>
+                <button id="editCoverPhoto" class="artist-cover-camera" type="button" aria-label="Change cover photo">📷</button>
+              </div>
+              <div class="artist-avatar-overlap">
+                <img id="profileDisplayAvatar" class="artist-profile-display-avatar" alt="Artist profile picture" hidden>
+                <button id="editProfilePhoto" class="artist-avatar-camera" type="button" aria-label="Change profile picture">📷</button>
+              </div>
               <h2 id="profileDisplayName"></h2>
               <p id="profileDisplayBio"></p>
               <button id="editArtistProfile" class="outline" type="button">Edit Profile</button>
