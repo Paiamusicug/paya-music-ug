@@ -920,6 +920,7 @@ app.get("/song/:id", async (req, res) => {
     const safePageUrl = escapeHTML(pageUrl);
     const safeAudioUrl = escapeHTML(audioUrl);
     const safeDownloadUrl = escapeHTML(downloadUrl);
+    const downloadFilename = escapeHTML((songTitle + " - " + artistName + " - Paya Music UG.mp3").replace(/[\\/:*?"<>|]+/g, "-").replace(/\\s+/g, " ").trim());
     const safeGenre = escapeHTML(song.genre || "");
     const safeCountry = escapeHTML(song.country || "");
     const structuredData = {
@@ -948,7 +949,7 @@ app.get("/song/:id", async (req, res) => {
 <script type="application/ld+json">${safeStructuredData}</script>
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0c0d0f;color:#f5f2eb;font:16px Arial,sans-serif;padding:28px 18px}
-main{max-width:720px;margin:0 auto;text-align:center}.cover{display:block;width:min(62vw,260px);height:auto;max-height:360px;aspect-ratio:auto;object-fit:contain;border-radius:16px;margin:0 auto 18px}
+main{max-width:720px;margin:0 auto;text-align:center}.cover{display:block;width:min(46vw,190px);height:auto;max-height:250px;aspect-ratio:auto;object-fit:contain;border-radius:14px;margin:0 auto 14px}
 h1{font-size:clamp(25px,5vw,36px);margin:16px 0 8px}.artist{font-size:20px;color:#d4d0c8;margin:0 0 16px}
 p{color:#aaa;line-height:1.65}.meta{color:#c8b27d;font-size:14px;margin:12px 0 22px}
 audio{width:100%;margin:18px 0 10px}a.button{display:inline-block;margin:12px 6px;padding:14px 22px;border-radius:7px;background:#e8b84c;color:#15120b;text-decoration:none;font-weight:bold}
@@ -960,7 +961,7 @@ ${song.genre ? '<p class="meta">Genre: ' + safeGenre + '</p>' : ''}
 ${song.country ? '<p class="meta">Country: ' + safeCountry + '</p>' : ''}
 ${song.description ? '<p class="description">' + safeDescription + '</p>' : '<p class="description">Listen to ' + escapeHTML(songTitle) + ' by ' + escapeHTML(artistName) + ' on Paya Music UG, an international music discovery platform.</p>'}
 <audio controls preload="none" src="${safeAudioUrl}">Your browser does not support audio playback.</audio>
-<div><a class="button" href="${safeDownloadUrl}" download rel="nofollow" aria-label="Download ${safeTitle} MP3">Download MP3</a><a class="button secondary" href="/">Explore more music</a></div>
+<div><a class="button" href="${safeDownloadUrl}" download="${downloadFilename}" rel="nofollow" aria-label="Download ${safeTitle} MP3">Download MP3</a><a class="button secondary" href="/">Explore more music</a></div>
 </main></body></html>`);
   } catch (error) {
     console.error("Song SEO page error:", error);
