@@ -875,3 +875,21 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .register-file-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important;pointer-events:none!important}
 .register-photo-caption{text-align:center;color:#aaa;font-size:13px;margin:9px 0 0}
 @media(max-width:600px){.register-cover{height:145px}.register-avatar-wrap,.register-avatar-preview{width:124px;height:124px}.register-avatar-wrap{margin-top:-62px}}
+
+
+/* Artist performance dashboard */
+.artist-dashboard{margin:18px 0 26px;padding:18px;border:1px solid rgba(235,189,77,.35);border-radius:16px;background:linear-gradient(145deg,#1b1a17,#111214 72%)}
+.artist-dashboard-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.artist-dashboard-heading h2{font-size:23px;margin:4px 0 5px;color:var(--white)}
+.artist-dashboard-heading .muted{margin:0;font-size:13px}
+.artist-dashboard-kicker{font-size:10px;letter-spacing:3px;font-weight:800;color:var(--gold);margin:0}
+.artist-metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.artist-metric{min-width:0;padding:14px;border-radius:12px;background:#222326;border:1px solid #393632;display:grid;gap:5px}
+.artist-metric span{font-size:12px;color:#d4d0c7}
+.artist-metric strong{font-size:27px;line-height:1.1;color:var(--gold);font-variant-numeric:tabular-nums}
+.artist-metric small{font-size:10px;color:#999}
+.artist-top-song{display:grid;gap:5px;margin-top:12px;padding:13px 14px;border-radius:12px;background:#141518;border:1px solid #38332a}
+.artist-top-song span{font-size:11px;color:#aaa}
+.artist-top-song strong{font-size:14px;color:var(--white)}
+#refreshArtistStats{white-space:nowrap;font-size:12px;padding:9px 11px}
+@media(max-width:430px){.artist-dashboard{padding:14px}.artist-dashboard-heading{flex-direction:column}.artist-metric strong{font-size:24px}}
