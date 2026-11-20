@@ -829,17 +829,6 @@ app.get("/artist/:id", async (req, res) => {
       }))
     };
     const safeStructuredData = JSON.stringify(structuredData).replace(/</g, "\\u003c");
-    const { data: moreSongsData } = await supabase.from("songs")
-      .select("id, title, artist, cover_url, genre")
-      .eq("status", "approved").neq("id", song.id)
-      .order("created_at", { ascending: false }).limit(8);
-    const moreSongsHTML = (moreSongsData || []).map((item) => {
-      const itemTitle = escapeHTML(item.title || "Untitled song");
-      const itemArtist = escapeHTML(item.artist || "Unknown artist");
-      const itemCover = escapeHTML(item.cover_url || "/paya-default-cover.svg");
-      const itemGenre = escapeHTML(item.genre || "Music");
-      return `<a class="discovery-card" href="/song/${encodeURIComponent(item.id)}"><img src="${itemCover}" alt="${itemTitle} artwork" loading="lazy"><span><strong>${itemTitle}</strong><small>${itemArtist}</small><small>${itemGenre}</small></span></a>`;
-    }).join("");
     const songCards = songs.length ? songs.map(song => {
       const songTitle = escapeHTML(song.title || "Untitled song");
       const creditedArtist = escapeHTML(song.artist || artistName);
