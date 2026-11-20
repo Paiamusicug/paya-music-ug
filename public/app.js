@@ -660,7 +660,7 @@ async function likeSong(id, button) {
 }
 
 async function shareSong(song) {
-  const url = new URL(`/?song=${encodeURIComponent(songId(song))}#music`, location.origin).href;
+  const url = new URL(`/song/${encodeURIComponent(songId(song))}`, location.origin).href;
   const shareData = {
     title: `${songTitle(song)} — ${songArtist(song)} | Paya Music UG`,
     text: `Listen to ${songTitle(song)} by ${songArtist(song)} on Paya Music UG:`,
