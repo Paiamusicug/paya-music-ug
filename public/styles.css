@@ -893,3 +893,10 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 .artist-top-song strong{font-size:14px;color:var(--white)}
 #refreshArtistStats{white-space:nowrap;font-size:12px;padding:9px 11px}
 @media(max-width:430px){.artist-dashboard{padding:14px}.artist-dashboard-heading{flex-direction:column}.artist-metric strong{font-size:24px}}
+
+
+/* Signed-in artist cover photo editor and saved profile banner. */
+.artist-cover-editor-preview,.artist-profile-cover-display{width:100%;height:150px;min-height:150px;border:1px solid rgba(235,187,75,.4);border-radius:14px;background:linear-gradient(125deg,#24211b,#51432b 48%,#171717) center/cover no-repeat;display:flex;align-items:flex-end;justify-content:flex-end;padding:12px;box-sizing:border-box;margin:12px 0 16px;}
+.artist-profile-cover-display{height:190px;min-height:190px;width:min(100%,760px);margin:0 auto 12px;}
+.artist-profile-cover-display[hidden]{display:none!important}
+@media(max-width:600px){.artist-cover-editor-preview{height:125px;min-height:125px}.artist-profile-cover-display{height:145px;min-height:145px}}
