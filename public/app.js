@@ -132,6 +132,10 @@ function hasManagementAccess() {
   return String(currentUser?.role || "").toLowerCase() === "owner";
 }
 
+function canManageSongs() {
+  return hasManagementAccess() || String(currentUser?.email || "").trim().toLowerCase() === "payamusic361@gmail.com";
+}
+
 function updateAccountUI() {
   const userPanel = $("#userPanel");
   const profileEditor = $("#profileEditor");
@@ -336,9 +340,8 @@ function renderMusicHome(items = []) {
   document.querySelectorAll("[data-open-artist]").forEach(button => {
     button.addEventListener("click", () => {
       const name = button.dataset.openArtist;
-      const input = $("#search");
-      if (input) input.value = name;
       // Filter the complete catalogue by every credited artist, including featured artists.
+      // Keep the search field unchanged when a listener opens an artist from a song.
       const matches = catalogueSongs.filter(song =>
         artistNames(songArtist(song)).some(artist => artist.toLocaleLowerCase() === name.toLocaleLowerCase())
       );
@@ -511,7 +514,7 @@ function renderSongs(items = []) {
           <button type="button" data-play="${id}">Play</button>
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
-          ${isAdmin() ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
+          ${canManageSongs() ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
           ${isAdmin() ? `<button type="button" data-change-artwork="${id}">Change artwork</button>` : ""}
           ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
@@ -530,7 +533,7 @@ function renderSongs(items = []) {
       if (country === null) return;
       button.disabled = true;
       try {
-        const ownerEditing = hasManagementAccess();
+        const ownerEditing = canManageSongs();
         await api(ownerEditing
           ? `/api/owner/songs/${encodeURIComponent(songId(song))}`
           : `/api/my-songs/${encodeURIComponent(songId(song))}`, {
@@ -1770,8 +1773,8 @@ async function loadOwnerUsers() {
       container.innerHTML = `
         <h4>Registered accounts — edit artist names and roles</h4>
         ${userHTML}
-        ${isOwner() ? "<h4>Full song catalogue — edit any song</h4>" : "<h4>Song catalogue</h4>"}
-        ${isOwner() ? songHTML : ""}`;
+        ${canManageSongs() ? "<h4>Full song catalogue — edit song details</h4>" : "<h4>Song catalogue</h4>"}
+        ${canManageSongs() ? songHTML : ""}`;
 
       $("[data-save-account-type]", container).forEach((button) => {
         button.addEventListener("click", async () => {
