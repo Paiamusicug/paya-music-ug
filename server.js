@@ -885,6 +885,7 @@ h1{font-size:clamp(26px,5vw,42px);margin:0 0 10px}.bio{color:#c3c3c3;line-height
 <div><p class="count">PUBLIC ARTIST PROFILE</p><h1>${safeName}</h1><p class="bio">${safeBio}</p></div></header>
 <section class="catalogue"><div class="catalogue-head"><h2>Music by ${safeName}</h2><span class="count">${songs.length} published ${songs.length === 1 ? "song" : "songs"}</span></div>${songCards}</section>
 <footer><a class="back" href="/">Discover more music on Paya Music UG</a></footer>
+<iframe name="payaSongDownloadFrame" title="Song download" hidden></iframe>
 </main></body></html>`);
   } catch (error) {
     console.error("Artist profile page error:", error);
@@ -961,7 +962,7 @@ ${song.genre ? '<p class="meta">Genre: ' + safeGenre + '</p>' : ''}
 ${song.country ? '<p class="meta">Country: ' + safeCountry + '</p>' : ''}
 ${song.description ? '<p class="description">' + safeDescription + '</p>' : '<p class="description">Listen to ' + escapeHTML(songTitle) + ' by ' + escapeHTML(artistName) + ' on Paya Music UG, an international music discovery platform.</p>'}
 <audio controls preload="none" src="${safeAudioUrl}">Your browser does not support audio playback.</audio>
-<div><a class="button" href="${safeDownloadUrl}" download="${downloadFilename}" rel="nofollow" aria-label="Download ${safeTitle} MP3">Download MP3</a><a class="button secondary" href="/">Explore more music</a></div>
+<div><a class="button" href="${safeDownloadUrl}" target="payaSongDownloadFrame" rel="nofollow" aria-label="Download ${safeTitle} MP3">Download MP3</a><a class="button secondary" href="/">Explore more music</a></div>
 </main></body></html>`);
   } catch (error) {
     console.error("Song SEO page error:", error);
