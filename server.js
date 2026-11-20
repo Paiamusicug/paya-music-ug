@@ -903,6 +903,14 @@ app.get("/song/:id", async (req, res) => {
       .eq("id", req.params.id).eq("status", "approved").maybeSingle();
     if (error || !song) return res.status(404).send("Song not found");
 
+    // Social/search crawlers receive the song-specific metadata below (title, artist, artwork).
+    // Real visitors are sent into the full Paya Music UG catalogue with this song selected.
+    const userAgent = String(req.get("user-agent") || "");
+    const metadataCrawler = /facebookexternalhit|Facebot|WhatsApp|TelegramBot|Twitterbot|LinkedInBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterestbot/i.test(userAgent);
+    if (!metadataCrawler) {
+      return res.redirect(302, `/?song=${encodeURIComponent(song.id)}#music`);
+    }
+
     const siteUrl = "https://paya-music-ug.onrender.com";
     const pageUrl = siteUrl + "/song/" + encodeURIComponent(song.id);
     const audioUrl = siteUrl + "/api/songs/" + encodeURIComponent(song.id) + "/stream";
