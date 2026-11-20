@@ -660,7 +660,7 @@ async function likeSong(id, button) {
 }
 
 async function shareSong(song) {
-  const url = new URL(`/song/${encodeURIComponent(songId(song))}`, location.origin).href;
+  const url = new URL(`/?song=${encodeURIComponent(songId(song))}#music`, location.origin).href;
   const shareData = {
     title: `${songTitle(song)} — ${songArtist(song)} | Paya Music UG`,
     text: `Listen to ${songTitle(song)} by ${songArtist(song)} on Paya Music UG:`,
@@ -670,7 +670,7 @@ async function shareSong(song) {
     if (navigator.share) await navigator.share(shareData);
     else if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
-      toast("Song page link copied. Share it on WhatsApp to show the artwork.");
+      toast("Paya Music UG song link copied. It opens the song inside the music catalogue.");
     } else {
       window.prompt("Copy this song page link:", url);
     }
