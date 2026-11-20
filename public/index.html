@@ -132,6 +132,7 @@
     <section id="profileEditor" class="panel hidden">
             <h3>Artist profile</h3>
             <div id="profileDisplay" class="artist-profile-display" hidden>
+              <div id="profileCoverDisplay" class="artist-profile-cover-display" hidden></div>
               <img id="profileDisplayAvatar" class="artist-profile-display-avatar" alt="Artist profile picture" hidden>
               <h2 id="profileDisplayName"></h2>
               <p id="profileDisplayBio"></p>
@@ -147,6 +148,10 @@
               <label>Artist name
                 <input name="name" id="profileName" maxlength="120" placeholder="Your artist name">
               </label>
+              <div id="profileCoverEditorPreview" class="artist-cover-editor-preview">
+                <button id="profileCoverPicker" type="button" class="outline">📷 Change / add cover photo</button>
+              </div>
+              <input id="profileCoverImage" type="file" accept="image/jpeg,image/png,image/webp" hidden>
     
               <input
                 name="image"
