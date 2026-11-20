@@ -254,6 +254,14 @@ function operationalAdmin(req, res, next) {
   next();
 }
 
+function songCatalogueEditor(req, res, next) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
+    return res.status(403).json({ error: "Song catalogue editing access required" });
+  }
+  next();
+}
+
 function managementViewer(req, res, next) {
   const email = String(req.user.email || "").trim().toLowerCase();
   if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
@@ -1993,7 +2001,7 @@ app.get("/api/owner/songs", auth, managementViewer, async (req, res) => {
   }
 });
 
-app.patch("/api/owner/songs/:id", auth, operationalAdmin, async (req, res) => {
+app.patch("/api/owner/songs/:id", auth, songCatalogueEditor, async (req, res) => {
   try {
     const { title, artist, country } = req.body || {};
     if (typeof title !== "string" || !title.trim() || typeof artist !== "string" || !artist.trim()) {
