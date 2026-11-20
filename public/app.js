@@ -264,7 +264,7 @@ function updateAccountUI() {
   const profileCoverDisplay = $("#profileCoverDisplay");
   if (profileCoverDisplay) {
     profileCoverDisplay.style.backgroundImage = currentUser?.cover_url ? `url("${currentUser.cover_url}")` : "";
-    profileCoverDisplay.hidden = !currentUser?.cover_url;
+    profileCoverDisplay.hidden = false;
   }
   const profileCoverEditorPreview = $("#profileCoverEditorPreview");
   if (profileCoverEditorPreview) {
@@ -1530,6 +1530,17 @@ if (profilePicturePicker && profileImageInput) {
 }
 // Let an artist reopen the editor without losing their saved profile.
 document.addEventListener("click", (event) => {
+  const coverCamera = event.target.closest("#editCoverPhoto");
+  const avatarCamera = event.target.closest("#editProfilePhoto");
+  if (coverCamera || avatarCamera) {
+    $("#profileDisplay")?.setAttribute("hidden", "");
+    $("#profileForm")?.classList.remove("hidden");
+    $("#profilePreview")?.classList.remove("hidden");
+    $("#profileForm")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (coverCamera) $("#profileCoverImage")?.click();
+    if (avatarCamera) $("#profileImage")?.click();
+    return;
+  }
   if (!event.target.closest("#editArtistProfile")) return;
   $("#profileDisplay")?.setAttribute("hidden", "");
   $("#profileForm")?.classList.remove("hidden");
