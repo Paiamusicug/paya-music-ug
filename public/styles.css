@@ -431,7 +431,6 @@ footer p,footer small{color:var(--muted);font-size:12px}
 
 
 /* Dedicated shareable artist registration page mode */
-body.artist-registration-only .header-avatar,
 body.artist-registration-only #loginOpen,
 body.artist-registration-only #profileEditor,
 body.artist-registration-only #userPanel,
