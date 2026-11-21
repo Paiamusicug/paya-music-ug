@@ -891,13 +891,22 @@ async function moderateProfile(id, status) {
 
 async function loadPendingNews() {
   const container = $("#pendingNews");
-  if (!container || !isAdmin()) return;
+  if (!container || !canManageSongs()) return;
   try {
     const result = await api("/api/admin/news");
     const items = result.news || [];
-    container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.title || "News article")}</strong><p>${escapeHTML((item.content || "").slice(0, 240))}</p><button type="button" data-news-approve="${escapeHTML(item.id)}">Approve & publish</button><button type="button" data-news-reject="${escapeHTML(item.id)}">Reject</button></div>`).join("") : "<p>No news awaiting review.</p>";
+    container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.title || "News article")}</strong><p>${escapeHTML((item.content || "").slice(0, 240))}</p><button type="button" data-news-approve="${escapeHTML(item.id)}">Approve & publish</button><button type="button" data-news-reject="${escapeHTML(item.id)}">Reject</button><button type="button" data-delete-news="${escapeHTML(item.id)}">Delete</button></div>`).join("") : "<p>No news awaiting review.</p>";
     $$("[data-news-approve]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsApprove, "published")));
-    $$("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected")));
+    $("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected"))); 
+    $("[data-delete-news]", container).forEach((button) => button.addEventListener("click", async () => {
+      if (!canManageSongs() || !window.confirm("Permanently delete this news article? This cannot be undone.")) return;
+      button.disabled = true;
+      try {
+        await api("/api/admin/news/" + encodeURIComponent(button.dataset.deleteNews), { method: "DELETE" });
+        toast("News article deleted.");
+        await Promise.all([loadPendingNews(), loadNews()]);
+      } catch (error) { toast(error.message || "Could not delete news article."); button.disabled = false; }
+    }));
   } catch (error) { container.innerHTML = `<p>${escapeHTML(error.message)}</p>`; }
 }
 
@@ -962,7 +971,7 @@ async function loadNews() {
           <h3>${escapeHTML(item.title || "")}</h3>
           <small class="news-byline">Story by Paya Music UG${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
           <button type="button" class="news-share-btn" data-news-share="${escapeHTML(item.id)}" data-news-title="${escapeHTML(item.title || "")}">↗ Share news</button>
-          ${isAdmin() ? `<button type="button" class="news-edit-btn" data-edit-news="${escapeHTML(item.id)}">Edit news</button>` : ""}
+          ${canManageSongs() ? `<button type="button" class="news-edit-btn" data-edit-news="${escapeHTML(item.id)}">Edit news</button><button type="button" data-delete-published-news="${escapeHTML(item.id)}">Delete news</button>` : ""}
         </div>
         ${item.image_url ? `<img class="news-story-image" src="${escapeHTML(item.image_url)}" alt="${escapeHTML(item.title || "News")}" loading="lazy">` : ""}
         <details class="news-story-details">
@@ -984,7 +993,7 @@ async function loadNews() {
       </article>`).join("") : "<p>No news posted yet.</p>";
     container.querySelectorAll("[data-edit-news]").forEach((button) => {
       button.addEventListener("click", async () => {
-        if (!isAdmin()) return toast("Admin access required.");
+        if (!canManageSongs()) return toast("News management access required.");
         const item = news.find((entry) => String(entry.id) === button.dataset.editNews);
         if (!item) return;
         const title = window.prompt("News title:", item.title || "");
@@ -1007,6 +1016,17 @@ async function loadNews() {
           toast(error.message || "Could not update news article.");
           button.disabled = false;
         }
+      });
+    });
+    container.querySelectorAll("[data-delete-published-news]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        if (!canManageSongs() || !window.confirm("Permanently delete this published news article? This cannot be undone.")) return;
+        button.disabled = true;
+        try {
+          await api("/api/admin/news/" + encodeURIComponent(button.dataset.deletePublishedNews), { method: "DELETE" });
+          toast("News article deleted.");
+          await Promise.all([loadNews(), loadPendingNews()]);
+        } catch (error) { toast(error.message || "Could not delete news article."); button.disabled = false; }
       });
     });
     await Promise.all(news.map((item) => loadNewsComments(item.id)));
