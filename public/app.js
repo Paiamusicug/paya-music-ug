@@ -897,8 +897,8 @@ async function loadPendingNews() {
     const items = result.news || [];
     container.innerHTML = items.length ? items.map((item) => `<div class="admin-item"><strong>${escapeHTML(item.title || "News article")}</strong><p>${escapeHTML((item.content || "").slice(0, 240))}</p><button type="button" data-news-approve="${escapeHTML(item.id)}">Approve & publish</button><button type="button" data-news-reject="${escapeHTML(item.id)}">Reject</button><button type="button" data-delete-news="${escapeHTML(item.id)}">Delete</button></div>`).join("") : "<p>No news awaiting review.</p>";
     $$("[data-news-approve]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsApprove, "published")));
-    $("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected"))); 
-    $("[data-delete-news]", container).forEach((button) => button.addEventListener("click", async () => {
+    $$("[data-news-reject]", container).forEach((button) => button.addEventListener("click", () => moderateNews(button.dataset.newsReject, "rejected"))); 
+    $$("[data-delete-news]", container).forEach((button) => button.addEventListener("click", async () => {
       if (!canManageSongs() || !window.confirm("Permanently delete this news article? This cannot be undone.")) return;
       button.disabled = true;
       try {
@@ -1796,7 +1796,7 @@ async function loadOwnerUsers() {
         ${canManageSongs() ? "<h4>Full song catalogue — edit song details</h4>" : "<h4>Song catalogue</h4>"}
         ${canManageSongs() ? songHTML : ""}`;
 
-      $("[data-save-account-type]", container).forEach((button) => {
+      $$("[data-save-account-type]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveAccountType;
           const select = container.querySelector(`[data-user-account-type="${CSS.escape(id)}"]`);
@@ -1816,7 +1816,7 @@ async function loadOwnerUsers() {
           }
         });
       });
-      $("[data-save-role]", container).forEach((button) => {
+      $$("[data-save-role]", container).forEach((button) => {
         button.addEventListener("click", async () => {
           const id = button.dataset.saveRole;
           const select = container.querySelector(`[data-user-role="${CSS.escape(id)}"]`);
