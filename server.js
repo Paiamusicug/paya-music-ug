@@ -247,6 +247,15 @@ function admin(req, res, next) {
   next();
 }
 
+function newsModerator(req, res, next) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const permittedRole = ["admin", "superadmin", "owner"].includes(String(req.user.role || "").toLowerCase());
+  if (!permittedRole && email !== "payamusic361@gmail.com") {
+    return res.status(403).json({ error: "News management access required" });
+  }
+  next();
+}
+
 function operationalAdmin(req, res, next) {
   if (req.user.role !== "owner") {
     return res.status(403).json({ error: "Owner access required" });
@@ -1749,13 +1758,13 @@ app.delete("/api/admin/news/comments/:id", auth, admin, async (req, res) => {
 });
 
 // ADMIN: PENDING NEWS REVIEW
-app.get("/api/admin/news", auth, admin, async (req, res) => {
+app.get("/api/admin/news", auth, newsModerator, async (req, res) => {
   const { data, error } = await supabase.from("news").select("*").eq("status", "pending").order("created_at", { ascending: true });
   if (error) return res.status(500).json({ error: "Could not load pending news" });
   res.json({ news: data || [] });
 });
 
-app.patch("/api/admin/news/:id", auth, admin, async (req, res) => {
+app.patch("/api/admin/news/:id", auth, newsModerator, async (req, res) => {
   const { status, title, content, category } = req.body || {};
   if (typeof title === "string" || typeof content === "string" || typeof category === "string") {
     const updates = {};
@@ -1771,6 +1780,23 @@ app.patch("/api/admin/news/:id", auth, admin, async (req, res) => {
   const { data, error } = await supabase.from("news").update({ status, published_at: status === "published" ? new Date().toISOString() : null }).eq("id", req.params.id).eq("status", "pending").select().single();
   if (error || !data) return res.status(404).json({ error: "Pending news article not found" });
   res.json({ article: data });
+});
+
+
+app.delete("/api/admin/news/:id", auth, newsModerator, async (req, res) => {
+  try {
+    // Remove discussion entries first so deletion also works where the
+    // database does not cascade news-comment foreign keys.
+    const { error: commentsError } = await supabase.from("news_comments").delete().eq("news_id", String(req.params.id));
+    if (commentsError) throw commentsError;
+    const { data, error } = await supabase.from("news").delete().eq("id", req.params.id).select("id").maybeSingle();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: "News article not found." });
+    res.json({ deleted: true, id: data.id });
+  } catch (error) {
+    console.error("News deletion failed:", error);
+    res.status(500).json({ error: "Could not delete news article." });
+  }
 });
 
 // ADMIN: CREATE NEWS
