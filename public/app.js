@@ -28,7 +28,7 @@ const USER_KEY = "paya_user";
 const LIKES_KEY = "paya_liked_songs";
 const DEFAULT_SONG_COVER = "/paya-default-cover.svg";
 function isArtistRegistrationView() {
-  return isArtistRegistrationView() || window.location.hash === "#artist-register";
+  return new URLSearchParams(window.location.search).get("artist-register") === "1" || window.location.hash === "#artist-register";
 }
 function savedLikes() { try { return JSON.parse(localStorage.getItem(LIKES_KEY) || "[]").map(String); } catch { return []; } }
 function saveLike(id, liked) { const ids = new Set(savedLikes()); if (liked) ids.add(String(id)); else ids.delete(String(id)); localStorage.setItem(LIKES_KEY, JSON.stringify([...ids])); }
