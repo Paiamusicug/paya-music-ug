@@ -757,7 +757,13 @@ app.get("/news/:id", async (req, res) => {
     } catch {}
     const title = String(article.title || "Paya Music UG News");
     const plainContent = String(article.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    const description = (plainContent || `Read the latest ${article.category || "news"} story on Paya Music UG.`).slice(0, 180);
+    const description = (plainContent || `Read the latest ${article.category || "news"} story on Paya Music UG.`).slice(0, 120);
+    // Use a landscape-only thumbnail for social previews when the article image is in Supabase Storage.
+    // The original article artwork and on-site news display remain unchanged.
+    if (imageUrl.includes("/storage/v1/object/public/")) {
+      imageUrl = imageUrl.replace("/storage/v1/object/public/", "/storage/v1/render/image/public/");
+      imageUrl += `${imageUrl.includes("?") ? "&" : "?"}width=1200&height=630&resize=cover`;
+    }
     const safeTitle = escapeHTML(title);
     const safeDescription = escapeHTML(description);
     const safeImage = escapeHTML(imageUrl);
