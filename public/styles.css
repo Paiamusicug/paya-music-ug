@@ -995,3 +995,50 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
   #loginForm input{min-height:56px;font-size:16px}
   #loginForm button[type="submit"]{min-height:58px}
 }
+
+
+/* Registration form: keep the complete card and every field inside narrow mobile screens. */
+#account.account-section{
+  display:flex!important;flex-direction:column;align-items:center;justify-content:flex-start;
+  width:100%;min-width:0;box-sizing:border-box;overflow-x:clip;
+  padding:clamp(28px,5vw,56px) clamp(12px,4vw,28px);
+}
+#account .account-card{
+  display:block;width:min(100%,620px);max-width:620px;min-width:0;
+  box-sizing:border-box;margin:0 auto;justify-self:auto;
+  padding:clamp(16px,4vw,30px);overflow:hidden;
+}
+#account .account-card *,#account .account-card *::before,#account .account-card *::after{box-sizing:border-box;min-width:0}
+#account #registerForm,#account #loginForm,#account #profileEditor{width:100%;max-width:100%;min-width:0}
+#account #registerForm label,#account #loginForm label{display:block;width:100%;overflow-wrap:anywhere;line-height:1.5}
+#account #registerForm input:not([type="file"]),#account #registerForm select,#account #registerForm textarea,
+#account #loginForm input,#account #profileEditor input,#account #profileEditor textarea{
+  display:block;width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+}
+#account .register-profile-design{width:100%;max-width:100%;min-width:0}
+#account .register-cover{width:100%;max-width:100%}
+#account .register-cover-hint{max-width:calc(100% - 76px);letter-spacing:clamp(1px,1vw,3px);font-size:clamp(9px,2.5vw,11px);overflow-wrap:anywhere}
+#account .register-photo-caption{padding:0 5px;line-height:1.5;overflow-wrap:anywhere}
+#account .account-kicker{font-size:clamp(9px,2.5vw,10px);letter-spacing:clamp(1.5px,1vw,3px);overflow-wrap:anywhere}
+#account .password-field{display:flex;gap:8px;align-items:center;width:100%;min-width:0}
+#account .password-field input{flex:1 1 0;width:1%;min-width:0}
+#account .password-field button{flex:0 0 auto;max-width:32%;white-space:nowrap}
+@media(max-width:760px){
+  #account.account-section{display:flex!important;flex-direction:column;align-items:center;gap:0;padding:28px 12px 42px}
+  #account .account-card{width:100%;max-width:560px;padding:18px 15px 24px;border-radius:18px}
+  #account .tabs{gap:clamp(14px,5vw,28px)}
+  #account .register-cover{height:clamp(125px,36vw,158px)}
+  #account .register-avatar-wrap,#account .register-avatar-preview{width:clamp(104px,30vw,124px);height:clamp(104px,30vw,124px)}
+  #account .register-avatar-wrap{margin-top:calc(clamp(104px,30vw,124px) / -2)}
+  #account .register-profile-design{margin-bottom:22px}
+  #account .account-card label{font-size:13px;margin:13px 0}
+  #account .account-card input:not([type="file"]),#account .account-card select{min-height:50px;padding:12px;font-size:15px}
+  #account .account-card button{max-width:100%;overflow-wrap:anywhere}
+}
+@media(max-width:380px){
+  #account.account-section{padding-left:8px;padding-right:8px}
+  #account .account-card{padding:16px 12px 22px}
+  #account .register-cover-hint{left:11px;top:11px}
+  #account .password-field{gap:6px}
+  #account .password-field button{font-size:12px;padding:8px}
+}
