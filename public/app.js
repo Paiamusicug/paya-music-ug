@@ -600,8 +600,8 @@ function renderSongs(items = []) {
           <button type="button" data-share="${id}">Share</button>
           <a href="/api/songs/${encodeURIComponent(songId(song))}/download">Download</a>
           ${canManageSongs() ? `<button type="button" data-edit-public-song="${id}">Edit</button>` : ""}
-          ${isAdmin() ? `<button type="button" data-change-artwork="${id}">Change artwork</button>` : ""}
-          ${isAdmin() ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
+          ${(isAdmin() || canManageSongs()) ? `<button type="button" data-change-artwork="${id}">Change artwork</button>` : ""}
+          ${(isAdmin() || canManageSongs()) ? `<button type="button" class="delete-song-btn" data-delete-song="${id}">Delete</button>` : ""}
         </div>
       </article>`;
   }).join("")}</div></section>`).join("");
@@ -655,7 +655,7 @@ function renderSongs(items = []) {
 
   container.querySelectorAll("[data-change-artwork]").forEach((button) => {
     button.addEventListener("click", () => {
-      if (!isAdmin()) return toast("Admin access required.");
+      if (!isAdmin() && !canManageSongs()) return toast("Song management access required.");
       const songIdToUpdate = button.dataset.changeArtwork;
       const picker = document.createElement("input");
       picker.type = "file";
@@ -699,7 +699,7 @@ function renderSongs(items = []) {
   container.querySelectorAll("[data-delete-song]").forEach((button) => {
     button.addEventListener("click", async () => {
       const id = button.dataset.deleteSong;
-      if (!isAdmin() || !window.confirm("Permanently delete this song? This cannot be undone.")) return;
+      if ((!isAdmin() && !canManageSongs()) || !window.confirm("Permanently delete this song? This cannot be undone.")) return;
       button.disabled = true;
       try {
         await api(`/api/admin/songs/${encodeURIComponent(id)}`, { method: "DELETE" });
