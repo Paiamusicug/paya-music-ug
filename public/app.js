@@ -969,7 +969,7 @@ async function loadNews() {
         <div class="news-story-copy">
           <span class="news-category">${escapeHTML(String(item.category || "music").replace(/[-_]/g, " ").toUpperCase())}</span>
           <h3>${escapeHTML(item.title || "")}</h3>
-          <small class="news-byline">Story by Paya Music UG${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
+          <small class="news-byline">News by <span class="news-author-name">${escapeHTML(item.author_name || "Paya Music UG")}</span>${item.published_at ? ` · ${escapeHTML(new Date(item.published_at).toLocaleDateString())}` : ""}</small>
           <button type="button" class="news-share-btn" data-news-share="${escapeHTML(item.id)}" data-news-title="${escapeHTML(item.title || "")}">↗ Share news</button>
           ${canManageSongs() ? `<button type="button" class="news-edit-btn" data-edit-news="${escapeHTML(item.id)}">Edit news</button><button type="button" data-delete-published-news="${escapeHTML(item.id)}">Delete news</button>` : ""}
         </div>
