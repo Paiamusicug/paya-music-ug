@@ -346,6 +346,22 @@ function renderMusicHome(items = []) {
       ? ranked.slice(0,12).map(artistCard).join("")
       : `<p class="muted"> ${label} artists will appear here when music is published with that country.</p>`;
   });
+  const gospelEl = $("#gospelSongsList");
+  if (gospelEl) {
+    const gospelSongs = items.filter(song => /(^|[^a-z])gospel([^a-z]|$)/i.test(String(song.genre || "")))
+      .sort((a,b) => new Date(b.created_at || 0)-new Date(a.created_at || 0))
+      .slice(0,12);
+    gospelEl.innerHTML = gospelSongs.length ? gospelSongs.map((song,index) => `
+      <article class="trending-row">
+        <span class="trend-number">${index+1}</span>
+        <button type="button" class="trend-play" data-home-play="${escapeHTML(songId(song))}" aria-label="Play ${escapeHTML(songTitle(song))}">▶</button>
+        <img src="${escapeHTML(song.cover_url || DEFAULT_SONG_COVER)}" alt="" loading="lazy">
+        <div class="trend-song-name">
+          <button type="button" class="trend-title-button" data-expand-song="${escapeHTML(songId(song))}"><strong>${escapeHTML(songTitle(song))}</strong></button>
+          <button type="button" class="trend-artist-button" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">${escapeHTML(songArtist(song))}</button>
+        </div>
+      </article>`).join("") : '<p class="muted">Gospel songs will appear here when they are published with the Gospel genre.</p>';
+  }
   const trendingEl = $("#trendingSongsList");
   if (trendingEl) {
     const trending = [...items].sort((a,b) => Number(b.play_count||0)-Number(a.play_count||0) || Number(b.download_count||0)-Number(a.download_count||0) || Number(b.likes||0)-Number(a.likes||0) || new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,10);
