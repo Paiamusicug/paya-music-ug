@@ -54,6 +54,27 @@ function toast(message) {
   toast.timer = setTimeout(() => el.classList.remove("show"), 3000);
 }
 
+// Keep visitors informed when their device loses or regains connectivity.
+// navigator.onLine is only a connection hint; it cannot confirm mobile-data balance.
+function showConnectionNotice(offline) {
+  let notice = $("#payaConnectionNotice");
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.id = "payaConnectionNotice";
+    notice.setAttribute("role", "status");
+    notice.setAttribute("aria-live", "polite");
+    notice.style.cssText = "position:sticky;top:0;z-index:9999;padding:12px 16px;text-align:center;font-weight:600;background:#fff3cd;color:#664d03;border-bottom:1px solid #ffecb5";
+    document.body.prepend(notice);
+  }
+  notice.textContent = offline
+    ? "Connection lost. Your account and saved information have not been deleted. Please reconnect before continuing."
+    : "Connection restored. If an upload or submission was interrupted, check your account to confirm whether it completed before trying again.";
+  notice.hidden = !offline;
+}
+window.addEventListener("offline", () => showConnectionNotice(true));
+window.addEventListener("online", () => showConnectionNotice(false));
+if (!navigator.onLine) showConnectionNotice(true);
+
 function escapeHTML(value = "") {
   return String(value).replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -66,11 +87,22 @@ function authHeaders(extra = {}) {
 
 async function api(url, options = {}) {
   const headers = authHeaders(options.headers || {});
-  const response = await fetch(url, { ...options, headers });
-  const contentType = response.headers.get("content-type") || "";
-  const data = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  let response;
+  let data;
+  try {
+    response = await fetch(url, { ...options, headers });
+    const contentType = response.headers.get("content-type") || "";
+    data = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+  } catch (error) {
+    if (error instanceof TypeError || !navigator.onLine) {
+      const interrupted = new Error("Connection interrupted. Your saved account information has not been deleted. We couldn't confirm whether this request completed. Check your account or song list before submitting again.");
+      interrupted.code = "CONNECTION_INTERRUPTED";
+      throw interrupted;
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const message = data && typeof data === "object"
