@@ -770,7 +770,6 @@ function renderSongs(items = []) {
         toast("Song deleted.");
         await loadSongs($("#search")?.value || "");
         await loadMine();
-        await loadPendingSongs();
       } catch (error) {
         toast(error.message || "Could not delete song.");
         button.disabled = false;
@@ -930,13 +929,11 @@ async function loadMine() {
         const totalPlays = songs.reduce((sum, song) => sum + Number(song.play_count || 0), 0);
         const totalDownloads = songs.reduce((sum, song) => sum + Number(song.download_count || 0), 0);
         const published = songs.filter(song => String(song.status || "").toLowerCase() === "approved").length;
-        const pending = songs.filter(song => !["approved", "rejected"].includes(String(song.status || "").toLowerCase())).length;
         const topSong = [...songs].sort((x, y) => Number(y.play_count || 0) - Number(x.play_count || 0))[0];
         const number = value => Number(value).toLocaleString();
         $("#artistTotalPlays").textContent = number(totalPlays);
         $("#artistTotalDownloads").textContent = number(totalDownloads);
         $("#artistPublishedSongs").textContent = number(published);
-        $("#artistPendingSongs").textContent = number(pending);
         $("#artistTopSong").innerHTML = topSong && (Number(topSong.play_count || 0) > 0 || Number(topSong.download_count || 0) > 0)
           ? `<span>Top-performing release</span><strong>${escapeHTML(songTitle(topSong))} · ${number(topSong.play_count || 0)} plays · ${number(topSong.download_count || 0)} downloads</strong>`
           : '<span>Top-performing release</span><strong>No plays recorded yet</strong>';
@@ -946,7 +943,7 @@ async function loadMine() {
       ? songs.map((song) => `
         <div class="my-song-stat">
           <strong>${escapeHTML(songTitle(song))}</strong>
-          <span class="my-song-status">${escapeHTML(song.status || "pending")}</span>
+          <span class="my-song-status">${String(song.status || "").toLowerCase() === "approved" ? "Published" : String(song.status || "").toLowerCase() === "rejected" ? "Unavailable" : "Processing"}</span>
           <div class="my-song-counts">
             <span>▶ ${Number(song.play_count || 0)} plays</span>
             <span>↓ ${Number(song.download_count || 0)} downloads</span>
@@ -992,56 +989,6 @@ if (refreshArtistStatsButton) {
     refreshArtistStatsButton.textContent = "Refresh stats";
     toast("Your artist statistics have been refreshed.");
   });
-}
-
-async function loadPendingSongs() {
-  const container = $("#pendingSongs");
-  if (!container || !isAdmin()) return;
-  try {
-    const result = await api("/api/admin/songs");
-    const songs = result.songs || [];
-    container.innerHTML = songs.length ? songs.map((song) => `
-      <div class="admin-item">
-        <strong>${escapeHTML(songTitle(song))}</strong>
-        <span>${escapeHTML(songArtist(song))}</span>
-        <button type="button" data-song-approve="${escapeHTML(songId(song))}">Approve</button>
-        <button type="button" data-song-reject="${escapeHTML(songId(song))}">Reject</button>
-        <button type="button" data-delete-song="${escapeHTML(songId(song))}">Delete</button>
-      </div>`).join("") : "<p>No songs awaiting review.</p>";
-
-    $$("[data-song-approve]", container).forEach((button) =>
-      button.addEventListener("click", () => moderateSong(button.dataset.songApprove, "approved")));
-    $$("[data-song-reject]", container).forEach((button) =>
-      button.addEventListener("click", () => moderateSong(button.dataset.songReject, "rejected")));
-    $$("[data-delete-song]", container).forEach((button) =>
-      button.addEventListener("click", async () => {
-        if (!isAdmin() || !window.confirm("Permanently delete this song? This cannot be undone.")) return;
-        button.disabled = true;
-        try {
-          await api(`/api/admin/songs/${encodeURIComponent(button.dataset.deleteSong)}`, { method: "DELETE" });
-          toast("Song deleted.");
-          await loadPendingSongs();
-          await loadSongs($("#search")?.value || "");
-        } catch (error) { toast(error.message || "Could not delete song."); button.disabled = false; }
-      }));
-  } catch (error) {
-    container.innerHTML = `<p>${escapeHTML(error.message)}</p>`;
-  }
-}
-
-async function moderateSong(id, status) {
-  try {
-    await api(`/api/admin/songs/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-    toast(`Song ${status}.`);
-    loadPendingSongs();
-    loadSongs($("#search")?.value || "");
-  } catch (error) {
-    toast(error.message);
-  }
 }
 
 async function loadPendingAds() {
@@ -2086,7 +2033,6 @@ async function refreshDashboard() {
   updateAccountUI();
   await Promise.allSettled([
     loadMine(),
-    loadPendingSongs(),
     loadPendingAds(),
     loadPendingNews(),
     loadOwnerUsers()
