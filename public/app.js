@@ -1927,7 +1927,6 @@ async function loadOwnerUsers() {
           <label>Artist credit
             <input type="text" maxlength="120" data-owner-song-artist="${escapeHTML(song.id)}" value="${escapeHTML(song.artist || "")}">
           </label>
-          <span>Status: ${escapeHTML(song.status || "unknown")}</span>
           <button type="button" data-save-owner-song="${escapeHTML(song.id)}">Save song changes</button>
         </div>`).join("") || "<p>No matching songs found.</p>";
 
