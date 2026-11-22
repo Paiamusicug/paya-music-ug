@@ -1604,7 +1604,7 @@ app.post("/api/ads", async (req, res) => {
         placement: placement || "homepage",
         contact_email: String(contact_email).slice(0, 200),
         contact_whatsapp: String(contact_whatsapp || "").slice(0, 40),
-        status: "approved"
+        status: "pending"
       })
       .select("id, business_name, title, status")
       .single();
@@ -1612,7 +1612,7 @@ app.post("/api/ads", async (req, res) => {
     if (error) throw error;
 
     res.status(201).json({
-      message: "Advert published successfully.",
+      message: "Advert submitted successfully and is awaiting Paya Music UG review.",
       advert: data
     });
   } catch (error) {
