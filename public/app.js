@@ -346,6 +346,35 @@ function renderMusicHome(items = []) {
       ? ranked.slice(0,12).map(artistCard).join("")
       : `<p class="muted"> ${label} artists will appear here when music is published with that country.</p>`;
   });
+  const asianEl = $("#asianSongsList");
+  if (asianEl) {
+    const asianCountries = new Set([
+      "afghanistan","armenia","azerbaijan","bahrain","bangladesh","bhutan","brunei",
+      "cambodia","china","cyprus","georgia","india","indonesia","iran","iraq","israel",
+      "japan","jordan","kazakhstan","kuwait","kyrgyzstan","laos","lebanon","malaysia",
+      "maldives","mongolia","myanmar","nepal","north korea","oman","pakistan",
+      "palestine","philippines","qatar","saudi arabia","singapore","south korea",
+      "sri lanka","syria","taiwan","tajikistan","thailand","timor-leste","turkey",
+      "turkmenistan","united arab emirates","uzbekistan","vietnam","yemen"
+    ]);
+    const asianSongs = items.filter(song => asianCountries.has(
+      String(song.country || "").trim().toLocaleLowerCase().replace(/\\s+/g, " ")
+    )).sort((a,b) =>
+      Number(b.play_count || 0)-Number(a.play_count || 0) ||
+      Number(b.download_count || 0)-Number(a.download_count || 0) ||
+      new Date(b.created_at || 0)-new Date(a.created_at || 0)
+    ).slice(0,12);
+    asianEl.innerHTML = asianSongs.length ? asianSongs.map((song,index) => `
+      <article class="trending-row">
+        <span class="trend-number">${index+1}</span>
+        <button type="button" class="trend-play" data-home-play="${escapeHTML(songId(song))}" aria-label="Play ${escapeHTML(songTitle(song))}">▶</button>
+        <img src="${escapeHTML(song.cover_url || DEFAULT_SONG_COVER)}" alt="" loading="lazy">
+        <div class="trend-song-name">
+          <button type="button" class="trend-title-button" data-expand-song="${escapeHTML(songId(song))}"><strong>${escapeHTML(songTitle(song))}</strong></button>
+          <button type="button" class="trend-artist-button" data-open-artist="${escapeHTML(artistNames(songArtist(song))[0])}">${escapeHTML(songArtist(song))}</button>
+        </div>
+      </article>`).join("") : '<p class="muted">Asian songs will appear here when they are published with an Asian country selected.</p>';
+  }
   const gospelEl = $("#gospelSongsList");
   if (gospelEl) {
     const gospelSongs = items.filter(song => /(^|[^a-z])gospel([^a-z]|$)/i.test(String(song.genre || "")))
