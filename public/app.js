@@ -27,6 +27,9 @@ const TOKEN_KEY = "paya_token";
 const USER_KEY = "paya_user";
 const LIKES_KEY = "paya_liked_songs";
 const DEFAULT_SONG_COVER = "/paya-default-cover.svg";
+function isArtistRegistrationView() {
+  return isArtistRegistrationView() || window.location.hash === "#artist-register";
+}
 function savedLikes() { try { return JSON.parse(localStorage.getItem(LIKES_KEY) || "[]").map(String); } catch { return []; } }
 function saveLike(id, liked) { const ids = new Set(savedLikes()); if (liked) ids.add(String(id)); else ids.delete(String(id)); localStorage.setItem(LIKES_KEY, JSON.stringify([...ids])); }
 let token = localStorage.getItem(TOKEN_KEY) || "";
@@ -181,7 +184,7 @@ function updateAccountUI() {
   const tabs = $(".tabs", account || document);
   const registerForm = $("#registerForm");
   const loginForm = $("#loginForm");
-  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
+  const registrationOnly = isArtistRegistrationView();
   const registrationSessionNotice = $("#registrationSessionNotice");
   if (registrationSessionNotice) {
     if (registrationOnly && currentUser) {
@@ -1436,7 +1439,7 @@ bindForm("#registerForm", async (form) => {
   const profilePhoto = $("#registerAvatar")?.files?.[0] || null;
   const coverPhoto = $("#registerCover")?.files?.[0] || null;
   const data = Object.fromEntries(new FormData(form).entries());
-  const registrationOnly = new URLSearchParams(window.location.search).get("artist-register") === "1";
+  const registrationOnly = isArtistRegistrationView();
   if (registrationOnly) data.account_type = "artist";
   const result = await api("/api/register", {
     method: "POST",
@@ -1527,7 +1530,7 @@ bindForm("#loginForm", async (form) => {
     if (status) status.textContent = `Signed in successfully as ${name}.`;
     toast(`Welcome, ${name}! You are signed in.`);
     // Leave the registration-only URL after authentication so the real account dashboard is shown.
-    if (new URLSearchParams(window.location.search).get("artist-register") === "1") {
+    if (isArtistRegistrationView()) {
       window.location.replace("/");
       return;
     }
@@ -1593,8 +1596,8 @@ bindForm("#adForm", async (form) => {
   });
   form.reset();
   const message = $("#adMsg");
-  if (message) message.textContent = "Advert published successfully.";
-  toast("Advert published successfully.");
+  if (message) message.textContent = "Advert submitted successfully. It will appear after Paya Music UG reviews and approves it.";
+  toast("Advert submitted for review.");
   loadAds();
 });
 
