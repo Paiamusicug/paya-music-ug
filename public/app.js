@@ -322,6 +322,30 @@ function renderMusicHome(items = []) {
   const newEl = $("#newArtistsList");
   if (topEl) topEl.innerHTML = top.length ? top.slice(0,12).map(artistCard).join("") : '<p class="muted">Artist profiles will appear here as music is published.</p>';
   if (newEl) newEl.innerHTML = newest.length ? newest.slice(0,12).map(artistCard).join("") : '<p class="muted">New artists will appear here.</p>';
+
+  // Country-specific artist rails use the country saved on each published song.
+  const countryRails = [
+    { country: "nigeria", element: "#nigeriaArtistsList", label: "Nigerian" },
+    { country: "uganda", element: "#ugandaArtistsList", label: "Ugandan" },
+    { country: "jamaica", element: "#jamaicaArtistsList", label: "Jamaican" }
+  ];
+  countryRails.forEach(({ country, element, label }) => {
+    const rail = $(element);
+    if (!rail) return;
+    const countryArtists = new Map();
+    items.filter(song => String(song.country || "").trim().toLocaleLowerCase() === country)
+      .forEach(song => artistNames(songArtist(song)).forEach(name => {
+        const key = name.toLocaleLowerCase();
+        if (!countryArtists.has(key)) countryArtists.set(key, { name, songs: [], latest: song.created_at || "" });
+        const artist = countryArtists.get(key);
+        artist.songs.push(song);
+        if (new Date(song.created_at || 0) > new Date(artist.latest || 0)) artist.latest = song.created_at || "";
+      }));
+    const ranked = [...countryArtists.values()].sort((a,b) => b.songs.length-a.songs.length || a.name.localeCompare(b.name));
+    rail.innerHTML = ranked.length
+      ? ranked.slice(0,12).map(artistCard).join("")
+      : `<p class="muted"> ${label} artists will appear here when music is published with that country.</p>`;
+  });
   const trendingEl = $("#trendingSongsList");
   if (trendingEl) {
     const trending = [...items].sort((a,b) => Number(b.play_count||0)-Number(a.play_count||0) || Number(b.download_count||0)-Number(a.download_count||0) || Number(b.likes||0)-Number(a.likes||0) || new Date(b.created_at||0)-new Date(a.created_at||0)).slice(0,10);
