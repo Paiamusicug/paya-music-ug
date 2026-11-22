@@ -178,7 +178,13 @@ function updateAccountUI() {
   const accountRoleLabel = $("#accountRoleLabel");
   const adminPanel = $("#adminPanel");
   const ownerPanel = $("#ownerPanel");
-  const loginOpen = $("#loginOpen");
+  document.addEventListener("click", (event) => {
+  if (!event.target.closest("#createAccountFromLogin")) return;
+  event.preventDefault();
+  $('.tab[data-tab="register"]')?.click();
+});
+
+const loginOpen = $("#loginOpen");
   const headerLogout = $("#headerLogout");
   const account = $("#account");
   const tabs = $(".tabs", account || document);
