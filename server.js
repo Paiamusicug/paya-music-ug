@@ -669,6 +669,41 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
   }
 });
 
+// PUBLIC ARTIST COUNTRY DIRECTORY; one country per credited artist.
+app.get("/api/artist-countries", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("artist_countries")
+      .select("artist_name, country");
+    if (error) throw error;
+    res.json({ artists: data || [] });
+  } catch (error) {
+    console.error("Artist country directory error:", error.message);
+    res.status(500).json({ error: "Could not load artist countries" });
+  }
+});
+
+app.put("/api/artist-countries", auth, managementViewer, async (req, res) => {
+  try {
+    const artistName = String(req.body.artist_name || "").trim().replace(/\\s+/g, " ").slice(0, 120);
+    const country = String(req.body.country || "").trim().slice(0, 80);
+    if (artistName.length < 2 || country.length < 2) {
+      return res.status(400).json({ error: "Enter the artist name and their country." });
+    }
+    const normalizedName = artistName.toLocaleLowerCase();
+    const { data, error } = await supabase
+      .from("artist_countries")
+      .upsert({ artist_name: artistName, normalized_name: normalizedName, country }, { onConflict: "normalized_name" })
+      .select("artist_name, country")
+      .single();
+    if (error) throw error;
+    res.json({ artist: data });
+  } catch (error) {
+    console.error("Artist country save error:", error.message);
+    res.status(500).json({ error: "Could not save artist country" });
+  }
+});
+
 // PUBLIC APPROVED SONGS
 app.get("/api/songs", async (req, res) => {
   try {
