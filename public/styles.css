@@ -972,3 +972,26 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
  #news .news-story h3{font-size:19px;line-height:1.35}
  #news .news-byline{font-size:12px}
 }
+
+
+/* Paya Music UG sign-in layout inspired by a simple mobile-first social login. */
+#account .account-card:has(#loginForm:not(.hidden)) .tabs{display:none}
+#loginForm{width:100%;max-width:100%;margin:0 auto;text-align:left}
+#loginForm label{display:block;margin:18px 0 20px;color:#dedbd3;font-size:14px;text-align:left}
+#loginForm input{box-sizing:border-box;width:100%;min-height:54px;margin-top:9px;padding:14px 15px;border:1px solid #514936;border-radius:9px;background:#101113;color:#fff;font-size:16px}
+#loginForm input:focus{border-color:var(--gold);outline:2px solid rgba(232,184,76,.16)}
+#loginForm .password-field{display:flex;align-items:center;gap:10px}
+#loginForm .password-field input{flex:1;min-width:0}
+#loginForm .password-field button{flex:0 0 auto;min-height:48px;border-radius:9px}
+#loginForm button[type="submit"]{min-height:58px;border-radius:10px;font-size:17px}
+#loginForm .forgot-password-link{display:block;width:100%;margin:13px 0 16px;padding:9px 8px;border:0;background:transparent;color:var(--gold);font-size:15px;text-align:center;cursor:pointer}
+#loginForm .create-account-link{display:flex;min-height:54px;align-items:center;justify-content:center;margin:20px 0 0;border:1px solid #65512d;border-radius:10px;background:#171512;color:#f0c45c;font-size:15px;font-weight:700}
+#loginForm .create-account-link:hover{border-color:var(--gold);background:#211b10}
+#loginMsg{margin-top:12px;text-align:center}
+@media(max-width:600px){
+  #account.account-section{padding:30px 16px 48px}
+  #account .account-card{width:100%;max-width:480px;padding:26px 20px 30px;border-radius:20px}
+  #loginForm label{font-size:14px}
+  #loginForm input{min-height:56px;font-size:16px}
+  #loginForm button[type="submit"]{min-height:58px}
+}
