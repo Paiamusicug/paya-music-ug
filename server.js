@@ -584,7 +584,7 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
     // Block identical audio even if the uploader renames the file.
     const { data: identicalAudio, error: hashCheckError } = await supabase
       .from("songs")
-      .select("id, title, artist")
+      .select("id, title, artist, uploader_id")
       .eq("audio_sha256", audioSha256)
       .eq("status", "approved")
       .limit(1)
@@ -592,6 +592,16 @@ app.post("/api/songs", auth, upload.fields([{ name: "audio", maxCount: 1 }, { na
 
     if (hashCheckError) throw hashCheckError;
     if (identicalAudio) {
+      // If the same uploader retries after losing the success response,
+      // return the already-published song instead of creating another upload
+      // or showing a misleading duplicate error.
+      if (String(identicalAudio.uploader_id) === String(req.user.id)) {
+        return res.status(200).json({
+          message: "This song was already uploaded and published successfully. No second copy was created.",
+          song: identicalAudio,
+          alreadyPublished: true
+        });
+      }
       return res.status(409).json({
         error: "This exact audio file is already published. Upload a genuinely different recording or remix."
       });
