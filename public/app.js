@@ -341,7 +341,9 @@ function renderMusicHome(items = []) {
     { country: "nigeria", element: "#nigeriaArtistsList", label: "Nigerian" },
     { country: "uganda", element: "#ugandaArtistsList", label: "Ugandan" },
     { country: "jamaica", element: "#jamaicaArtistsList", label: "Jamaican" },
-    { country: "tanzania", element: "#tanzaniaArtistsList", label: "Tanzanian" }
+    { country: "tanzania", element: "#tanzaniaArtistsList", label: "Tanzanian" },
+    { country: "united states", element: "#usaArtistsList", label: "American" },
+    { country: "south africa", element: "#southAfricaArtistsList", label: "South African" }
   ];
   countryRails.forEach(({ country, element, label }) => {
     const rail = $(element);
