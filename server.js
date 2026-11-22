@@ -271,6 +271,15 @@ function songCatalogueEditor(req, res, next) {
   next();
 }
 
+function songAssetManager(req, res, next) {
+  const email = String(req.user.email || "").trim().toLowerCase();
+  const permittedRole = ["admin", "superadmin", "owner"].includes(String(req.user.role || "").toLowerCase());
+  if (!permittedRole && email !== "payamusic361@gmail.com") {
+    return res.status(403).json({ error: "Song artwork and deletion access required" });
+  }
+  next();
+}
+
 function managementViewer(req, res, next) {
   const email = String(req.user.email || "").trim().toLowerCase();
   if (req.user.role !== "owner" && email !== "payamusic361@gmail.com") {
@@ -1097,7 +1106,7 @@ app.patch("/api/my-songs/:id", auth, admin, async (req, res) => {
 });
 
 // ADMIN/OWNER: CHANGE SONG ARTWORK WITHOUT RE-UPLOADING THE AUDIO
-app.patch("/api/admin/songs/:id/artwork", auth, admin, imageUpload.single("cover_image"), async (req, res) => {
+app.patch("/api/admin/songs/:id/artwork", auth, songAssetManager, imageUpload.single("cover_image"), async (req, res) => {
   let uploadedPath = null;
   try {
     if (!req.file) return res.status(400).json({ error: "Please choose a JPG, PNG, or WEBP artwork image." });
@@ -1180,7 +1189,7 @@ app.patch("/api/admin/songs/:id", auth, admin, async (req, res) => {
 });
 
 // OWNER/ADMIN: DELETE A SONG
-app.delete("/api/admin/songs/:id", auth, admin, async (req, res) => {
+app.delete("/api/admin/songs/:id", auth, songAssetManager, async (req, res) => {
   try {
     const { data, error } = await supabase.from("songs").delete().eq("id", req.params.id).select("id").maybeSingle();
     if (error) throw error;
