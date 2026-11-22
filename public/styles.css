@@ -939,3 +939,6 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
   #profileDisplay .artist-profile-cover-display{height:190px}
   .artist-cover-camera,.artist-avatar-camera{width:38px;height:38px}
 }
+
+/* Distinguish the person who submitted each news article. */
+#news .news-author-name{color:#e7bd59;font-weight:700}
