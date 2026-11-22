@@ -298,6 +298,18 @@ function artistNames(credit) {
 }
 
 let catalogueSongs = [];
+let artistCountryMap = new Map();
+async function refreshArtistCountryMap() {
+  try {
+    const result = await api("/api/artist-countries");
+    artistCountryMap = new Map((result.artists || []).map((item) => [
+      String(item.artist_name || "").trim().toLocaleLowerCase(),
+      String(item.country || "").trim().toLocaleLowerCase()
+    ]));
+  } catch (error) {
+    console.warn("Could not load artist country directory:", error.message);
+  }
+}
 function renderMusicHome(items = []) {
   const artistMap = new Map();
   items.forEach((song) => artistNames(songArtist(song)).forEach((name) => {
@@ -323,28 +335,30 @@ function renderMusicHome(items = []) {
   if (topEl) topEl.innerHTML = top.length ? top.slice(0,12).map(artistCard).join("") : '<p class="muted">Artist profiles will appear here as music is published.</p>';
   if (newEl) newEl.innerHTML = newest.length ? newest.slice(0,12).map(artistCard).join("") : '<p class="muted">New artists will appear here.</p>';
 
-  // Country-specific artist rails use the country saved on each published song.
+  // Country rails classify each credited artist separately, so collaborations
+  // can appear in every represented artist's home-country section.
   const countryRails = [
     { country: "nigeria", element: "#nigeriaArtistsList", label: "Nigerian" },
     { country: "uganda", element: "#ugandaArtistsList", label: "Ugandan" },
-    { country: "jamaica", element: "#jamaicaArtistsList", label: "Jamaican" }
+    { country: "jamaica", element: "#jamaicaArtistsList", label: "Jamaican" },
+    { country: "tanzania", element: "#tanzaniaArtistsList", label: "Tanzanian" }
   ];
   countryRails.forEach(({ country, element, label }) => {
     const rail = $(element);
     if (!rail) return;
     const countryArtists = new Map();
-    items.filter(song => String(song.country || "").trim().toLocaleLowerCase() === country)
-      .forEach(song => artistNames(songArtist(song)).forEach(name => {
-        const key = name.toLocaleLowerCase();
-        if (!countryArtists.has(key)) countryArtists.set(key, { name, songs: [], latest: song.created_at || "" });
-        const artist = countryArtists.get(key);
-        artist.songs.push(song);
-        if (new Date(song.created_at || 0) > new Date(artist.latest || 0)) artist.latest = song.created_at || "";
-      }));
+    items.forEach(song => artistNames(songArtist(song)).forEach(name => {
+      if (artistCountryMap.get(name.toLocaleLowerCase()) !== country) return;
+      const key = name.toLocaleLowerCase();
+      if (!countryArtists.has(key)) countryArtists.set(key, { name, songs: [], latest: song.created_at || "" });
+      const artist = countryArtists.get(key);
+      artist.songs.push(song);
+      if (new Date(song.created_at || 0) > new Date(artist.latest || 0)) artist.latest = song.created_at || "";
+    }));
     const ranked = [...countryArtists.values()].sort((a,b) => b.songs.length-a.songs.length || a.name.localeCompare(b.name));
     rail.innerHTML = ranked.length
       ? ranked.slice(0,12).map(artistCard).join("")
-      : `<p class="muted"> ${label} artists will appear here when music is published with that country.</p>`;
+      : `<p class="muted">${label} artists will appear here once their countries are recorded.</p>`;
   });
   const asianEl = $("#asianSongsList");
   if (asianEl) {
@@ -357,9 +371,9 @@ function renderMusicHome(items = []) {
       "sri lanka","syria","taiwan","tajikistan","thailand","timor-leste","turkey",
       "turkmenistan","united arab emirates","uzbekistan","vietnam","yemen"
     ]);
-    const asianSongs = items.filter(song => asianCountries.has(
-      String(song.country || "").trim().toLocaleLowerCase().replace(/\\s+/g, " ")
-    )).sort((a,b) =>
+    const asianSongs = items.filter(song =>
+      artistNames(songArtist(song)).some(name => asianCountries.has(artistCountryMap.get(name.toLocaleLowerCase())))
+    ).sort((a,b) =>
       Number(b.play_count || 0)-Number(a.play_count || 0) ||
       Number(b.download_count || 0)-Number(a.download_count || 0) ||
       new Date(b.created_at || 0)-new Date(a.created_at || 0)
@@ -598,17 +612,35 @@ function renderSongs(items = []) {
       if (title === null) return;
       const artist = window.prompt("Artist name:", songArtist(song));
       if (artist === null) return;
-      const country = window.prompt("Artist's country:", song.country || "");
-      if (country === null) return;
+      const creditedArtists = artistNames(artist);
+      const ownerEditing = canManageSongs();
+      const artistCountries = [];
+      if (ownerEditing) {
+        for (const creditedArtist of creditedArtists) {
+          const savedCountry = artistCountryMap.get(creditedArtist.toLocaleLowerCase()) || "";
+          const country = window.prompt(`Country for ${creditedArtist}:`, savedCountry);
+          if (country === null) return;
+          artistCountries.push({ artist_name: creditedArtist, country });
+        }
+      }
       button.disabled = true;
       try {
-        const ownerEditing = canManageSongs();
+        if (ownerEditing) {
+          for (const entry of artistCountries) {
+            await api("/api/artist-countries", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(entry)
+            });
+          }
+          await refreshArtistCountryMap();
+        }
         await api(ownerEditing
           ? `/api/owner/songs/${encodeURIComponent(songId(song))}`
           : `/api/my-songs/${encodeURIComponent(songId(song))}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, artist, country, genre: song.genre || "", description: song.description || "" })
+          body: JSON.stringify({ title, artist, country: song.country || "", genre: song.genre || "", description: song.description || "" })
         });
         toast("Song details updated.");
         await Promise.all([loadSongs($("#search")?.value || ""), loadMine()]);
@@ -756,6 +788,7 @@ async function loadSongs(query = "") {
     const country = $("#countryFilter")?.value || "";
     const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`);
     catalogueSongs = result.songs || [];
+    await refreshArtistCountryMap();
     renderMusicHome(catalogueSongs);
     renderSearchArtistProfiles(catalogueSongs, query);
     renderSongs(catalogueSongs);
