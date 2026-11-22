@@ -1042,3 +1042,19 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
   #account .password-field{gap:6px}
   #account .password-field button{font-size:12px;padding:8px}
 }
+
+
+/* Fix only the registration cover/profile photo camera controls. */
+#account #registerForm label.register-cover-camera,
+#account #registerForm label.register-avatar-camera{
+  display:grid!important;place-items:center!important;
+  width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;
+  max-width:42px!important;max-height:42px!important;aspect-ratio:1/1!important;
+  margin:0!important;padding:0!important;line-height:1!important;
+  border:2px solid #171717!important;border-radius:50%!important;
+  background:#edbd4d!important;color:#17120a!important;
+  font-size:18px!important;letter-spacing:normal!important;
+  box-sizing:border-box!important;flex:none!important;
+}
+#account #registerForm label.register-cover-camera{position:absolute!important;right:14px!important;bottom:12px!important;left:auto!important;top:auto!important;}
+#account #registerForm label.register-avatar-camera{position:absolute!important;right:-2px!important;bottom:0!important;left:auto!important;top:auto!important;}
