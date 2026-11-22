@@ -942,3 +942,33 @@ body.signed-in:not(.artist-registration-only) #account.show-profile-editor #prof
 
 /* Distinguish the person who submitted each news article. */
 #news .news-author-name{color:#e7bd59;font-weight:700}
+
+
+/* News cards: larger artwork and horizontal magazine-style feed (scoped to the news section only). */
+#news{background:#f7f7f7;color:#292929;padding:42px 0 56px}
+#news .section-head{margin-bottom:26px}
+#news .section-head h2{color:#292929}
+#news .section-head .eyebrow{color:#6d6d6d}
+#news .section-head>.muted{color:#777}
+#news .news-grid{display:flex;flex-direction:row;align-items:stretch;gap:22px;overflow-x:auto;overflow-y:hidden;padding:4px 2px 22px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+#news .news-story{display:flex;flex:0 0 min(82vw,390px);flex-direction:column;gap:0;min-width:0;max-width:390px;padding:0;border:1px solid #e5e5e5;border-radius:9px;background:#fff;color:#292929;overflow:hidden;box-shadow:0 2px 7px rgba(0,0,0,.13);scroll-snap-align:start}
+#news .news-story-copy{order:2;align-self:stretch;padding:17px 18px 12px}
+#news .news-category{margin:0 0 9px;color:#777;font-size:11px;letter-spacing:2px}
+#news .news-story h3{margin:0 0 10px;color:#292929;font-size:clamp(18px,2vw,22px);font-weight:600;line-height:1.35}
+#news .news-byline{display:block;margin:0 0 12px;color:#858585;font-size:13px}
+#news .news-author-name{color:#bd8b24}
+#news .news-story-image{order:1;display:block;width:100%;height:clamp(220px,32vw,300px);min-height:220px;object-fit:cover;align-self:stretch;border-radius:0;background:#eee}
+#news .news-story-details{order:3;margin:0;padding:0 18px 17px;color:#555}
+#news .news-story-details summary{color:#a87816;font-size:14px}
+#news .news-story-details .news-body{color:#555}
+#news .news-story-copy .news-share-btn,#news .news-story-copy .news-edit-btn,#news .news-story-copy button[data-delete-published-news]{margin:5px 6px 4px 0}
+#news .news-story:has(.news-story-image) .news-story-image{height:clamp(220px,32vw,300px)}
+@media(max-width:600px){
+ #news{padding:34px 0 44px}
+ #news .section-head{padding-left:16px;padding-right:16px}
+ #news .news-grid{gap:16px;padding-left:16px;padding-right:16px}
+ #news .news-story{flex-basis:84vw;max-width:360px}
+ #news .news-story-image{height:clamp(230px,65vw,290px);min-height:230px}
+ #news .news-story h3{font-size:19px;line-height:1.35}
+ #news .news-byline{font-size:12px}
+}
