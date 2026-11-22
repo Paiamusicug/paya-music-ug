@@ -1647,7 +1647,7 @@ app.patch("/api/admin/profiles/:id", auth, admin, async (req, res) => {
 app.get("/api/news", async (req, res) => {
   const { data, error } = await supabase
     .from("news")
-    .select("id, title, content, category, image_url, published_at")
+    .select("id, title, content, category, image_url, published_at, author_id")
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
@@ -1657,7 +1657,23 @@ app.get("/api/news", async (req, res) => {
     });
   }
 
-  res.json({ news: data || [] });
+  const authorIds = [...new Set((data || []).map((item) => item.author_id).filter(Boolean))];
+  let authorNames = {};
+  if (authorIds.length) {
+    const { data: authors, error: authorsError } = await supabase
+      .from("users")
+      .select("id, name")
+      .in("id", authorIds);
+    if (!authorsError) {
+      authorNames = Object.fromEntries((authors || []).map((author) => [String(author.id), author.name]));
+    }
+  }
+
+  const news = (data || []).map((item) => ({
+    ...item,
+    author_name: item.author_id ? (authorNames[String(item.author_id)] || null) : null
+  }));
+  res.json({ news });
 });
 
 
