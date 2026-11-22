@@ -685,7 +685,7 @@ app.get("/api/artist-countries", async (req, res) => {
 
 app.put("/api/artist-countries", auth, managementViewer, async (req, res) => {
   try {
-    const artistName = String(req.body.artist_name || "").trim().replace(/\\s+/g, " ").slice(0, 120);
+    const artistName = String(req.body.artist_name || "").trim().replace(/\s+/g, " ").slice(0, 120);
     const country = String(req.body.country || "").trim().slice(0, 80);
     if (artistName.length < 2 || country.length < 2) {
       return res.status(400).json({ error: "Enter the artist name and their country." });
