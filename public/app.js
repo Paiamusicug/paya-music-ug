@@ -1283,19 +1283,26 @@ document.addEventListener("click", async (event) => {
   }
   const reaction = event.target.closest("[data-comment-reaction]");
   if (reaction) {
-    const section = reaction.closest(".news-discussion");
-    let visitorKey = localStorage.getItem("paya_comment_visitor");
-    if (!visitorKey) {
-      visitorKey = "visitor-" + Date.now() + "-" + Math.random().toString(36).slice(2);
-      localStorage.setItem("paya_comment_visitor", visitorKey);
+    if (!token) {
+      toast("Please sign in to Like or Dislike a comment or reply.");
+      const loginButton = $("#loginOpen");
+      if (loginButton) loginButton.click();
+      else {
+        $('.tab[data-tab="login"]')?.click();
+        $("#account")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
     }
+    const section = reaction.closest(".news-discussion");
+    reaction.disabled = true;
     try {
       await api("/api/news/comments/" + encodeURIComponent(reaction.dataset.commentId) + "/reaction", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reaction: reaction.dataset.commentReaction, visitor_key: visitorKey })
+        body: JSON.stringify({ reaction: reaction.dataset.commentReaction })
       });
       await loadNewsComments(section.dataset.newsComments);
     } catch (error) { toast(error.message); }
+    finally { reaction.disabled = false; }
     return;
   }
   const remove = event.target.closest("[data-comment-delete]");
