@@ -331,6 +331,29 @@ function artistNames(credit) {
 
 let catalogueSongs = [];
 let artistCountryMap = new Map();
+
+// Keep a small public catalogue snapshot so returning visitors see songs
+// immediately while the live catalogue refreshes in the background.
+const HOME_SONGS_CACHE_KEY = "paya_home_songs_cache_v1";
+function readHomeSongsCache() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HOME_SONGS_CACHE_KEY) || "null");
+    return Array.isArray(saved?.songs) ? saved.songs : [];
+  } catch {
+    return [];
+  }
+}
+function saveHomeSongsCache(songs) {
+  try {
+    // Store only the first 200 public catalogue entries; never cache account data.
+    localStorage.setItem(HOME_SONGS_CACHE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      songs: (Array.isArray(songs) ? songs : []).slice(0, 200)
+    }));
+  } catch (error) {
+    console.warn("Could not save the homepage song cache:", error.message);
+  }
+}
 async function refreshArtistCountryMap() {
   try {
     const result = await api("/api/artist-countries");
@@ -817,15 +840,37 @@ async function shareSong(song) {
 async function loadSongs(query = "") {
   const container = $("#songs");
   const sort = $("#songSort")?.value || "newest";
-  if (container) container.innerHTML = '<p class="loading">Loading songs…</p>';
+  const country = $("#countryFilter")?.value || "";
+  const isHomepageRequest = !String(query || "").trim() && sort === "newest" && !country;
+
+  // Paint cached songs before waiting for the network on returning visits.
+  if (isHomepageRequest) {
+    const cachedSongs = readHomeSongsCache();
+    if (cachedSongs.length) {
+      catalogueSongs = cachedSongs;
+      renderMusicHome(catalogueSongs);
+      renderSearchArtistProfiles(catalogueSongs, query);
+      renderSongs(catalogueSongs);
+    } else if (container) {
+      container.innerHTML = '<p class="loading">Loading songs…</p>';
+    }
+  } else if (container) {
+    container.innerHTML = '<p class="loading">Loading songs…</p>';
+  }
+
   try {
-    const country = $("#countryFilter")?.value || "";
     const result = await api(`/api/songs?q=${encodeURIComponent(query)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`);
     catalogueSongs = result.songs || [];
-    await refreshArtistCountryMap();
+    if (isHomepageRequest) saveHomeSongsCache(catalogueSongs);
+
+    // Render the songs immediately; the separate country directory must not
+    // hold up the main music catalogue or trending section.
     renderMusicHome(catalogueSongs);
     renderSearchArtistProfiles(catalogueSongs, query);
     renderSongs(catalogueSongs);
+
+    refreshArtistCountryMap().then(() => renderMusicHome(catalogueSongs));
+
     if (String(query || "").trim()) {
       requestAnimationFrame(() => {
         const target = $("#artistSearchProfiles") && !$("#artistSearchProfiles").hidden
@@ -835,7 +880,11 @@ async function loadSongs(query = "") {
       });
     }
   } catch (error) {
-    if (container) container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
+    if (container && !catalogueSongs.length) {
+      container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
+    } else if (container && !isHomepageRequest) {
+      container.insertAdjacentHTML("afterbegin", `<p class="muted">Showing previously loaded songs. ${escapeHTML(error.message)}</p>`);
+    }
   }
 }
 
