@@ -363,7 +363,7 @@ function renderMusicHome(items = []) {
       Number(b.play_count || 0)-Number(a.play_count || 0) ||
       Number(b.download_count || 0)-Number(a.download_count || 0) ||
       new Date(b.created_at || 0)-new Date(a.created_at || 0)
-    ).slice(0,12);
+    ).slice(0,50);
     asianEl.innerHTML = asianSongs.length ? asianSongs.map((song,index) => `
       <article class="trending-row">
         <span class="trend-number">${index+1}</span>
