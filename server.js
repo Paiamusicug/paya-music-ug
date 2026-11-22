@@ -1817,10 +1817,17 @@ app.post("/api/news/:id/comments", async (req, res) => {
   res.status(201).json({ comment: data });
 });
 
-app.post("/api/news/comments/:id/reaction", async (req, res) => {
+app.post("/api/news/comments/:id/reaction", auth, async (req, res) => {
   const reaction = req.body.reaction;
-  const visitorKey = String(req.body.visitor_key || "").slice(0, 100);
-  if (!["like", "dislike"].includes(reaction) || !visitorKey) return res.status(400).json({ error: "Invalid reaction." });
+  // Use the authenticated account ID as the unique voter identity.
+  // Existing anonymous visitor_key records remain untouched and continue to count.
+  const visitorKey = String(req.user.id);
+  if (!["like", "dislike"].includes(reaction)) return res.status(400).json({ error: "Invalid reaction." });
+
+  const { data: comment, error: commentError } = await supabase.from("news_comments")
+    .select("id").eq("id", req.params.id).maybeSingle();
+  if (commentError || !comment) return res.status(404).json({ error: "Comment or reply not found." });
+
   const { error } = await supabase.from("news_comment_reactions")
     .upsert({ comment_id: req.params.id, visitor_key: visitorKey, reaction }, { onConflict: "comment_id,visitor_key" });
   if (error) return res.status(500).json({ error: "Could not save reaction." });
