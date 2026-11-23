@@ -1927,7 +1927,7 @@ async function loadOwnerUsers() {
       const songHTML = songs.filter((song) =>
         [song.title, song.artist, song.status].some((value) => String(value || "").toLowerCase().includes(query))
       ).map((song) => `
-        <div class="admin-item">
+        <div class="admin-item admin-song-editor">
           <label>Song title
             <input type="text" maxlength="120" data-owner-song-title="${escapeHTML(song.id)}" value="${escapeHTML(song.title || "")}">
           </label>
