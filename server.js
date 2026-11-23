@@ -967,18 +967,19 @@ h1{font-size:clamp(26px,5vw,42px);margin:0 0 10px}.bio{color:#c3c3c3;line-height
 // SEO SONG PAGES: render the complete approved song page for visitors and search crawlers.
 app.get("/song/:id", async (req, res) => {
   try {
+    // Send real visitors straight to the shared-song view. The page then loads
+    // this exact song by ID instead of waiting for the entire public catalogue.
+    const userAgent = String(req.get("user-agent") || "");
+    const metadataCrawler = /facebookexternalhit|Facebot|WhatsApp|TelegramBot|Twitterbot|LinkedInBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterestbot/i.test(userAgent);
+    if (!metadataCrawler) {
+      return res.redirect(302, `/?song=${encodeURIComponent(req.params.id)}#discover`);
+    }
+
+    // Social/search crawlers receive song-specific metadata (title, artist, artwork).
     const { data: song, error } = await supabase.from("songs")
       .select("id, title, artist, description, cover_url, genre, country, created_at, status")
       .eq("id", req.params.id).eq("status", "approved").maybeSingle();
     if (error || !song) return res.status(404).send("Song not found");
-
-    // Social/search crawlers receive the song-specific metadata below (title, artist, artwork).
-    // Real visitors are sent into the full Paya Music UG catalogue with this song selected.
-    const userAgent = String(req.get("user-agent") || "");
-    const metadataCrawler = /facebookexternalhit|Facebot|WhatsApp|TelegramBot|Twitterbot|LinkedInBot|Slackbot|Discordbot|Googlebot|bingbot|Applebot|Pinterestbot/i.test(userAgent);
-    if (!metadataCrawler) {
-      return res.redirect(302, `/?song=${encodeURIComponent(song.id)}#music`);
-    }
 
     const siteUrl = "https://paya-music-ug.onrender.com";
     const pageUrl = siteUrl + "/song/" + encodeURIComponent(song.id);
@@ -1226,6 +1227,43 @@ app.post("/api/songs/:id/play", async (req, res) => {
     res.status(500).json({ error: "Could not record play" });
   }
 });
+// Load one public song directly for shared links, without downloading the full catalogue.
+app.get("/api/songs/:id/details", async (req, res) => {
+  try {
+    const { data: song, error } = await supabase.from("songs")
+      .select("id, title, artist, country, genre, description, cover_url, created_at, uploader_id")
+      .eq("id", req.params.id).eq("status", "approved").maybeSingle();
+    if (error || !song) return res.status(404).json({ error: "Song not found" });
+
+    const [playCounts, downloadCounts, likesResult] = await Promise.all([
+      getSongEventCounts("song_plays", [song.id]),
+      getSongEventCounts("song_downloads", [song.id]),
+      supabase.from("song_likes").select("song_id").eq("song_id", song.id)
+    ]);
+    if (likesResult.error) throw likesResult.error;
+
+    let artistProfile = null;
+    if (song.uploader_id) {
+      const { data: profile, error: profileError } = await supabase.from("users")
+        .select("id, name, bio, avatar_url").eq("id", song.uploader_id).maybeSingle();
+      if (!profileError) artistProfile = profile;
+    }
+
+    res.json({
+      song: {
+        ...song,
+        play_count: playCounts.get(song.id) || 0,
+        download_count: downloadCounts.get(song.id) || 0,
+        likes: (likesResult.data || []).length,
+        artist_profile: artistProfile
+      }
+    });
+  } catch (error) {
+    console.error("Shared song lookup failed:", error);
+    res.status(500).json({ error: "Could not load this song" });
+  }
+});
+
 // STREAM OR DOWNLOAD SONG
 app.get("/api/songs/:id/:action", async (req, res) => {
   try {
