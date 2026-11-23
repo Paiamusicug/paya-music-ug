@@ -845,7 +845,7 @@ async function shareSong(song) {
   }
 }
 
-async function loadSongs(query = "") {
+async function loadSongs(query = "", options = {}) {
   const container = $("#songs");
   const sort = $("#songSort")?.value || "newest";
   const country = $("#countryFilter")?.value || "";
@@ -858,11 +858,11 @@ async function loadSongs(query = "") {
       catalogueSongs = cachedSongs;
       renderMusicHome(catalogueSongs);
       renderSearchArtistProfiles(catalogueSongs, query);
-      renderSongs(catalogueSongs);
-    } else if (container) {
+      if (!options.preserveSongView) renderSongs(catalogueSongs);
+    } else if (container && !options.preserveSongView) {
       container.innerHTML = '<p class="loading">Loading songs…</p>';
     }
-  } else if (container) {
+  } else if (container && !options.preserveSongView) {
     container.innerHTML = '<p class="loading">Loading songs…</p>';
   }
 
@@ -875,7 +875,7 @@ async function loadSongs(query = "") {
     // hold up the main music catalogue or trending section.
     renderMusicHome(catalogueSongs);
     renderSearchArtistProfiles(catalogueSongs, query);
-    renderSongs(catalogueSongs);
+    if (!options.preserveSongView) renderSongs(catalogueSongs);
 
     refreshArtistCountryMap().then(() => renderMusicHome(catalogueSongs));
 
@@ -888,9 +888,9 @@ async function loadSongs(query = "") {
       });
     }
   } catch (error) {
-    if (container && !catalogueSongs.length) {
+    if (container && !options.preserveSongView && !catalogueSongs.length) {
       container.innerHTML = `<p class="error">${escapeHTML(error.message)}</p>`;
-    } else if (container && !isHomepageRequest) {
+    } else if (container && !options.preserveSongView && !isHomepageRequest) {
       container.insertAdjacentHTML("afterbegin", `<p class="muted">Showing previously loaded songs. ${escapeHTML(error.message)}</p>`);
     }
   }
@@ -2088,27 +2088,40 @@ if (headerSignInButton) {
   });
 }
 
-function focusSharedSong() {
-  const sharedSongId = new URLSearchParams(window.location.search).get("song");
+async function focusSharedSong(sharedSongId) {
   if (!sharedSongId) return;
-  const card = Array.from(document.querySelectorAll(".song-card"))
-    .find((item) => item.dataset.songId === sharedSongId);
-  if (!card) {
-    toast("That song could not be found in the music catalogue.");
-    return;
+  try {
+    // Fetch only the requested song. Do not wait for the full catalogue.
+    const result = await api("/api/songs/" + encodeURIComponent(sharedSongId) + "/details");
+    if (!result.song) throw new Error("Song not found");
+    renderSongs([result.song]);
+    const card = Array.from(document.querySelectorAll(".song-card"))
+      .find((item) => item.dataset.songId === String(sharedSongId));
+    if (!card) throw new Error("Song not found");
+    card.classList.add("shared-song-highlight");
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    toast(error.message || "Could not open this song.");
+    const container = $("#songs");
+    if (container) container.innerHTML = '<p class="error">This song could not be found. It may have been removed or is temporarily unavailable.</p>';
   }
-  card.classList.add("shared-song-highlight");
-  card.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   await restoreSession();
   api("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_type: "visit", visitor_key: visitorKey() }) }).catch(() => {});
+  const sharedSongId = new URLSearchParams(window.location.search).get("song");
+  if (sharedSongId) {
+    // Refresh homepage artist rails in the background without replacing the
+    // exact song card shown to a visitor who opened a shared link.
+    loadSongs("", { preserveSongView: true });
+    focusSharedSong(sharedSongId);
+  } else {
+    loadSongs();
+  }
   await Promise.allSettled([
-    loadSongs(),
     loadAds(),
     loadNews(),
     refreshDashboard()
   ]);
-  focusSharedSong();
 });
