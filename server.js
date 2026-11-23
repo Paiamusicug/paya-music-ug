@@ -165,6 +165,16 @@ app.use(rateLimit({
   limit: 200
 }));
 
+// Additional protection for public news comments and replies.
+// Keep comments open to everyone while slowing automated spam bursts.
+const commentPostLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many comments in a short time. Please wait a few minutes and try again." }
+});
+
 // AUDIO UPLOAD
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -1836,7 +1846,7 @@ app.get("/api/news/:id/comments", async (req, res) => {
   res.json({ comments: (data || []).map((item) => Object.assign({}, item, counts.get(String(item.id)) || { likes: 0, dislikes: 0 })) });
 });
 
-app.post("/api/news/:id/comments", async (req, res) => {
+app.post("/api/news/:id/comments", commentPostLimiter, async (req, res) => {
   const name = String(req.body.name || "").trim().slice(0, 15);
   const body = String(req.body.body || "").trim().slice(0, 1500);
   const parentId = req.body.parent_id || null;
