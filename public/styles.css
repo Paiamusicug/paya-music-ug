@@ -1141,3 +1141,76 @@ button[data-save-account-type]:disabled{
     width:100%;
   }
 }
+
+
+/* Polished, mobile-friendly management song editor */
+.admin-song-editor{
+  margin:14px 0 18px;
+  padding:18px;
+  border:1px solid rgba(235,189,77,.28);
+  border-radius:14px;
+  background:linear-gradient(145deg,#1b1c20,#111214);
+  box-shadow:0 8px 22px rgba(0,0,0,.2);
+}
+.admin-song-editor label{
+  display:block;
+  margin:0 0 14px;
+  color:#d8d2c5;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.2px;
+}
+.admin-song-editor input[data-owner-song-title],
+.admin-song-editor input[data-owner-song-artist]{
+  display:block;
+  width:100%;
+  min-height:52px;
+  box-sizing:border-box;
+  margin-top:8px;
+  padding:13px 15px;
+  border:1px solid #414047;
+  border-radius:10px;
+  background:#0e0f11;
+  color:#f7f3e9;
+  font:inherit;
+  line-height:1.4;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.admin-song-editor input[data-owner-song-title]:focus,
+.admin-song-editor input[data-owner-song-artist]:focus{
+  outline:none;
+  border-color:#edbd4d;
+  background:#171511;
+  box-shadow:0 0 0 3px rgba(237,189,77,.15);
+}
+.admin-song-editor button[data-save-owner-song]{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-height:46px;
+  margin:5px 0 0;
+  padding:11px 16px;
+  border:1px solid #edbd4d;
+  border-radius:10px;
+  background:linear-gradient(135deg,#edbd4d,#c9932d);
+  color:#17120a;
+  font-weight:750;
+  font-size:14px;
+  cursor:pointer;
+  box-shadow:0 5px 16px rgba(0,0,0,.2);
+  transition:filter .18s ease,transform .18s ease;
+}
+.admin-song-editor button[data-save-owner-song]:hover{
+  filter:brightness(1.08);
+  transform:translateY(-1px);
+}
+.admin-song-editor button[data-save-owner-song]:focus-visible{
+  outline:2px solid #fff;
+  outline-offset:3px;
+}
+.admin-song-editor button[data-save-owner-song]:disabled{
+  opacity:.58;
+  cursor:wait;
+  transform:none;
+}
